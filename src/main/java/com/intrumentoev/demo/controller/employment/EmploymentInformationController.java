@@ -1,0 +1,84 @@
+package com.intrumentoev.demo.controller.employment;
+
+import com.intrumentoev.demo.model.employment.EmploymentInformationPatchRequest;
+import com.intrumentoev.demo.model.employment.EmploymentInformationRequest;
+import com.intrumentoev.demo.model.employment.EmploymentInformationResponse;
+import com.intrumentoev.demo.service.service.employment.EmploymentInformationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+
+@Tag(name = "Información Laboral", description = "Gestión de ocupación, empresa e ingresos mensuales de clientes")
+@RestController
+@RequestMapping("/v1/laboral")
+@RequiredArgsConstructor
+public class EmploymentInformationController {
+
+    private final EmploymentInformationService employmentService;
+
+    @Operation(summary = "Registrar información laboral")
+    @PostMapping(
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<EmploymentInformationResponse> crearEmploymentInformation(
+            @Valid @RequestBody EmploymentInformationRequest request) {
+        EmploymentInformationResponse response = employmentService.crearEmploymentInformation(request);
+        URI location = URI.create("/v1/laboral/" + response.getIdEmployment());
+        return ResponseEntity.created(location).body(response);
+    }
+
+    @Operation(summary = "Obtener información laboral por ID")
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<EmploymentInformationResponse> obtenerPorId(@PathVariable("id") Long id) {
+        EmploymentInformationResponse response = employmentService.obtenerEmploymentInformationPorId(id);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Obtener información laboral por ID de cliente")
+    @GetMapping(value = "/cliente/{idClient}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<EmploymentInformationResponse> obtenerPorIdClient(@PathVariable("idClient") Long idClient) {
+        EmploymentInformationResponse response = employmentService.obtenerEmploymentInformationPorIdClient(idClient);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Reemplazo completo de información laboral (PUT)")
+    @PutMapping(
+            value = "/{id}",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<EmploymentInformationResponse> reemplazar(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody EmploymentInformationRequest request) {
+        EmploymentInformationResponse response = employmentService.reemplazarEmploymentInformation(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Actualización parcial de información laboral (PATCH)")
+    @PatchMapping(
+            value = "/{id}",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<EmploymentInformationResponse> actualizarParcial(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody EmploymentInformationPatchRequest request) {
+        EmploymentInformationResponse response = employmentService.actualizarParcialEmploymentInformation(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Eliminar información laboral")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable("id") Long id) {
+        employmentService.eliminarEmploymentInformation(id);
+        return ResponseEntity.noContent().build();
+    }
+}

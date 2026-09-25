@@ -1,0 +1,85 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.5.6'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.intrumentoev'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	// Spring Boot Starters
+	implementation 'org.springframework.boot:spring-boot-starter'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+	// Documentación y APIs
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
+
+	// Bases de Datos (Hibernate y Lettuce los administra Spring Boot)
+	runtimeOnly 'org.postgresql:postgresql'
+	implementation 'org.flywaydb:flyway-core'
+	implementation 'org.flywaydb:flyway-database-postgresql'
+	implementation 'com.oracle.database.jdbc:ojdbc8:23.2.0.0'
+	implementation 'com.oracle.database.jdbc:ucp:23.2.0.0'
+
+	// Seguridad & JWT
+	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+	implementation 'com.auth0:jwks-rsa:0.22.1'
+	implementation 'com.auth0:java-jwt:4.4.0'
+
+	// Utilerías Apache Commons & Mappers
+	implementation 'org.apache.commons:commons-lang3:3.12.0'
+	implementation 'commons-fileupload:commons-fileupload:1.5'
+	implementation 'commons-io:commons-io:2.18.0'
+	implementation 'org.apache.httpcomponents.client5:httpclient5:5.4.1'
+	implementation 'org.mapstruct:mapstruct:1.6.3'
+
+	// Serialización
+	implementation 'com.google.code.gson:gson:2.10.1'
+	implementation 'org.json:json:20231013'
+
+	// Utilerías Google
+	implementation 'com.google.api-client:google-api-client:2.7.1'
+	implementation 'com.google.api-client:google-api-client-jackson2:2.7.1'
+
+	// Mail / XML
+	implementation 'org.glassfish.jaxb:jaxb-runtime:4.0.3'
+	implementation 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.0'
+
+	// NLP
+	implementation 'org.apache.opennlp:opennlp-tools:2.2.0'
+
+	// Lombok y Processors de Anotaciones
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+	annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
+
+	// Pruebas
+	testCompileOnly 'org.projectlombok:lombok'
+	testAnnotationProcessor 'org.projectlombok:lombok'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	testImplementation 'com.h2database:h2:2.2.220'
+
+	// Servidor web embebido (Tomcat) para mantener la app activa escuchando HTTP
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
