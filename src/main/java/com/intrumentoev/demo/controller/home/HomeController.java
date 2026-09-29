@@ -8,12 +8,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
 
 @Tag(name = "Domicilios", description = "Gestión de direcciones y domicilios asociados a clientes")
 @RestController
@@ -22,17 +21,6 @@ import java.net.URI;
 public class HomeController {
 
     private final HomeService homeService;
-
-    @Operation(summary = "Registrar domicilio", description = "Registra la dirección asociada a un cliente.")
-    @PostMapping(
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE
-    )
-    public ResponseEntity<HomeResponse> crearHome(@Valid @RequestBody HomeRequest request) {
-        HomeResponse response = homeService.crearHome(request);
-        URI location = URI.create("/v1/domicilios/" + response.getIdHome());
-        return ResponseEntity.created(location).body(response);
-    }
 
     @Operation(summary = "Obtener domicilio por ID")
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)

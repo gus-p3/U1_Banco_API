@@ -124,4 +124,18 @@ public class ClientOnboardingRequest {
     // --- 5. Cuenta Bancaria Inicial (Opcional, si no se envía se toma el default del sistema) ---
     @DecimalMin(value = "0.00", message = "El saldo inicial no puede ser negativo")
     private BigDecimal initialBalance;
+
+    // --- 6. Credenciales de Acceso y Biometría (Tipo Mercado Libre / Mercado Pago) ---
+    @NotBlank(message = "La contraseña de acceso es obligatoria")
+    @Size(min = 12, max = 100, message = "La contraseña debe tener entre 12 y 100 caracteres")
+    @Pattern(
+            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&.#_-])[A-Za-z\\d@$!%*?&.#_-]+$",
+            message = "La contraseña debe incluir al menos una mayúscula, una minúscula, un número y un carácter especial"
+    )
+    private String password;
+
+    @Pattern(regexp = "^(HUELLA|FACIAL)$", message = "El tipo biométrico debe ser 'HUELLA' o 'FACIAL'")
+    private String biometricType;
+
+    private String biometricData; // Representación Base64 de la plantilla biométrica (opcional al inicio)
 }

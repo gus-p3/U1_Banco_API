@@ -32,6 +32,7 @@ public class AccountServiceImpl implements AccountService {
     private final ClientRepository clientRepository;
     private final AccountMapper accountMapper;
     private final AccountNumberGenerator accountNumberGenerator;
+    private final com.intrumentoev.demo.repository.account.AccountBalanceRepository accountBalanceRepository;
 
     @Value("${bank.account.initial-balance:1000.00}")
     private BigDecimal defaultInitialBalance;
@@ -77,6 +78,18 @@ public class AccountServiceImpl implements AccountService {
 
         Account guardada = accountRepository.save(account);
         log.info("Cuenta bancaria creada exitosamente. Número: {}, ID: {}", guardada.getAccountNumber(), guardada.getIdAccount());
+
+        // 5. Registro automático en la tabla de saldos (Historial / Libro Mayor)
+        com.intrumentoev.demo.entity.account.AccountBalance balanceRecord = com.intrumentoev.demo.entity.account.AccountBalance.builder()
+                .idAccount(guardada.getIdAccount())
+                .previousBalance(BigDecimal.ZERO)
+                .amount(saldoInicial)
+                .currentBalance(saldoInicial)
+                .movementType("APERTURA")
+                .description("Apertura de cuenta con asignación de saldo inicial de bienvenida")
+                .build();
+        accountBalanceRepository.save(balanceRecord);
+        log.info("Registro de apertura persistido en la tabla de saldos para cuenta ID: {}", guardada.getIdAccount());
 
         return accountMapper.toResponse(guardada);
     }
@@ -124,5 +137,30 @@ public class AccountServiceImpl implements AccountService {
             account.setStatus("INACTIVA");
         }
         accountRepository.saveAll(cuentas);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<com.intrumentoev.demo.model.account.AccountBalanceMovementResponse> obtenerMovimientosPorNumeroCuenta(String accountNumber) {
+        log.info("Consultando movimientos de la tabla de saldos para la cuenta número: {}", accountNumber);
+        Account account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new AccountNotFoundException(accountNumber));
+
+        List<com.intrumentoev.demo.entity.account.AccountBalance> balances =
+                accountBalanceRepository.findByIdAccountOrderByCreatedAtDesc(account.getIdAccount());
+
+        return balances.stream()
+                .map(b -> com.intrumentoev.demo.model.account.AccountBalanceMovementResponse.builder()
+                        .idBalance(b.getIdBalance())
+                        .idAccount(b.getIdAccount())
+                        .accountNumber(account.getAccountNumber())
+                        .previousBalance(b.getPreviousBalance())
+                        .amount(b.getAmount())
+                        .currentBalance(b.getCurrentBalance())
+                        .movementType(b.getMovementType())
+                        .description(b.getDescription())
+                        .createdAt(b.getCreatedAt())
+                        .build())
+                .toList();
     }
 }

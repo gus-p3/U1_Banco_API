@@ -1,6 +1,7 @@
 package com.intrumentoev.demo.model.client;
 
 import com.intrumentoev.demo.model.account.AccountResponse;
+import com.intrumentoev.demo.model.auth.AuthResponse;
 import com.intrumentoev.demo.model.contactDetail.ContactDetailResponse;
 import com.intrumentoev.demo.model.employment.EmploymentInformationResponse;
 import com.intrumentoev.demo.model.home.HomeResponse;
@@ -23,4 +24,6 @@ public class ClientDetailResponse {
     private EmploymentInformationResponse employmentInformation;
     private AccountResponse primaryAccount;
     private List<AccountResponse> accounts;
+    private AuthResponse auth;
+    private ClientModuleCatalogsResponse catalogs;
 }

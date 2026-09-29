@@ -22,6 +22,6 @@ public class InegiMunicipalityDto implements Serializable {
     @JsonProperty("cve_mun")
     private String cveMun;
 
-    @JsonProperty("nom_mun")
+    @JsonProperty("nomgeo")
     private String nomMun;
 }

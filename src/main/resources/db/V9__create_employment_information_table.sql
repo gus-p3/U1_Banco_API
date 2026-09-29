@@ -2,8 +2,8 @@
 CREATE TABLE employment_information (
     id_employment  BIGINT GENERATED ALWAYS AS IDENTITY,
     id_client      BIGINT        NOT NULL,
-    occupation     VARCHAR(80)   NOT NULL,
-    company        VARCHAR(100)  NOT NULL,
+    occupation     TEXT   NOT NULL,
+    company        TEXT  NOT NULL,
     monthly_income NUMERIC(12,2) NOT NULL,
     created_at     TIMESTAMPTZ   NOT NULL DEFAULT now(),
     updated_at     TIMESTAMPTZ   NOT NULL DEFAULT now(),

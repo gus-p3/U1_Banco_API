@@ -6,8 +6,6 @@ import com.intrumentoev.demo.model.home.HomeResponse;
 
 public interface HomeService {
 
-    HomeResponse crearHome(HomeRequest request);
-
     HomeResponse obtenerHomePorId(Long id);
 
     HomeResponse obtenerHomePorIdClient(Long idClient);

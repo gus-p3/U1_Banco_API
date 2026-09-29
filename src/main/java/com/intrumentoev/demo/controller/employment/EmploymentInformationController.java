@@ -8,12 +8,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.net.URI;
 
 @Tag(name = "Información Laboral", description = "Gestión de ocupación, empresa e ingresos mensuales de clientes")
 @RestController
@@ -22,18 +19,6 @@ import java.net.URI;
 public class EmploymentInformationController {
 
     private final EmploymentInformationService employmentService;
-
-    @Operation(summary = "Registrar información laboral")
-    @PostMapping(
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE
-    )
-    public ResponseEntity<EmploymentInformationResponse> crearEmploymentInformation(
-            @Valid @RequestBody EmploymentInformationRequest request) {
-        EmploymentInformationResponse response = employmentService.crearEmploymentInformation(request);
-        URI location = URI.create("/v1/laboral/" + response.getIdEmployment());
-        return ResponseEntity.created(location).body(response);
-    }
 
     @Operation(summary = "Obtener información laboral por ID")
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)

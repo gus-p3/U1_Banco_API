@@ -8,12 +8,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Tag(name = "Detalles de Contacto", description = "Gestión de correos electrónicos y teléfonos móviles de clientes")
 @RestController
@@ -22,23 +19,6 @@ import java.util.List;
 public class ContactDetailController {
 
     private final ContactDetailService contactDetailService;
-
-    @Operation(summary = "Crear detalle de contacto")
-    @PostMapping(
-            produces = MediaType.APPLICATION_JSON_VALUE,
-            consumes = MediaType.APPLICATION_JSON_VALUE
-    )
-    public ResponseEntity<ContactDetailResponse> crearContactDetail(@Valid @RequestBody ContactDetailRequest request) {
-        ContactDetailResponse nuevoContactDetail = contactDetailService.crearContactDetail(request);
-        return new ResponseEntity<>(nuevoContactDetail, HttpStatus.CREATED);
-    }
-
-    @Operation(summary = "Obtener todos los detalles de contacto")
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<ContactDetailResponse>> obtenerTodosLosContactDetails() {
-        List<ContactDetailResponse> detalles = contactDetailService.obtenerTodosLosContactDetails();
-        return ResponseEntity.ok(detalles);
-    }
 
     @Operation(summary = "Obtener detalle de contacto por ID")
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)

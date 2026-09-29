@@ -46,21 +46,6 @@ public class ClientController {
         return ResponseEntity.created(location).body(response);
     }
 
-    @Operation(summary = "Crear cliente individual", description = "Registra únicamente los datos personales básicos de un nuevo cliente.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Cliente registrado"),
-            @ApiResponse(responseCode = "409", description = "CURP o RFC duplicados")
-    })
-    @PostMapping(
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE
-    )
-    public ResponseEntity<ClientResponse> crearCliente(@Valid @RequestBody ClientRequest request) {
-        ClientResponse nuevoCliente = clientService.crearCliente(request);
-        URI location = URI.create("/v1/clientes/" + nuevoCliente.getIdClient());
-        return ResponseEntity.created(location).body(nuevoCliente);
-    }
-
     @Operation(summary = "Consultar clientes con filtros (Microsoft REST Guidelines)", description = "Permite consultar todos los clientes o aplicar filtros vía parámetros de consulta (curp, rfc, email, numeroCuenta, activo, rango de fechas).")
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> obtenerClientes(
@@ -95,11 +80,17 @@ public class ClientController {
         return ResponseEntity.ok(clientes);
     }
 
-    @Operation(summary = "Obtener cliente por ID", description = "Recupera la información básica de un cliente por su identificador primario.")
+    @Operation(
+            summary = "Obtener cliente por ID con soporte modular e includes",
+            description = "Recupera la información del cliente. Soporta parámetro ?include=contact,home,employment,accounts,catalogs para cargar módulos específicos con sus IDs y catálogos asociados para edición modular en frontend. Si no se especifica 'include', devuelve todos los módulos por defecto."
+    )
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ClientResponse> obtenerClientePorId(@PathVariable("id") Long id) {
-        ClientResponse cliente = clientService.obtenerClientePorId(id);
-        return ResponseEntity.ok(cliente);
+    public ResponseEntity<ClientDetailResponse> obtenerClientePorId(
+            @PathVariable("id") Long id,
+            @Parameter(description = "Módulos a incluir separados por coma: contact,home,employment,accounts,catalogs,all")
+            @RequestParam(value = "include", required = false) String include) {
+        ClientDetailResponse detalle = clientService.obtenerClientePorIdConIncludes(id, include);
+        return ResponseEntity.ok(detalle);
     }
 
     @Operation(summary = "Obtener detalle completo de cliente", description = "Retorna el expediente integral: datos personales, contacto, domicilio, laboral y cuentas bancarias.")

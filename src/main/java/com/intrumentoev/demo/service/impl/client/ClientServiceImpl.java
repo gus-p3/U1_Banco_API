@@ -6,19 +6,31 @@ import com.intrumentoev.demo.entity.contactDetail.ContactDetail;
 import com.intrumentoev.demo.entity.employment.EmploymentInformation;
 import com.intrumentoev.demo.entity.home.Home;
 import com.intrumentoev.demo.exception.*;
+import com.intrumentoev.demo.entity.auth.Auth;
 import com.intrumentoev.demo.mapper.account.AccountMapper;
+import com.intrumentoev.demo.mapper.auth.AuthMapper;
 import com.intrumentoev.demo.mapper.client.ClientMapper;
 import com.intrumentoev.demo.mapper.contactDetail.ContactDetailMapper;
 import com.intrumentoev.demo.mapper.employment.EmploymentInformationMapper;
 import com.intrumentoev.demo.mapper.home.HomeMapper;
 import com.intrumentoev.demo.model.account.AccountResponse;
+import com.intrumentoev.demo.model.auth.AuthResponse;
 import com.intrumentoev.demo.model.client.*;
+import com.intrumentoev.demo.model.contactDetail.ContactDetailResponse;
+import com.intrumentoev.demo.model.employment.EmploymentInformationResponse;
+import com.intrumentoev.demo.model.home.HomeResponse;
 import com.intrumentoev.demo.repository.account.AccountRepository;
+import com.intrumentoev.demo.repository.catalogs.GenderRepository;
+import com.intrumentoev.demo.repository.catalogs.MaritalStatusRepository;
+import com.intrumentoev.demo.repository.catalogs.MunicipalityRepository;
+import com.intrumentoev.demo.repository.catalogs.NationalityRepository;
+import com.intrumentoev.demo.repository.catalogs.StateRepository;
 import com.intrumentoev.demo.repository.client.ClientRepository;
 import com.intrumentoev.demo.repository.contactDetail.ContactDetailRepository;
 import com.intrumentoev.demo.repository.employment.EmploymentInformationRepository;
 import com.intrumentoev.demo.repository.home.HomeRepository;
 import com.intrumentoev.demo.service.service.account.AccountService;
+import com.intrumentoev.demo.service.service.auth.AuthService;
 import com.intrumentoev.demo.service.service.client.ClientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +41,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.Period;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -42,13 +55,21 @@ public class ClientServiceImpl implements ClientService {
     private final EmploymentInformationRepository employmentRepository;
     private final AccountRepository accountRepository;
 
+    private final GenderRepository genderRepository;
+    private final NationalityRepository nationalityRepository;
+    private final MaritalStatusRepository maritalStatusRepository;
+    private final MunicipalityRepository municipalityRepository;
+    private final StateRepository stateRepository;
+
     private final ClientMapper clientMapper;
     private final ContactDetailMapper contactDetailMapper;
     private final HomeMapper homeMapper;
     private final EmploymentInformationMapper employmentMapper;
     private final AccountMapper accountMapper;
+    private final AuthMapper authMapper;
 
     private final AccountService accountService;
+    private final AuthService authService;
 
     // 1. Proceso Integral de Onboarding
     @Override
@@ -129,6 +150,20 @@ public class ClientServiceImpl implements ClientService {
         AccountResponse cuentaGuardada = accountService.crearCuenta(idClient, request.getInitialBalance());
         log.info("Cuenta bancaria asignada automáticamente: {}", cuentaGuardada.getAccountNumber());
 
+        // F. Creación Automática de Credenciales de Acceso y Biometría al terminar Onboarding
+        AuthResponse authResponse = null;
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            Auth authEntity = authService.crearCredencialesCliente(
+                    idClient,
+                    emailNormalizado,
+                    request.getPassword(),
+                    request.getBiometricType(),
+                    request.getBiometricData()
+            );
+            authResponse = authMapper.toResponse(authEntity);
+            log.info("Credenciales de acceso creadas automáticamente para cliente ID: {}", idClient);
+        }
+
         return ClientDetailResponse.builder()
                 .client(clientMapper.toResponse(clienteGuardado))
                 .contactDetail(contactDetailMapper.toResponse(contactoGuardado))
@@ -136,32 +171,11 @@ public class ClientServiceImpl implements ClientService {
                 .employmentInformation(employmentMapper.toResponse(laboralGuardado))
                 .primaryAccount(cuentaGuardada)
                 .accounts(List.of(cuentaGuardada))
+                .auth(authResponse)
                 .build();
     }
 
-    // 2. POST /v1/clientes
-    @Override
-    @Transactional
-    public ClientResponse crearCliente(ClientRequest request) {
-        log.info("Creando nuevo cliente con CURP: {} y RFC: {}", request.getCurp(), request.getRfc());
-
-        validarMayoriaDeEdad(request.getBirthDate());
-
-        if (clientRepository.existsByCurp(request.getCurp())) {
-            throw new CurpDuplicatedException(request.getCurp());
-        }
-        if (clientRepository.existsByRfc(request.getRfc())) {
-            throw new RfcDuplicatedException(request.getRfc());
-        }
-
-        Client entity = clientMapper.toEntity(request);
-        Client guardado = clientRepository.save(entity);
-        log.info("Cliente creado exitosamente con ID: {}", guardado.getIdClient());
-
-        return clientMapper.toResponse(guardado);
-    }
-
-    // 3. GET /v1/clientes
+    // 2. GET /v1/clientes
     @Override
     @Transactional(readOnly = true)
     public List<ClientResponse> obtenerTodosLosClientes() {
@@ -170,39 +184,178 @@ public class ClientServiceImpl implements ClientService {
         return clientMapper.toResponseList(clientes);
     }
 
-    // 4. GET /v1/clientes/{id}
+    // 4. GET /v1/clientes/{id} (básico)
     @Override
     @Transactional(readOnly = true)
     public ClientResponse obtenerClientePorId(Long id) {
         log.info("Buscando cliente por ID: {}", id);
         Client cliente = clientRepository.findById(id)
                 .orElseThrow(() -> new ClientNotFoundException(id));
-        return clientMapper.toResponse(cliente);
+        ClientResponse response = clientMapper.toResponse(cliente);
+        enrichClientWithCatalogs(response);
+        return response;
+    }
+
+    // 4.b Obtener cliente por ID con includes modular (contact, home, employment, accounts, catalogs)
+    @Override
+    @Transactional(readOnly = true)
+    public ClientDetailResponse obtenerClientePorIdConIncludes(Long id, String include) {
+        log.info("Buscando información modular de cliente ID: {} con includes: {}", id, include);
+        Client cliente = clientRepository.findById(id)
+                .orElseThrow(() -> new ClientNotFoundException(id));
+
+        ClientResponse clientDto = clientMapper.toResponse(cliente);
+        enrichClientWithCatalogs(clientDto);
+
+        boolean includeAll = (include == null || include.isBlank() || include.equalsIgnoreCase("all"));
+        Set<String> incSet = includeAll
+                ? Set.of("contact", "home", "employment", "accounts", "catalogs")
+                : Arrays.stream(include.toLowerCase().split(","))
+                        .map(String::trim)
+                        .collect(Collectors.toSet());
+
+        ContactDetailResponse contactoDto = null;
+        if (incSet.contains("contact") || incSet.contains("contacto")) {
+            ContactDetail contacto = contactDetailRepository.findByIdClient(id).orElse(null);
+            if (contacto != null) {
+                contactoDto = contactDetailMapper.toResponse(contacto);
+            }
+        }
+
+        HomeResponse homeDto = null;
+        if (incSet.contains("home") || incSet.contains("domicilio")) {
+            Home home = homeRepository.findByIdClient(id).orElse(null);
+            if (home != null) {
+                homeDto = homeMapper.toResponse(home);
+                enrichHomeWithCatalogs(homeDto);
+            }
+        }
+
+        EmploymentInformationResponse laboralDto = null;
+        if (incSet.contains("employment") || incSet.contains("laboral")) {
+            EmploymentInformation laboral = employmentRepository.findByIdClient(id).orElse(null);
+            if (laboral != null) {
+                laboralDto = employmentMapper.toResponse(laboral);
+            }
+        }
+
+        List<AccountResponse> cuentasDto = null;
+        AccountResponse cuentaPrincipal = null;
+        if (incSet.contains("accounts") || incSet.contains("cuentas")) {
+            List<Account> cuentas = accountRepository.findByIdClient(id);
+            cuentasDto = accountMapper.toResponseList(cuentas);
+            cuentaPrincipal = cuentasDto.isEmpty() ? null : cuentasDto.get(0);
+        }
+
+        ClientModuleCatalogsResponse catalogsDto = null;
+        if (incSet.contains("catalogs") || incSet.contains("catalogos")) {
+            catalogsDto = buildModuleCatalogs(homeDto);
+        }
+
+        AuthResponse authDto = authService.obtenerPorIdCliente(id)
+                .map(authMapper::toResponse)
+                .orElse(null);
+
+        return ClientDetailResponse.builder()
+                .client(clientDto)
+                .contactDetail(contactoDto)
+                .home(homeDto)
+                .employmentInformation(laboralDto)
+                .primaryAccount(cuentaPrincipal)
+                .accounts(cuentasDto)
+                .auth(authDto)
+                .catalogs(catalogsDto)
+                .build();
     }
 
     // 5. GET /v1/clientes/{id}/detalle
     @Override
     @Transactional(readOnly = true)
     public ClientDetailResponse obtenerDetalleCompletoClientePorId(Long id) {
-        log.info("Buscando información completa de cliente ID: {}", id);
-        Client cliente = clientRepository.findById(id)
-                .orElseThrow(() -> new ClientNotFoundException(id));
+        return obtenerClientePorIdConIncludes(id, "all");
+    }
 
-        ContactDetail contacto = contactDetailRepository.findByIdClient(id).orElse(null);
-        Home domicilio = homeRepository.findByIdClient(id).orElse(null);
-        EmploymentInformation laboral = employmentRepository.findByIdClient(id).orElse(null);
-        List<Account> cuentas = accountRepository.findByIdClient(id);
+    private void enrichClientWithCatalogs(ClientResponse response) {
+        if (response == null) return;
+        if (response.getIdGender() != null) {
+            genderRepository.findById(response.getIdGender()).ifPresent(g -> response.setGenderName(g.getName()));
+        }
+        if (response.getIdNationality() != null) {
+            nationalityRepository.findById(response.getIdNationality()).ifPresent(n -> response.setNationalityName(n.getName()));
+        }
+        if (response.getIdMaritalStatus() != null) {
+            maritalStatusRepository.findById(response.getIdMaritalStatus()).ifPresent(m -> response.setMaritalStatusName(m.getName()));
+        }
+    }
 
-        List<AccountResponse> cuentasDto = accountMapper.toResponseList(cuentas);
-        AccountResponse cuentaPrincipal = cuentasDto.isEmpty() ? null : cuentasDto.get(0);
+    private void enrichHomeWithCatalogs(HomeResponse home) {
+        if (home == null || home.getIdMunicipality() == null) return;
+        municipalityRepository.findById(home.getIdMunicipality()).ifPresent(mun -> {
+            home.setMunicipalityName(mun.getName());
+            home.setIdState(mun.getIdState());
+            if (mun.getIdState() != null) {
+                stateRepository.findById(mun.getIdState()).ifPresent(st -> home.setStateName(st.getName()));
+            }
+        });
+    }
 
-        return ClientDetailResponse.builder()
-                .client(clientMapper.toResponse(cliente))
-                .contactDetail(contacto != null ? contactDetailMapper.toResponse(contacto) : null)
-                .home(domicilio != null ? homeMapper.toResponse(domicilio) : null)
-                .employmentInformation(laboral != null ? employmentMapper.toResponse(laboral) : null)
-                .primaryAccount(cuentaPrincipal)
-                .accounts(cuentasDto)
+    private ClientModuleCatalogsResponse buildModuleCatalogs(HomeResponse home) {
+        List<Map<String, Object>> genders = genderRepository.findByIsActiveTrue().stream()
+                .map(g -> {
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("idGender", g.getIdGender());
+                    map.put("name", g.getName());
+                    return map;
+                }).toList();
+
+        List<Map<String, Object>> nationalities = nationalityRepository.findByIsActiveTrue().stream()
+                .map(n -> {
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("idNationality", n.getIdNationality());
+                    map.put("name", n.getName());
+                    return map;
+                }).toList();
+
+        List<Map<String, Object>> maritalStatuses = maritalStatusRepository.findByIsActiveTrue().stream()
+                .map(m -> {
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("idMaritalStatus", m.getIdMaritalStatus());
+                    map.put("name", m.getName());
+                    return map;
+                }).toList();
+
+        Map<String, Object> munMap = null;
+        Map<String, Object> stateMap = null;
+
+        if (home != null && home.getIdMunicipality() != null) {
+            var munOpt = municipalityRepository.findById(home.getIdMunicipality());
+            if (munOpt.isPresent()) {
+                var mun = munOpt.get();
+                munMap = new LinkedHashMap<>();
+                munMap.put("idMunicipality", mun.getIdMunicipality());
+                munMap.put("name", mun.getName());
+                munMap.put("cveMun", mun.getCveMun());
+                munMap.put("idState", mun.getIdState());
+
+                if (mun.getIdState() != null) {
+                    var stOpt = stateRepository.findById(mun.getIdState());
+                    if (stOpt.isPresent()) {
+                        var st = stOpt.get();
+                        stateMap = new LinkedHashMap<>();
+                        stateMap.put("idState", st.getIdState());
+                        stateMap.put("name", st.getName());
+                        stateMap.put("cveEnt", st.getCveEnt());
+                    }
+                }
+            }
+        }
+
+        return ClientModuleCatalogsResponse.builder()
+                .genders(genders)
+                .nationalities(nationalities)
+                .maritalStatuses(maritalStatuses)
+                .municipality(munMap)
+                .state(stateMap)
                 .build();
     }
 
@@ -340,7 +493,15 @@ public class ClientServiceImpl implements ClientService {
 
         // Regla de Negocio: Solo los clientes activos podrán tener cuentas activas
         accountService.desactivarCuentasDeCliente(id);
-        log.info("Baja lógica completada para cliente ID: {} y sus cuentas asociadas", id);
+
+        // Desactivación lógica de credenciales de acceso y revocación de sesión
+        authService.obtenerPorIdCliente(id).ifPresent(auth -> {
+            auth.setIsActive(false);
+            auth.setRefreshToken(null);
+            auth.setRefreshTokenExpiresAt(null);
+        });
+
+        log.info("Baja lógica completada para cliente ID: {}, cuentas y credenciales asociadas", id);
     }
 
     // Validar mayoría de edad (18 años o más)

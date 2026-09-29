@@ -15,11 +15,6 @@ public interface ClientService {
     ClientDetailResponse registrarOnboarding(ClientOnboardingRequest request);
 
     /**
-     * Crear cliente individualmente (POST /v1/clientes)
-     */
-    ClientResponse crearCliente(ClientRequest request);
-
-    /**
      * Listar todos los clientes (GET /v1/clientes)
      */
     List<ClientResponse> obtenerTodosLosClientes();
@@ -28,6 +23,12 @@ public interface ClientService {
      * Buscar cliente por ID (GET /v1/clientes/{id})
      */
     ClientResponse obtenerClientePorId(Long id);
+
+    /**
+     * Obtener detalle completo o modular del cliente con soporte para ?include=contact,home,employment,accounts,catalogs
+     * Devuelve los IDs y los catálogos necesarios para edición modular en frontend.
+     */
+    ClientDetailResponse obtenerClientePorIdConIncludes(Long id, String include);
 
     /**
      * Obtener detalle completo del cliente (personal, contacto, domicilio, laboral y cuentas).

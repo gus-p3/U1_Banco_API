@@ -2,13 +2,13 @@ package com.intrumentoev.demo.service.impl.home;
 
 import com.intrumentoev.demo.entity.home.Home;
 import com.intrumentoev.demo.exception.BusinessValidationException;
-import com.intrumentoev.demo.exception.ClientNotFoundException;
+
 import com.intrumentoev.demo.mapper.home.HomeMapper;
 import com.intrumentoev.demo.model.home.HomePatchRequest;
 import com.intrumentoev.demo.model.home.HomeRequest;
 import com.intrumentoev.demo.model.home.HomeResponse;
 import com.intrumentoev.demo.repository.catalogs.MunicipalityRepository;
-import com.intrumentoev.demo.repository.client.ClientRepository;
+
 import com.intrumentoev.demo.repository.home.HomeRepository;
 import com.intrumentoev.demo.service.service.home.HomeService;
 import lombok.RequiredArgsConstructor;
@@ -22,43 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class HomeServiceImpl implements HomeService {
 
     private final HomeRepository homeRepository;
-    private final ClientRepository clientRepository;
+
     private final MunicipalityRepository municipalityRepository;
     private final HomeMapper homeMapper;
-
-    @Override
-    @Transactional
-    public HomeResponse crearHome(HomeRequest request) {
-        log.info("Creando información de domicilio para cliente ID: {}", request.getIdClient());
-
-        if (!clientRepository.existsById(request.getIdClient())) {
-            throw new ClientNotFoundException(request.getIdClient());
-        }
-
-        if (homeRepository.existsByIdClient(request.getIdClient())) {
-            throw new BusinessValidationException(
-                    "Ya existe un domicilio registrado para el cliente con ID: " + request.getIdClient(),
-                    "idClient"
-            );
-        }
-
-        if (request.getIdMunicipality() != null && !municipalityRepository.existsById(request.getIdMunicipality())) {
-            throw new BusinessValidationException(
-                    "El municipio con ID " + request.getIdMunicipality() + " no existe",
-                    "idMunicipality"
-            );
-        }
-
-        Home entity = homeMapper.toEntity(request);
-        if (entity.getCountry() == null || entity.getCountry().isBlank()) {
-            entity.setCountry("México");
-        }
-
-        Home guardado = homeRepository.save(entity);
-        log.info("Domicilio guardado exitosamente con ID: {}", guardado.getIdHome());
-
-        return homeMapper.toResponse(guardado);
-    }
 
     @Override
     @Transactional(readOnly = true)

@@ -4,7 +4,7 @@ CREATE TABLE account (
     account_number CHAR(10)      NOT NULL,
     id_client      BIGINT        NOT NULL,
     balance        NUMERIC(15,2) NOT NULL DEFAULT 0,
-    status         VARCHAR(10)   NOT NULL DEFAULT 'ACTIVA',
+    status         TEXT   NOT NULL DEFAULT 'ACTIVA',
     opened_at      TIMESTAMPTZ   NOT NULL DEFAULT now(),
     updated_at     TIMESTAMPTZ   NOT NULL DEFAULT now(),
     CONSTRAINT pk_account PRIMARY KEY (id_account),

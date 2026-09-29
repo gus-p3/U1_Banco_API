@@ -3,13 +3,13 @@
 -- porque un CHECK con CURRENT_DATE no es inmutable y rompe las restauraciones de respaldo.
 CREATE TABLE client (
     id_client         BIGINT GENERATED ALWAYS AS IDENTITY,
-    name              VARCHAR(50)  NOT NULL,
-    second_name       VARCHAR(50),
-    last_name         VARCHAR(50)  NOT NULL,
-    second_last_name  VARCHAR(50)  NOT NULL,
+    name              TEXT  NOT NULL,
+    second_name       TEXT,
+    last_name         TEXT  NOT NULL,
+    second_last_name  TEXT  NOT NULL,
     birth_date        DATE         NOT NULL,
     curp              CHAR(18)     NOT NULL,
-    rfc               VARCHAR(13)  NOT NULL,
+    rfc               TEXT  NOT NULL,
     id_gender         SMALLINT     NOT NULL,
     id_nationality    SMALLINT     NOT NULL,
     id_marital_status SMALLINT     NOT NULL,

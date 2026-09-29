@@ -4,17 +4,10 @@ import com.intrumentoev.demo.model.contactDetail.ContactDetailPatchRequest;
 import com.intrumentoev.demo.model.contactDetail.ContactDetailRequest;
 import com.intrumentoev.demo.model.contactDetail.ContactDetailResponse;
 
-import java.util.List;
 
 public interface ContactDetailService {
 
-    // 1. Crear detalle de contacto (POST /v1/contact-details)
-    ContactDetailResponse crearContactDetail(ContactDetailRequest request);
-
-    // 2. Listar todos los detalles de contacto (GET /v1/contact-details)
-    List<ContactDetailResponse> obtenerTodosLosContactDetails();
-
-    // 3. Buscar detalle de contacto por ID (GET /v1/contact-details/{id})
+    // 1. Buscar detalle de contacto por ID (GET /v1/contact-details/{id})
     ContactDetailResponse obtenerContactDetailPorId(Long id);
 
     // 4. Buscar detalle de contacto por ID de Cliente (GET /v1/contact-details/client/{idClient})

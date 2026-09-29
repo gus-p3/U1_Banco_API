@@ -2,12 +2,12 @@ package com.intrumentoev.demo.service.impl.employment;
 
 import com.intrumentoev.demo.entity.employment.EmploymentInformation;
 import com.intrumentoev.demo.exception.BusinessValidationException;
-import com.intrumentoev.demo.exception.ClientNotFoundException;
+
 import com.intrumentoev.demo.mapper.employment.EmploymentInformationMapper;
 import com.intrumentoev.demo.model.employment.EmploymentInformationPatchRequest;
 import com.intrumentoev.demo.model.employment.EmploymentInformationRequest;
 import com.intrumentoev.demo.model.employment.EmploymentInformationResponse;
-import com.intrumentoev.demo.repository.client.ClientRepository;
+
 import com.intrumentoev.demo.repository.employment.EmploymentInformationRepository;
 import com.intrumentoev.demo.service.service.employment.EmploymentInformationService;
 import lombok.RequiredArgsConstructor;
@@ -23,35 +23,8 @@ import java.math.BigDecimal;
 public class EmploymentInformationServiceImpl implements EmploymentInformationService {
 
     private final EmploymentInformationRepository employmentRepository;
-    private final ClientRepository clientRepository;
+
     private final EmploymentInformationMapper employmentMapper;
-
-    @Override
-    @Transactional
-    public EmploymentInformationResponse crearEmploymentInformation(EmploymentInformationRequest request) {
-        log.info("Creando información laboral para cliente ID: {}", request.getIdClient());
-
-        if (!clientRepository.existsById(request.getIdClient())) {
-            throw new ClientNotFoundException(request.getIdClient());
-        }
-
-        if (employmentRepository.existsByIdClient(request.getIdClient())) {
-            throw new BusinessValidationException(
-                    "Ya existe información laboral registrada para el cliente con ID: " + request.getIdClient(),
-                    "idClient"
-            );
-        }
-
-        if (request.getMonthlyIncome() != null && request.getMonthlyIncome().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BusinessValidationException("El ingreso mensual debe ser mayor a cero", "monthlyIncome");
-        }
-
-        EmploymentInformation entity = employmentMapper.toEntity(request);
-        EmploymentInformation guardado = employmentRepository.save(entity);
-        log.info("Información laboral guardada exitosamente con ID: {}", guardado.getIdEmployment());
-
-        return employmentMapper.toResponse(guardado);
-    }
 
     @Override
     @Transactional(readOnly = true)

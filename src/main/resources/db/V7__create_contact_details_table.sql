@@ -4,7 +4,7 @@
 CREATE TABLE contact_details (
     id_contact_detail BIGINT GENERATED ALWAYS AS IDENTITY,
     id_client         BIGINT       NOT NULL,
-    email             VARCHAR(100) NOT NULL,
+    email             TEXT NOT NULL,
     mobile_phone      CHAR(10)     NOT NULL,
     alternative_phone CHAR(10),
     created_at        TIMESTAMPTZ  NOT NULL DEFAULT now(),

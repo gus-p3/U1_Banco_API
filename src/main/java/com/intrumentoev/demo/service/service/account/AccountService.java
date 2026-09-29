@@ -43,4 +43,9 @@ public interface AccountService {
      * Desactiva todas las cuentas asociadas a un cliente (baja lógica).
      */
     void desactivarCuentasDeCliente(Long idClient);
+
+    /**
+     * Consulta el historial de movimientos y registros de la tabla de saldos asociada a la cuenta.
+     */
+    List<com.intrumentoev.demo.model.account.AccountBalanceMovementResponse> obtenerMovimientosPorNumeroCuenta(String accountNumber);
 }

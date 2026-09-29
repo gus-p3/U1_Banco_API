@@ -23,8 +23,11 @@ public class ClientResponse {
     private String curp;
     private String rfc;
     private Short idGender;
+    private String genderName;
     private Short idNationality;
+    private String nationalityName;
     private Short idMaritalStatus;
+    private String maritalStatusName;
     private Boolean isActive;
     private OffsetDateTime deactivatedAt;
     private OffsetDateTime createdAt;

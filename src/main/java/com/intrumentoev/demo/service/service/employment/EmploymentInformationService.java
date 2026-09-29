@@ -6,8 +6,6 @@ import com.intrumentoev.demo.model.employment.EmploymentInformationResponse;
 
 public interface EmploymentInformationService {
 
-    EmploymentInformationResponse crearEmploymentInformation(EmploymentInformationRequest request);
-
     EmploymentInformationResponse obtenerEmploymentInformationPorId(Long id);
 
     EmploymentInformationResponse obtenerEmploymentInformationPorIdClient(Long idClient);

@@ -33,6 +33,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -67,6 +68,21 @@ class ClientServiceTest {
 
     @Mock
     private AccountService accountService;
+    @Mock
+    private com.intrumentoev.demo.service.service.auth.AuthService authService;
+    @Mock
+    private com.intrumentoev.demo.mapper.auth.AuthMapper authMapper;
+
+    @Mock
+    private com.intrumentoev.demo.repository.catalogs.GenderRepository genderRepository;
+    @Mock
+    private com.intrumentoev.demo.repository.catalogs.NationalityRepository nationalityRepository;
+    @Mock
+    private com.intrumentoev.demo.repository.catalogs.MaritalStatusRepository maritalStatusRepository;
+    @Mock
+    private com.intrumentoev.demo.repository.catalogs.MunicipalityRepository municipalityRepository;
+    @Mock
+    private com.intrumentoev.demo.repository.catalogs.StateRepository stateRepository;
 
     @InjectMocks
     private ClientServiceImpl clientService;
@@ -230,5 +246,34 @@ class ClientServiceTest {
         assertThat(mockClient.getDeactivatedAt()).isNotNull();
         verify(clientRepository, times(1)).save(mockClient);
         verify(accountService, times(1)).desactivarCuentasDeCliente(1L);
+    }
+
+    @Test
+    @DisplayName("Obtener cliente por ID con includes modular devuelve entidades con sus IDs y catálogos")
+        ClientResponse clientResponse = ClientResponse.builder().idClient(1L).name("Juan").lastName("Pérez").build();
+        when(clientRepository.findById(1L)).thenReturn(Optional.of(mockClient));
+        when(clientMapper.toResponse(mockClient)).thenReturn(clientResponse);
+        when(contactDetailRepository.findByIdClient(1L)).thenReturn(Optional.of(new ContactDetail()));
+        when(contactDetailMapper.toResponse(any())).thenReturn(ContactDetailResponse.builder().idContactDetail(99L).idClient(1L).email("test@banco.com").build());
+        when(homeRepository.findByIdClient(1L)).thenReturn(Optional.of(new Home()));
+        when(homeMapper.toResponse(any())).thenReturn(HomeResponse.builder().idHome(88L).idClient(1L).idMunicipality(5).build());
+        when(employmentRepository.findByIdClient(1L)).thenReturn(Optional.of(new EmploymentInformation()));
+        when(employmentMapper.toResponse(any())).thenReturn(EmploymentInformationResponse.builder().idEmployment(77L).idClient(1L).occupation("Dev").build());
+        when(accountRepository.findByIdClient(1L)).thenReturn(List.of());
+        when(genderRepository.findByIsActiveTrue()).thenReturn(List.of());
+        when(nationalityRepository.findByIsActiveTrue()).thenReturn(List.of());
+        when(maritalStatusRepository.findByIsActiveTrue()).thenReturn(List.of());
+
+        ClientDetailResponse response = clientService.obtenerClientePorIdConIncludes(1L, "contact,home,employment,accounts,catalogs");
+
+        assertThat(response).isNotNull();
+        assertThat(response.getClient()).isNotNull();
+        assertThat(response.getContactDetail()).isNotNull();
+        assertThat(response.getContactDetail().getIdContactDetail()).isEqualTo(99L);
+        assertThat(response.getHome()).isNotNull();
+        assertThat(response.getHome().getIdHome()).isEqualTo(88L);
+        assertThat(response.getEmploymentInformation()).isNotNull();
+        assertThat(response.getEmploymentInformation().getIdEmployment()).isEqualTo(77L);
+        assertThat(response.getCatalogs()).isNotNull();
     }
 }

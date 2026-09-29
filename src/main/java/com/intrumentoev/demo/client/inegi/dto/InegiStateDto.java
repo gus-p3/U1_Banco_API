@@ -19,7 +19,7 @@ public class InegiStateDto implements Serializable {
     @JsonProperty("cve_ent")
     private String cveEnt;
 
-    @JsonProperty("nom_ent")
+    @JsonProperty("nomgeo")
     private String nomEnt;
 
     @JsonProperty("nom_abr")

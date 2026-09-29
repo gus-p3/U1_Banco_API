@@ -2,7 +2,6 @@ package com.intrumentoev.demo.service;
 
 import com.intrumentoev.demo.entity.account.Account;
 import com.intrumentoev.demo.entity.client.Client;
-import com.intrumentoev.demo.exception.AccountNotFoundException;
 import com.intrumentoev.demo.exception.BusinessValidationException;
 import com.intrumentoev.demo.exception.ClientInactiveException;
 import com.intrumentoev.demo.mapper.account.AccountMapper;
@@ -44,6 +43,9 @@ class AccountServiceTest {
 
     @Mock
     private AccountNumberGenerator accountNumberGenerator;
+
+    @Mock
+    private com.intrumentoev.demo.repository.account.AccountBalanceRepository accountBalanceRepository;
 
     @InjectMocks
     private AccountServiceImpl accountService;

@@ -1,0 +1,25 @@
+package com.intrumentoev.demo.model.auth;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.OffsetDateTime;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ServerSessionStatusResponse {
+
+    private Boolean isLoggedIn;
+    private Long inactivitySeconds;
+    private Long maxInactivitySeconds;
+    private Long remainingSeconds;
+    private String userEmail;
+    private Long clientId;
+    private String status;
+    private OffsetDateTime lastActivityAt;
+    private String message;
+}

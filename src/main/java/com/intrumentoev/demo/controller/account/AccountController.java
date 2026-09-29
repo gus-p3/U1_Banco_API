@@ -72,4 +72,12 @@ public class AccountController {
         List<AccountResponse> response = accountService.obtenerCuentasPorCliente(idClient);
         return ResponseEntity.ok(response);
     }
+
+    @Operation(summary = "Consultar historial de la tabla de saldos", description = "Retorna el historial completo de saldos y movimientos registrados en la tabla de saldos (libro mayor).")
+    @GetMapping(value = {"/{numeroCuenta}/saldos", "/{numeroCuenta}/movimientos"}, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<com.intrumentoev.demo.model.account.AccountBalanceMovementResponse>> obtenerMovimientosPorNumeroCuenta(
+            @PathVariable("numeroCuenta") String numeroCuenta) {
+        List<com.intrumentoev.demo.model.account.AccountBalanceMovementResponse> response = accountService.obtenerMovimientosPorNumeroCuenta(numeroCuenta);
+        return ResponseEntity.ok(response);
+    }
 }
