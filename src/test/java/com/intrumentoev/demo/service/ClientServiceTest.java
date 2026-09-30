@@ -250,6 +250,7 @@ class ClientServiceTest {
 
     @Test
     @DisplayName("Obtener cliente por ID con includes modular devuelve entidades con sus IDs y catálogos")
+    void testObtenerClientePorIdConIncludes() {
         ClientResponse clientResponse = ClientResponse.builder().idClient(1L).name("Juan").lastName("Pérez").build();
         when(clientRepository.findById(1L)).thenReturn(Optional.of(mockClient));
         when(clientMapper.toResponse(mockClient)).thenReturn(clientResponse);

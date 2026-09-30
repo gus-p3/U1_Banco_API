@@ -96,6 +96,12 @@ class AccountServiceTest {
         assertThat(response.getAccountNumber()).isEqualTo("1234567890");
         assertThat(response.getStatus()).isEqualTo("ACTIVA");
         assertThat(response.getBalance()).isEqualByComparingTo("1000.00");
+        verify(accountBalanceRepository, times(1)).save(argThat(balance ->
+                balance.getIdAccount().equals(1L) &&
+                balance.getAmount().compareTo(new BigDecimal("1000.00")) == 0 &&
+                balance.getCurrentBalance().compareTo(new BigDecimal("1000.00")) == 0 &&
+                "APERTURA".equals(balance.getMovementType())
+        ));
     }
 
     @Test
@@ -139,6 +145,38 @@ class AccountServiceTest {
 
         assertThat(saldo).isNotNull();
         assertThat(saldo.getBalance()).isEqualByComparingTo("2500.50");
+    }
+
+    @Test
+    @DisplayName("Consultar movimientos de la tabla de saldo de cuenta")
+    void testConsultarMovimientosSaldo() {
+        Account account = Account.builder()
+                .idAccount(1L)
+                .accountNumber("1234567890")
+                .balance(new BigDecimal("1000.00"))
+                .status("ACTIVA")
+                .build();
+        when(accountRepository.findByAccountNumber("1234567890")).thenReturn(Optional.of(account));
+
+        com.intrumentoev.demo.entity.account.AccountBalance movApertura = com.intrumentoev.demo.entity.account.AccountBalance.builder()
+                .idBalance(10L)
+                .idAccount(1L)
+                .previousBalance(BigDecimal.ZERO)
+                .amount(new BigDecimal("1000.00"))
+                .currentBalance(new BigDecimal("1000.00"))
+                .movementType("APERTURA")
+                .description("Apertura de cuenta")
+                .build();
+        when(accountBalanceRepository.findByIdAccountOrderByCreatedAtDesc(1L)).thenReturn(List.of(movApertura));
+
+        List<com.intrumentoev.demo.model.account.AccountBalanceMovementResponse> movimientos =
+                accountService.obtenerMovimientosPorNumeroCuenta("1234567890");
+
+        assertThat(movimientos).hasSize(1);
+        assertThat(movimientos.get(0).getIdBalance()).isEqualTo(10L);
+        assertThat(movimientos.get(0).getAccountNumber()).isEqualTo("1234567890");
+        assertThat(movimientos.get(0).getMovementType()).isEqualTo("APERTURA");
+        assertThat(movimientos.get(0).getCurrentBalance()).isEqualByComparingTo("1000.00");
     }
 
     @Test
