@@ -9,6 +9,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 
@@ -53,7 +55,7 @@ public class Auth {
     @Column(name = "biometric_type")
     private String biometricType; // 'HUELLA' o 'FACIAL'
 
-    @Lob
+    @JdbcTypeCode(SqlTypes.VARBINARY)
     @Column(name = "biometric_template")
     private byte[] biometricTemplate;
 

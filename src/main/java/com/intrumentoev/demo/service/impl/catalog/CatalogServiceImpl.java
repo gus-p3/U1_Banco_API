@@ -8,9 +8,15 @@ import com.intrumentoev.demo.entity.catalogs.State;
 import com.intrumentoev.demo.exception.BusinessValidationException;
 import com.intrumentoev.demo.mapper.catalog.CatalogMapper;
 import com.intrumentoev.demo.model.catalog.CatalogSyncResponse;
+import com.intrumentoev.demo.model.catalog.GenderResponse;
+import com.intrumentoev.demo.model.catalog.MaritalStatusResponse;
 import com.intrumentoev.demo.model.catalog.MunicipalityResponse;
+import com.intrumentoev.demo.model.catalog.NationalityResponse;
 import com.intrumentoev.demo.model.catalog.StateResponse;
+import com.intrumentoev.demo.repository.catalogs.GenderRepository;
+import com.intrumentoev.demo.repository.catalogs.MaritalStatusRepository;
 import com.intrumentoev.demo.repository.catalogs.MunicipalityRepository;
+import com.intrumentoev.demo.repository.catalogs.NationalityRepository;
 import com.intrumentoev.demo.repository.catalogs.StateRepository;
 import com.intrumentoev.demo.service.service.catalog.CatalogService;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +42,9 @@ public class CatalogServiceImpl implements CatalogService {
 
     private final StateRepository stateRepository;
     private final MunicipalityRepository municipalityRepository;
+    private final GenderRepository genderRepository;
+    private final NationalityRepository nationalityRepository;
+    private final MaritalStatusRepository maritalStatusRepository;
     private final InegiClient inegiClient;
     private final CatalogMapper catalogMapper;
     private final RedisTemplate<String, Object> redisTemplate;
@@ -198,5 +207,47 @@ public class CatalogServiceImpl implements CatalogService {
                 .mensaje("Catálogos de estados y municipios sincronizados exitosamente desde INEGI a PostgreSQL y Redis.")
                 .timestamp(OffsetDateTime.now())
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<GenderResponse> obtenerGeneros() {
+        log.info("Obteniendo catálogo de géneros...");
+        return genderRepository.findByIsActiveTrue().stream()
+                .map(g -> GenderResponse.builder()
+                        .idGender(g.getIdGender())
+                        .name(g.getName())
+                        .description(g.getDescription())
+                        .isActive(g.getIsActive())
+                        .build())
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<NationalityResponse> obtenerNacionalidades() {
+        log.info("Obteniendo catálogo de nacionalidades...");
+        return nationalityRepository.findByIsActiveTrue().stream()
+                .map(n -> NationalityResponse.builder()
+                        .idNationality(n.getIdNationality())
+                        .name(n.getName())
+                        .description(n.getDescription())
+                        .isActive(n.getIsActive())
+                        .build())
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MaritalStatusResponse> obtenerEstadosCiviles() {
+        log.info("Obteniendo catálogo de estados civiles...");
+        return maritalStatusRepository.findByIsActiveTrue().stream()
+                .map(m -> MaritalStatusResponse.builder()
+                        .idMaritalStatus(m.getIdMaritalStatus())
+                        .name(m.getName())
+                        .description(m.getDescription())
+                        .isActive(m.getIsActive())
+                        .build())
+                .toList();
     }
 }

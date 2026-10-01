@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * Gestor del estado de sesión en el servidor.
  * Controla el booleano en el servidor (login = true / false),
- * con contador de inactividad en segundos (expiración a los 5 segundos de inactividad).
+ * con contador de inactividad en segundos (expiración a los 5 minutos / 300 segundos de inactividad).
  */
 @Component
 @Slf4j
@@ -26,8 +26,12 @@ public class ServerSessionManager {
     private final AtomicReference<String> activeUserEmail = new AtomicReference<>(null);
     private final AtomicReference<Long> activeClientId = new AtomicReference<>(null);
 
-    @Value("${server.session.inactivity-limit-seconds:5}")
-    private long inactivityLimitSeconds = 5;
+    @Value("${server.session.inactivity-limit-seconds:300}")
+    private long inactivityLimitSeconds = 300;
+
+    public synchronized long getInactivityLimitSeconds() {
+        return inactivityLimitSeconds;
+    }
 
     /**
      * Establece el estado del booleano en el servidor cuando el usuario hace login o logout.

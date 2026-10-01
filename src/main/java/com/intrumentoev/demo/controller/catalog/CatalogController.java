@@ -1,7 +1,10 @@
 package com.intrumentoev.demo.controller.catalog;
 
 import com.intrumentoev.demo.model.catalog.CatalogSyncResponse;
+import com.intrumentoev.demo.model.catalog.GenderResponse;
+import com.intrumentoev.demo.model.catalog.MaritalStatusResponse;
 import com.intrumentoev.demo.model.catalog.MunicipalityResponse;
+import com.intrumentoev.demo.model.catalog.NationalityResponse;
 import com.intrumentoev.demo.model.catalog.StateResponse;
 import com.intrumentoev.demo.service.service.catalog.CatalogService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,13 +17,35 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "Catálogos Geográficos (INEGI)", description = "Consulta y sincronización de estados y municipios con caché en Redis y persistencia en PostgreSQL")
+@Tag(name = "Catálogos", description = "Consulta de catálogos: géneros, nacionalidades, estados civiles, estados federativos y municipios")
 @RestController
 @RequestMapping("/v1/catalogos")
 @RequiredArgsConstructor
 public class CatalogController {
 
     private final CatalogService catalogService;
+
+    // ──────────────────── Catálogos personales ────────────────────
+
+    @Operation(summary = "Obtener géneros", description = "Retorna los géneros disponibles (Hombre, Mujer). Usa el idGender en el onboarding.")
+    @GetMapping(value = "/generos", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<GenderResponse>> obtenerGeneros() {
+        return ResponseEntity.ok(catalogService.obtenerGeneros());
+    }
+
+    @Operation(summary = "Obtener nacionalidades", description = "Retorna las nacionalidades disponibles. Usa el idNationality en el onboarding.")
+    @GetMapping(value = "/nacionalidades", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<NationalityResponse>> obtenerNacionalidades() {
+        return ResponseEntity.ok(catalogService.obtenerNacionalidades());
+    }
+
+    @Operation(summary = "Obtener estados civiles", description = "Retorna los estados civiles disponibles (Soltero, Casado, etc.). Usa el idMaritalStatus en el onboarding.")
+    @GetMapping(value = "/estados-civiles", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<MaritalStatusResponse>> obtenerEstadosCiviles() {
+        return ResponseEntity.ok(catalogService.obtenerEstadosCiviles());
+    }
+
+    // ──────────────────── Catálogos geográficos (INEGI) ────────────────────
 
     @Operation(summary = "Obtener estados federativos", description = "Retorna la lista de entidades federativas mexicanas. Consulta primero Redis y cuenta con fallback a PostgreSQL e INEGI.")
     @GetMapping(value = "/estados", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -44,3 +69,4 @@ public class CatalogController {
         return ResponseEntity.ok(response);
     }
 }
+

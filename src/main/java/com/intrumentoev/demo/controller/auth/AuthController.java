@@ -26,7 +26,7 @@ public class AuthController {
 
     @Operation(
             summary = "Consultar estado del booleano del servidor y contador de inactividad",
-            description = "Devuelve si el usuario tiene sesión activa en el servidor (login = true/false), contador de segundos de inactividad y segundos restantes antes del timeout de 5 segundos."
+            description = "Devuelve si el usuario tiene sesión activa en el servidor (login = true/false), contador de segundos de inactividad y segundos restantes antes del timeout de 5 minutos (300 segundos)."
     )
     @GetMapping(
             value = {"/session-status", "/estado-servidor"},
