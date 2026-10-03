@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface GenderRepository extends JpaRepository<Gender, Short> {
     Optional<Gender> findByName(String name);
     List<Gender> findByIsActiveTrue();
+    Boolean existsByIdGender(Number id);
 }

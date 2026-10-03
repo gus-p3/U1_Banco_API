@@ -53,6 +53,19 @@ public interface ClientMapper {
     void updateEntityFromRequest(ClientRequest request, @MappingTarget Client entity);
 
     /**
+     * Actualiza completamente los datos personales editables de Client usando ClientUpdateRequest.
+     * CURP y RFC no se modifican.
+     */
+    @Mapping(target = "idClient", ignore = true)
+    @Mapping(target = "curp", ignore = true)
+    @Mapping(target = "rfc", ignore = true)
+    @Mapping(target = "isActive", ignore = true)
+    @Mapping(target = "deactivatedAt", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    void updateEntityFromUpdateRequest(com.intrumentoev.demo.model.client.ClientUpdateRequest request, @MappingTarget Client entity);
+
+    /**
      * Actualiza parcialmente una entidad Client existente (PATCH).
      */
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)

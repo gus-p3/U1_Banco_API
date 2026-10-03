@@ -2,13 +2,14 @@ package com.intrumentoev.demo.service.impl.home;
 
 import com.intrumentoev.demo.entity.home.Home;
 import com.intrumentoev.demo.exception.BusinessValidationException;
-
+import com.intrumentoev.demo.exception.CatalogNotFoundException;
+import com.intrumentoev.demo.exception.ClientNotFoundException;
 import com.intrumentoev.demo.mapper.home.HomeMapper;
 import com.intrumentoev.demo.model.home.HomePatchRequest;
 import com.intrumentoev.demo.model.home.HomeRequest;
 import com.intrumentoev.demo.model.home.HomeResponse;
 import com.intrumentoev.demo.repository.catalogs.MunicipalityRepository;
-
+import com.intrumentoev.demo.repository.client.ClientRepository;
 import com.intrumentoev.demo.repository.home.HomeRepository;
 import com.intrumentoev.demo.service.service.home.HomeService;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class HomeServiceImpl implements HomeService {
 
     private final HomeRepository homeRepository;
-
+    private final ClientRepository clientRepository;
     private final MunicipalityRepository municipalityRepository;
     private final HomeMapper homeMapper;
 
@@ -46,16 +47,41 @@ public class HomeServiceImpl implements HomeService {
 
     @Override
     @Transactional
+    public HomeResponse reemplazarHome(Long id, com.intrumentoev.demo.model.home.HomeUpdateRequest request) {
+        log.info("Reemplazando completo domicilio con ID: {}", id);
+        Home existente = homeRepository.findById(id)
+                .orElseThrow(() -> new BusinessValidationException("Domicilio no encontrado con ID: " + id, "idHome"));
+
+        // Si se provee idClient, validar que exista
+        if (request.getIdClient() != null && !clientRepository.existsById(request.getIdClient())) {
+            throw new ClientNotFoundException(request.getIdClient());
+        }
+
+        // Regla de Negocio: El municipio referenciado debe existir
+        if (!municipalityRepository.existsById(request.getIdMunicipality())) {
+            throw new CatalogNotFoundException("idMunicipality", request.getIdMunicipality());
+        }
+
+        homeMapper.updateEntityFromUpdateRequest(request, existente);
+        Home actualizado = homeRepository.save(existente);
+        return homeMapper.toResponse(actualizado);
+    }
+
+    @Override
+    @Transactional
     public HomeResponse reemplazarHome(Long id, HomeRequest request) {
         log.info("Reemplazando completo domicilio con ID: {}", id);
         Home existente = homeRepository.findById(id)
                 .orElseThrow(() -> new BusinessValidationException("Domicilio no encontrado con ID: " + id, "idHome"));
 
-        if (request.getIdMunicipality() != null && !municipalityRepository.existsById(request.getIdMunicipality())) {
-            throw new BusinessValidationException(
-                    "El municipio con ID " + request.getIdMunicipality() + " no existe",
-                    "idMunicipality"
-            );
+        // Regla de Negocio: El cliente referenciado debe existir
+        if (!clientRepository.existsById(request.getIdClient())) {
+            throw new ClientNotFoundException(request.getIdClient());
+        }
+
+        // Regla de Negocio: El municipio referenciado debe existir
+        if (!municipalityRepository.existsById(request.getIdMunicipality())) {
+            throw new CatalogNotFoundException("idMunicipality", request.getIdMunicipality());
         }
 
         homeMapper.updateEntityFromRequest(request, existente);
@@ -70,11 +96,9 @@ public class HomeServiceImpl implements HomeService {
         Home existente = homeRepository.findById(id)
                 .orElseThrow(() -> new BusinessValidationException("Domicilio no encontrado con ID: " + id, "idHome"));
 
+        // Regla de Negocio: El municipio referenciado debe existir si se envía
         if (request.getIdMunicipality() != null && !municipalityRepository.existsById(request.getIdMunicipality())) {
-            throw new BusinessValidationException(
-                    "El municipio con ID " + request.getIdMunicipality() + " no existe",
-                    "idMunicipality"
-            );
+            throw new CatalogNotFoundException("idMunicipality", request.getIdMunicipality());
         }
 
         homeMapper.updateEntityFromPatch(request, existente);

@@ -1,20 +1,29 @@
 package com.intrumentoev.demo.model.contactDetail;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * DTO exclusivo para actualización y edición de los datos de contacto de un cliente.
+ * El idClient no es obligatorio para editar el detalle de contacto por su identificador.
+ */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ContactDetailRequest {
+public class ContactDetailUpdateRequest {
 
-    @NotNull(message = "El ID del cliente es obligatorio")
+    /**
+     * Opcional: el cliente ya está vinculado por la URL o la entidad existente.
+     */
     private Long idClient;
 
     @NotBlank(message = "El correo electrónico es obligatorio")

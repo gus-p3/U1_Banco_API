@@ -1,5 +1,6 @@
 package com.intrumentoev.demo.model.client;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,6 +14,7 @@ import java.time.LocalDate;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ClientOnboardingRequest {
 
     // --- 1. Datos Personales ---
@@ -30,7 +32,6 @@ public class ClientOnboardingRequest {
     @Pattern(regexp = "^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{2,50}$", message = "El apellido paterno contiene caracteres no válidos")
     private String lastName;
 
-    @NotBlank(message = "El apellido materno es obligatorio")
     @Size(min = 2, max = 50, message = "El apellido materno debe tener entre 2 y 50 caracteres")
     @Pattern(regexp = "^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{2,50}$", message = "El apellido materno contiene caracteres no válidos")
     private String secondLastName;

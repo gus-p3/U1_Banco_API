@@ -66,6 +66,12 @@ public interface ClientService {
     List<ClientResponse> obtenerClientesPorRangoFechas(OffsetDateTime desde, OffsetDateTime hasta);
 
     /**
+     * Reemplazo completo de información personal del cliente con DTO dedicado (PUT /v1/clientes/{id})
+     * No se permite modificar CURP ni RFC.
+     */
+    ClientResponse reemplazarCliente(Long id, ClientUpdateRequest request);
+
+    /**
      * Reemplazo completo de información personal del cliente (PUT /v1/clientes/{id})
      * No se permite modificar CURP ni RFC.
      */

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intrumentoev.demo.service.service.auth.ServerSessionManager;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -22,12 +21,18 @@ import java.util.Map;
  * o si han transcurrido más de 5 minutos (300 segundos) de inactividad.
  */
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class ServerSessionInterceptor implements HandlerInterceptor {
 
     private final ServerSessionManager serverSessionManager;
     private final ObjectMapper objectMapper;
+
+    public ServerSessionInterceptor(
+            ServerSessionManager serverSessionManager,
+            @org.springframework.context.annotation.Lazy ObjectMapper objectMapper) {
+        this.serverSessionManager = serverSessionManager;
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {

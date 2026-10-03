@@ -34,7 +34,7 @@ public class ContactDetailController {
         return ResponseEntity.ok(detalle);
     }
 
-    @Operation(summary = "Reemplazo completo de detalle de contacto (PUT)")
+    @Operation(summary = "Reemplazo completo de detalle de contacto (PUT)", description = "Actualiza el correo y teléfonos sin requerir el idClient.")
     @PutMapping(
             value = "/{id}",
             produces = MediaType.APPLICATION_JSON_VALUE,
@@ -42,7 +42,7 @@ public class ContactDetailController {
     )
     public ResponseEntity<ContactDetailResponse> reemplazarContactDetail(
             @PathVariable("id") Long id,
-            @Valid @RequestBody ContactDetailRequest request) {
+            @Valid @RequestBody com.intrumentoev.demo.model.contactDetail.ContactDetailUpdateRequest request) {
         ContactDetailResponse actualizado = contactDetailService.reemplazarContactDetail(id, request);
         return ResponseEntity.ok(actualizado);
     }

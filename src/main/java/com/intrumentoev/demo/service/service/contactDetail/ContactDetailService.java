@@ -13,7 +13,10 @@ public interface ContactDetailService {
     // 4. Buscar detalle de contacto por ID de Cliente (GET /v1/contact-details/client/{idClient})
     ContactDetailResponse obtenerContactDetailPorIdClient(Long idClient);
 
-    // 5. Reemplazo completo (PUT /v1/contact-details/{id})
+    // 5. Reemplazo completo con DTO dedicado (PUT /v1/contact-details/{id})
+    ContactDetailResponse reemplazarContactDetail(Long id, com.intrumentoev.demo.model.contactDetail.ContactDetailUpdateRequest request);
+
+    // 5.b Reemplazo completo (PUT /v1/contact-details/{id})
     ContactDetailResponse reemplazarContactDetail(Long id, ContactDetailRequest request);
 
     // 6. Actualización parcial (PATCH /v1/contact-details/{id})

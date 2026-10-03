@@ -36,7 +36,7 @@ public class HomeController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Reemplazo completo de domicilio (PUT)")
+    @Operation(summary = "Reemplazo completo de domicilio (PUT)", description = "Actualiza los campos de domicilio sin requerir el idClient.")
     @PutMapping(
             value = "/{id}",
             consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -44,7 +44,7 @@ public class HomeController {
     )
     public ResponseEntity<HomeResponse> reemplazarHome(
             @PathVariable("id") Long id,
-            @Valid @RequestBody HomeRequest request) {
+            @Valid @RequestBody com.intrumentoev.demo.model.home.HomeUpdateRequest request) {
         HomeResponse response = homeService.reemplazarHome(id, request);
         return ResponseEntity.ok(response);
     }

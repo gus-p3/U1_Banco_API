@@ -1,5 +1,6 @@
 package com.intrumentoev.demo.model.employment;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -13,6 +14,7 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class EmploymentInformationPatchRequest {
 
     @Size(max = 80, message = "La ocupación no puede superar los 80 caracteres")

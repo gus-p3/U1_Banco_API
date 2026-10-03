@@ -10,6 +10,8 @@ public interface EmploymentInformationService {
 
     EmploymentInformationResponse obtenerEmploymentInformationPorIdClient(Long idClient);
 
+    EmploymentInformationResponse reemplazarEmploymentInformation(Long id, com.intrumentoev.demo.model.employment.EmploymentInformationUpdateRequest request);
+
     EmploymentInformationResponse reemplazarEmploymentInformation(Long id, EmploymentInformationRequest request);
 
     EmploymentInformationResponse actualizarParcialEmploymentInformation(Long id, EmploymentInformationPatchRequest request);

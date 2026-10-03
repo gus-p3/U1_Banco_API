@@ -15,4 +15,5 @@ public interface MunicipalityRepository extends JpaRepository<Municipality, Inte
     Optional<Municipality> findByIdStateAndCveMun(Short idState, String cveMun);
 
     boolean existsByIdStateAndCveMun(Short idState, String cveMun);
+    Boolean existsByIdMunicipality(Number id);
 }

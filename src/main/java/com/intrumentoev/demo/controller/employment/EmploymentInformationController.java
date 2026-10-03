@@ -34,7 +34,7 @@ public class EmploymentInformationController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Reemplazo completo de información laboral (PUT)")
+    @Operation(summary = "Reemplazo completo de información laboral (PUT)", description = "Actualiza ocupación, empresa e ingreso mensual sin requerir idClient.")
     @PutMapping(
             value = "/{id}",
             consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -42,7 +42,7 @@ public class EmploymentInformationController {
     )
     public ResponseEntity<EmploymentInformationResponse> reemplazar(
             @PathVariable("id") Long id,
-            @Valid @RequestBody EmploymentInformationRequest request) {
+            @Valid @RequestBody com.intrumentoev.demo.model.employment.EmploymentInformationUpdateRequest request) {
         EmploymentInformationResponse response = employmentService.reemplazarEmploymentInformation(id, request);
         return ResponseEntity.ok(response);
     }

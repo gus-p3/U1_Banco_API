@@ -126,6 +126,15 @@ class ClientServiceTest {
         mockClient.setRfc("PERJ9501011A2");
         mockClient.setBirthDate(LocalDate.now().minusYears(25));
         mockClient.setIsActive(true);
+
+        lenient().when(genderRepository.existsByIdGender(any())).thenReturn(true);
+        lenient().when(genderRepository.existsById(any())).thenReturn(true);
+        lenient().when(nationalityRepository.existsByIdNationality(any())).thenReturn(true);
+        lenient().when(nationalityRepository.existsById(any())).thenReturn(true);
+        lenient().when(maritalStatusRepository.existsByIdMaritalStatus(any())).thenReturn(true);
+        lenient().when(maritalStatusRepository.existsById(any())).thenReturn(true);
+        lenient().when(municipalityRepository.existsByIdMunicipality(any())).thenReturn(true);
+        lenient().when(municipalityRepository.existsById(any())).thenReturn(true);
     }
 
     @Test
@@ -228,6 +237,52 @@ class ClientServiceTest {
                 .curp("NUEV950101HDFRMN01") // Diferente CURP
                 .rfc("PERJ9501011A2")
                 .birthDate(LocalDate.now().minusYears(25))
+                .build();
+
+        assertThatThrownBy(() -> clientService.reemplazarCliente(1L, updateRequest))
+                .isInstanceOf(BusinessValidationException.class)
+                .hasMessageContaining("No está permitido modificar la CURP");
+    }
+
+    @Test
+    @DisplayName("Actualización con ClientUpdateRequest exitosa sin necesidad de enviar CURP ni RFC")
+    void testActualizacionConClientUpdateRequest() {
+        when(clientRepository.findById(1L)).thenReturn(Optional.of(mockClient));
+        when(clientRepository.save(any())).thenReturn(mockClient);
+        when(clientMapper.toResponse(any())).thenReturn(ClientResponse.builder().idClient(1L).name("Juan Modificado").build());
+
+        ClientUpdateRequest updateRequest = ClientUpdateRequest.builder()
+                .name("Juan Modificado")
+                .lastName("Pérez")
+                .secondLastName("Gómez")
+                .birthDate(LocalDate.now().minusYears(25))
+                .idGender((short) 1)
+                .idNationality((short) 1)
+                .idMaritalStatus((short) 1)
+                .build();
+
+        ClientResponse response = clientService.reemplazarCliente(1L, updateRequest);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getName()).isEqualTo("Juan Modificado");
+        verify(clientMapper, times(1)).updateEntityFromUpdateRequest(eq(updateRequest), eq(mockClient));
+        verify(clientRepository, times(1)).save(mockClient);
+    }
+
+    @Test
+    @DisplayName("ClientUpdateRequest rechaza si envía una CURP distinta a la registrada")
+    void testClientUpdateRequestRechazaModificarCurp() {
+        when(clientRepository.findById(1L)).thenReturn(Optional.of(mockClient));
+
+        ClientUpdateRequest updateRequest = ClientUpdateRequest.builder()
+                .name("Juan")
+                .lastName("Pérez")
+                .secondLastName("Gómez")
+                .curp("OTRA950101HDFRMN01")
+                .birthDate(LocalDate.now().minusYears(25))
+                .idGender((short) 1)
+                .idNationality((short) 1)
+                .idMaritalStatus((short) 1)
                 .build();
 
         assertThatThrownBy(() -> clientService.reemplazarCliente(1L, updateRequest))

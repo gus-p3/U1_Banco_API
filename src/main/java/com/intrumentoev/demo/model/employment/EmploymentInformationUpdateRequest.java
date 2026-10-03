@@ -12,14 +12,20 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
+/**
+ * DTO exclusivo para actualización y edición de la información laboral del cliente.
+ * El idClient no es obligatorio para actualizar el registro existente.
+ */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class EmploymentInformationRequest {
+public class EmploymentInformationUpdateRequest {
 
-    @NotNull(message = "El ID del cliente es obligatorio")
+    /**
+     * Opcional: el cliente ya está vinculado por la URL o el registro existente.
+     */
     private Long idClient;
 
     @NotBlank(message = "La ocupación es obligatoria")

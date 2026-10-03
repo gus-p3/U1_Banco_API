@@ -144,7 +144,7 @@ public class ClientController {
         return ResponseEntity.ok(clientes);
     }
 
-    @Operation(summary = "Reemplazo completo de cliente (PUT)", description = "Actualiza todos los datos personales permitidos. CURP y RFC no pueden ser modificados.")
+    @Operation(summary = "Reemplazo completo de cliente (PUT)", description = "Actualiza todos los datos personales permitidos con DTO de edición. CURP y RFC no pueden ser modificados.")
     @PutMapping(
             value = "/{id}",
             consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -152,7 +152,7 @@ public class ClientController {
     )
     public ResponseEntity<ClientResponse> reemplazarCliente(
             @PathVariable("id") Long id,
-            @Valid @RequestBody ClientRequest request) {
+            @Valid @RequestBody ClientUpdateRequest request) {
         ClientResponse actualizado = clientService.reemplazarCliente(id, request);
         return ResponseEntity.ok(actualizado);
     }

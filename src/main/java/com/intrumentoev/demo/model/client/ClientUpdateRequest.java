@@ -9,12 +9,16 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
+/**
+ * DTO exclusivo para actualización y edición de datos personales del cliente.
+ * CURP y RFC no son obligatorios en este DTO y su modificación está protegida por regla de negocio.
+ */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ClientRequest {
+public class ClientUpdateRequest {
 
     @NotBlank(message = "El primer nombre es obligatorio")
     @Size(min = 2, max = 50, message = "El nombre debe tener entre 2 y 50 caracteres")
@@ -39,22 +43,6 @@ public class ClientRequest {
     @Past(message = "La fecha de nacimiento debe ser en el pasado")
     private LocalDate birthDate;
 
-    @NotBlank(message = "El CURP es obligatorio")
-    @Size(min = 18, max = 18, message = "El CURP debe tener exactamente 18 caracteres")
-    @Pattern(
-            regexp = "^[A-Z]{4}[0-9]{6}[HM][A-Z]{2}[B-DF-HJ-NP-TV-Z]{3}[A-Z0-9][0-9]$",
-            message = "El formato del CURP es inválido"
-    )
-    private String curp;
-
-    @NotBlank(message = "El RFC es obligatorio")
-    @Size(min = 13, max = 13, message = "El RFC de persona física debe tener exactamente 13 caracteres")
-    @Pattern(
-            regexp = "^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$",
-            message = "El formato del RFC es inválido"
-    )
-    private String rfc;
-
     @NotNull(message = "El género es obligatorio")
     private Short idGender;
 
@@ -63,4 +51,24 @@ public class ClientRequest {
 
     @NotNull(message = "El estado civil es obligatorio")
     private Short idMaritalStatus;
+
+    /**
+     * Opcional: si se envía, se valida que coincida exactamente con el existente ya que no se permite modificar.
+     */
+    @Size(min = 18, max = 18, message = "El CURP debe tener exactamente 18 caracteres")
+    @Pattern(
+            regexp = "^[A-Z]{4}[0-9]{6}[HM][A-Z]{2}[B-DF-HJ-NP-TV-Z]{3}[A-Z0-9][0-9]$",
+            message = "El formato del CURP es inválido"
+    )
+    private String curp;
+
+    /**
+     * Opcional: si se envía, se valida que coincida exactamente con el existente ya que no se permite modificar.
+     */
+    @Size(min = 13, max = 13, message = "El RFC de persona física debe tener exactamente 13 caracteres")
+    @Pattern(
+            regexp = "^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$",
+            message = "El formato del RFC es inválido"
+    )
+    private String rfc;
 }
