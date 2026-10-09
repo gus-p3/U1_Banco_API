@@ -1,4 +1,23 @@
-HELP.md
+# Markdown files (solo conservar README.md)
+*.md
+!README.md
+
+# Scripts y entornos de Python
+*.py
+!generate_test_plan_docx.py
+*.pyc
+__pycache__/
+*.pyo
+
+# Documentos ofimáticos y reportes
+*.docx
+!Plan_de_Pruebas_API_Bancaria.docx
+*.doc
+*.pdf
+*.xlsx
+*.xls
+*.pptx
+
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar

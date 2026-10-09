@@ -13,14 +13,17 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.constraints.Pattern;
 import java.util.List;
 
 @Tag(name = "Catálogos", description = "Consulta de catálogos: géneros, nacionalidades, estados civiles, estados federativos y municipios")
 @RestController
 @RequestMapping("/v1/catalogos")
 @RequiredArgsConstructor
+@Validated
 public class CatalogController {
 
     private final CatalogService catalogService;
@@ -57,7 +60,10 @@ public class CatalogController {
     @Operation(summary = "Obtener municipios por estado", description = "Retorna los municipios asociados a una entidad federativa (cve_ent). Utiliza caché en Redis y fallback a PostgreSQL e INEGI.")
     @GetMapping(value = "/municipios/{cveEnt}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<MunicipalityResponse>> obtenerMunicipiosPorEstado(
-            @Parameter(description = "Clave de entidad de 2 dígitos (ej: 01, 09, 14)") @PathVariable("cveEnt") String cveEnt) {
+            @Parameter(description = "Clave de entidad de 2 dígitos (ej: 01, 09, 14)")
+            @PathVariable("cveEnt")
+            @Pattern(regexp = "^[0-9]{2}$", message = "La clave de entidad federativa debe tener exactamente 2 dígitos numéricos (ej. 01, 09, 14)")
+            String cveEnt) {
         List<MunicipalityResponse> municipios = catalogService.obtenerMunicipiosPorEstado(cveEnt);
         return ResponseEntity.ok(municipios);
     }

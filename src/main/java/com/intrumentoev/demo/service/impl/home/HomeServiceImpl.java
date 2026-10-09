@@ -93,6 +93,10 @@ public class HomeServiceImpl implements HomeService {
     @Transactional
     public HomeResponse actualizarParcialHome(Long id, HomePatchRequest request) {
         log.info("Actualizando parcialmente domicilio con ID: {}", id);
+        if (request == null || request.isEmpty()) {
+            throw new BusinessValidationException("Debe proporcionar al menos un campo válido para actualizar", "requestBody");
+        }
+
         Home existente = homeRepository.findById(id)
                 .orElseThrow(() -> new BusinessValidationException("Domicilio no encontrado con ID: " + id, "idHome"));
 

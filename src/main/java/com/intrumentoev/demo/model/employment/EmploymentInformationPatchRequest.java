@@ -25,4 +25,8 @@ public class EmploymentInformationPatchRequest {
 
     @DecimalMin(value = "0.01", message = "El ingreso mensual debe ser mayor a cero")
     private BigDecimal monthlyIncome;
+
+    public boolean isEmpty() {
+        return occupation == null && company == null && monthlyIncome == null;
+    }
 }

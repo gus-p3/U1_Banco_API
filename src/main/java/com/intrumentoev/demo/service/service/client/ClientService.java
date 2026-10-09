@@ -30,10 +30,6 @@ public interface ClientService {
      */
     ClientDetailResponse obtenerClientePorIdConIncludes(Long id, String include);
 
-    /**
-     * Obtener detalle completo del cliente (personal, contacto, domicilio, laboral y cuentas).
-     */
-    ClientDetailResponse obtenerDetalleCompletoClientePorId(Long id);
 
     /**
      * Buscar cliente por CURP

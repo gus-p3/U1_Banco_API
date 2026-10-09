@@ -290,12 +290,6 @@ public class ClientServiceImpl implements ClientService {
                 .build();
     }
 
-    // 5. GET /v1/clientes/{id}/detalle
-    @Override
-    @Transactional(readOnly = true)
-    public ClientDetailResponse obtenerDetalleCompletoClientePorId(Long id) {
-        return obtenerClientePorIdConIncludes(id, "all");
-    }
 
     private void enrichClientWithCatalogs(ClientResponse response) {
         if (response == null) return;
@@ -517,6 +511,10 @@ public class ClientServiceImpl implements ClientService {
     @Transactional
     public ClientResponse actualizarParcialCliente(Long id, ClientPatchRequest request) {
         log.info("Actualizando parcialmente cliente con ID: {}", id);
+        if (request == null || request.isEmpty()) {
+            throw new BusinessValidationException("Debe proporcionar al menos un campo válido para actualizar", "requestBody");
+        }
+
         Client existente = clientRepository.findById(id)
                 .orElseThrow(() -> new ClientNotFoundException(id));
 
@@ -557,7 +555,9 @@ public class ClientServiceImpl implements ClientService {
         }
 
         Client actualizado = clientRepository.save(existente);
-        return clientMapper.toResponse(actualizado);
+        ClientResponse response = clientMapper.toResponse(actualizado);
+        enrichClientWithCatalogs(response);
+        return response;
     }
 
     // 14. DELETE /v1/clientes/{id} (Baja lógica)

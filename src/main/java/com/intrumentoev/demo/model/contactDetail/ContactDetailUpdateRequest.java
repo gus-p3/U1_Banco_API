@@ -24,6 +24,7 @@ public class ContactDetailUpdateRequest {
     /**
      * Opcional: el cliente ya está vinculado por la URL o la entidad existente.
      */
+    @jakarta.validation.constraints.Positive(message = "El ID del cliente debe ser un número entero positivo mayor a 0")
     private Long idClient;
 
     @NotBlank(message = "El correo electrónico es obligatorio")

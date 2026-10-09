@@ -109,6 +109,10 @@ public class ContactDetailServiceImpl implements ContactDetailService {
     @Transactional
     public ContactDetailResponse actualizarParcialContactDetail(Long id, ContactDetailPatchRequest request) {
         log.info("Actualizando parcialmente el detalle de contacto con ID: {}", id);
+        if (request == null || request.isEmpty()) {
+            throw new BusinessValidationException("Debe proporcionar al menos un campo válido para actualizar", "requestBody");
+        }
+
         ContactDetail existente = contactDetailRepository.findById(id)
                 .orElseThrow(() -> new BusinessValidationException("Detalle de contacto no encontrado con ID: " + id, "idContactDetail"));
 

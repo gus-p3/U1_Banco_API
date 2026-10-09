@@ -15,6 +15,7 @@ import lombok.NoArgsConstructor;
 public class ContactDetailRequest {
 
     @NotNull(message = "El ID del cliente es obligatorio")
+    @Positive(message = "El ID del cliente debe ser un número entero positivo mayor a 0")
     private Long idClient;
 
     @NotBlank(message = "El correo electrónico es obligatorio")

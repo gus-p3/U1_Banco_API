@@ -56,11 +56,14 @@ public class ClientRequest {
     private String rfc;
 
     @NotNull(message = "El género es obligatorio")
+    @Positive(message = "El identificador del género debe ser positivo")
     private Short idGender;
 
     @NotNull(message = "La nacionalidad es obligatoria")
+    @Positive(message = "El identificador de la nacionalidad debe ser positivo")
     private Short idNationality;
 
     @NotNull(message = "El estado civil es obligatorio")
+    @Positive(message = "El identificador del estado civil debe ser positivo")
     private Short idMaritalStatus;
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,6 +27,7 @@ public class EmploymentInformationUpdateRequest {
     /**
      * Opcional: el cliente ya está vinculado por la URL o el registro existente.
      */
+    @Positive(message = "El identificador del cliente debe ser un número entero positivo")
     private Long idClient;
 
     @NotBlank(message = "La ocupación es obligatoria")

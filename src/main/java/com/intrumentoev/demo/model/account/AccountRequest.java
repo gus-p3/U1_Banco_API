@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 public class AccountRequest {
 
     @NotNull(message = "El ID del cliente es obligatorio")
+    @jakarta.validation.constraints.Positive(message = "El ID del cliente debe ser un número entero positivo mayor a 0")
     private Long idClient;
 
     @DecimalMin(value = "0.00", message = "El saldo inicial no puede ser negativo")

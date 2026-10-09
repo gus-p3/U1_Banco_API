@@ -18,6 +18,7 @@ import lombok.NoArgsConstructor;
 public class HomeRequest {
 
     @NotNull(message = "El ID del cliente es obligatorio")
+    @jakarta.validation.constraints.Positive(message = "El ID del cliente debe ser un número entero positivo mayor a 0")
     private Long idClient;
 
     @NotBlank(message = "La calle es obligatoria")
@@ -36,6 +37,7 @@ public class HomeRequest {
     private String neighborhood;
 
     @NotNull(message = "El ID del municipio es obligatorio")
+    @jakarta.validation.constraints.Positive(message = "El ID del municipio debe ser un número entero positivo mayor a 0")
     private Integer idMunicipality;
 
     @NotBlank(message = "El código postal es obligatorio")

@@ -57,12 +57,15 @@ public class ClientOnboardingRequest {
     private String rfc;
 
     @NotNull(message = "El sexo es obligatorio")
+    @Positive(message = "El identificador del género debe ser positivo")
     private Short idGender;
 
     @NotNull(message = "La nacionalidad es obligatoria")
+    @Positive(message = "El identificador de la nacionalidad debe ser positivo")
     private Short idNationality;
 
     @NotNull(message = "El estado civil es obligatorio")
+    @Positive(message = "El identificador del estado civil debe ser positivo")
     private Short idMaritalStatus;
 
     // --- 2. Datos de Contacto ---
@@ -99,6 +102,7 @@ public class ClientOnboardingRequest {
     private String neighborhood;
 
     @NotNull(message = "El municipio es obligatorio")
+    @Positive(message = "El identificador del municipio debe ser positivo")
     private Integer idMunicipality;
 
     @NotBlank(message = "El código postal es obligatorio")

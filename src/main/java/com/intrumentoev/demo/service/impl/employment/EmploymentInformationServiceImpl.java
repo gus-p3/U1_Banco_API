@@ -90,6 +90,10 @@ public class EmploymentInformationServiceImpl implements EmploymentInformationSe
     @Transactional
     public EmploymentInformationResponse actualizarParcialEmploymentInformation(Long id, EmploymentInformationPatchRequest request) {
         log.info("Actualizando parcialmente información laboral con ID: {}", id);
+        if (request == null || request.isEmpty()) {
+            throw new BusinessValidationException("Debe proporcionar al menos un campo válido para actualizar", "requestBody");
+        }
+
         EmploymentInformation existente = employmentRepository.findById(id)
                 .orElseThrow(() -> new BusinessValidationException("Información laboral no encontrada con ID: " + id, "idEmployment"));
 

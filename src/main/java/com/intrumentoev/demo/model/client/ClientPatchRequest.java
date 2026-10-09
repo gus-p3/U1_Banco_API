@@ -52,9 +52,21 @@ public class ClientPatchRequest {
     )
     private String rfc;
 
+    @jakarta.validation.constraints.Positive(message = "El identificador del género debe ser positivo")
     private Short idGender;
+
+    @jakarta.validation.constraints.Positive(message = "El identificador de la nacionalidad debe ser positivo")
     private Short idNationality;
+
+    @jakarta.validation.constraints.Positive(message = "El identificador del estado civil debe ser positivo")
     private Short idMaritalStatus;
+
     private Boolean isActive;
     private OffsetDateTime deactivatedAt;
+
+    public boolean isEmpty() {
+        return name == null && secondName == null && lastName == null && secondLastName == null
+                && birthDate == null && curp == null && rfc == null && idGender == null
+                && idNationality == null && idMaritalStatus == null && isActive == null && deactivatedAt == null;
+    }
 }

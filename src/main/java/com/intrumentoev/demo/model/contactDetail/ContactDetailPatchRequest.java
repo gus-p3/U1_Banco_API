@@ -35,4 +35,8 @@ public class ContactDetailPatchRequest {
             message = "El teléfono alternativo debe tener exactamente 10 dígitos numéricos"
     )
     private String alternativePhone;
+
+    public boolean isEmpty() {
+        return email == null && mobilePhone == null && alternativePhone == null;
+    }
 }
