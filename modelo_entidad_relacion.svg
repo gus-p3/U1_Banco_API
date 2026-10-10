@@ -1,0 +1,571 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1880 1380" width="1880" height="1380" style="background-color: #0b0f19; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;">
+    <defs>
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255, 255, 255, 0.03)" stroke-width="1"/>
+        </pattern>
+        <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0b1120"/>
+            <stop offset="50%" stop-color="#0f172a"/>
+            <stop offset="100%" stop-color="#020617"/>
+        </linearGradient>
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.6"/>
+        </filter>
+        <marker id="circle-end" markerWidth="8" markerHeight="8" refX="4" refY="4">
+            <circle cx="4" cy="4" r="3" fill="#10b981"/>
+        </marker>
+        <marker id="crow-end" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+            <path d="M 0 0 L 10 6 L 0 12 M 10 0 L 10 12" stroke="#38bdf8" stroke-width="2" fill="none"/>
+        </marker>
+        <marker id="crow-end-purple" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+            <path d="M 0 0 L 10 6 L 0 12 M 10 0 L 10 12" stroke="#a855f7" stroke-width="2" fill="none"/>
+        </marker>
+        <marker id="crow-end-emerald" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+            <path d="M 0 0 L 10 6 L 0 12 M 10 0 L 10 12" stroke="#10b981" stroke-width="2" fill="none"/>
+        </marker>
+        <marker id="crow-end-rose" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+            <path d="M 0 0 L 10 6 L 0 12 M 10 0 L 10 12" stroke="#f43f5e" stroke-width="2" fill="none"/>
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="1880" height="1380" fill="url(#bg-grad)"/>
+    <rect width="1880" height="1380" fill="url(#grid)"/>
+
+    <!-- Header Banner -->
+    <g transform="translate(60, 25)">
+        <text x="0" y="24" fill="#f8fafc" font-size="24" font-weight="800" letter-spacing="0.5">MODELO ENTIDAD - RELACIÓN (BD BANCO)</text>
+        <text x="560" y="24" fill="#94a3b8" font-size="14" font-weight="500">PostgreSQL Schema • Arquitectura Hexagonal • 12 Tablas • Clientes &amp; Finanzas</text>
+        
+        <!-- Category Legend Pills -->
+        <g transform="translate(1160, 4)">
+            <!-- Core -->
+            <rect x="0" y="0" width="80" height="24" rx="12" fill="rgba(59, 130, 246, 0.2)" stroke="#3b82f6" stroke-width="1"/>
+            <text x="40" y="16" fill="#93c5fd" font-size="11" font-weight="600" text-anchor="middle">Central</text>
+            <!-- Catálogos -->
+            <rect x="90" y="0" width="90" height="24" rx="12" fill="rgba(168, 85, 247, 0.2)" stroke="#a855f7" stroke-width="1"/>
+            <text x="135" y="16" fill="#d8b4fe" font-size="11" font-weight="600" text-anchor="middle">Catálogos</text>
+            <!-- Satélites -->
+            <rect x="190" y="0" width="90" height="24" rx="12" fill="rgba(16, 185, 129, 0.2)" stroke="#10b981" stroke-width="1"/>
+            <text x="235" y="16" fill="#6ee7b7" font-size="11" font-weight="600" text-anchor="middle">Datos 1:1</text>
+            <!-- Seguridad -->
+            <rect x="290" y="0" width="90" height="24" rx="12" fill="rgba(244, 63, 94, 0.2)" stroke="#f43f5e" stroke-width="1"/>
+            <text x="335" y="16" fill="#fda4af" font-size="11" font-weight="600" text-anchor="middle">Seguridad</text>
+            <!-- Finanzas -->
+            <rect x="390" y="0" width="90" height="24" rx="12" fill="rgba(14, 165, 233, 0.2)" stroke="#0ea5e9" stroke-width="1"/>
+            <text x="435" y="16" fill="#7dd3fc" font-size="11" font-weight="600" text-anchor="middle">Finanzas</text>
+        </g>
+    </g>
+    <g id="relations">
+            <path d="M 215, 300 L 215, 320" fill="none" stroke="#a855f7" stroke-width="2.5" stroke-dasharray="0" marker-end="url(#crow-end-purple)" opacity="0.9"/>
+            <rect x="207" y="300" width="36" height="18" rx="4" fill="#0f172a" stroke="#a855f7" stroke-width="1"/>
+            <text x="225" y="313" fill="#e2e8f0" font-size="10" font-weight="700" text-anchor="middle">1 : N</text>
+        
+            <path d="M 370, 387 H 420 V 293 H 470" fill="none" stroke="#10b981" stroke-width="2.5" stroke-dasharray="0" marker-end="url(#crow-end-emerald)" opacity="0.9"/>
+            <rect x="402" y="245" width="36" height="18" rx="4" fill="#0f172a" stroke="#10b981" stroke-width="1"/>
+            <text x="420" y="258" fill="#e2e8f0" font-size="10" font-weight="700" text-anchor="middle">1 : N</text>
+        
+            <path d="M 370, 667 H 430 V 755 H 470" fill="none" stroke="#a855f7" stroke-width="2.5" stroke-dasharray="0" marker-end="url(#crow-end-purple)" opacity="0.9"/>
+            <rect x="412" y="650" width="36" height="18" rx="4" fill="#0f172a" stroke="#a855f7" stroke-width="1"/>
+            <text x="430" y="663" fill="#e2e8f0" font-size="10" font-weight="700" text-anchor="middle">1 : N</text>
+        
+            <path d="M 370, 917 H 410 V 781 H 470" fill="none" stroke="#a855f7" stroke-width="2.5" stroke-dasharray="0" marker-end="url(#crow-end-purple)" opacity="0.9"/>
+            <rect x="392" y="800" width="36" height="18" rx="4" fill="#0f172a" stroke="#a855f7" stroke-width="1"/>
+            <text x="410" y="813" fill="#e2e8f0" font-size="10" font-weight="700" text-anchor="middle">1 : N</text>
+        
+            <path d="M 370, 1167 H 390 V 807 H 470" fill="none" stroke="#a855f7" stroke-width="2.5" stroke-dasharray="0" marker-end="url(#crow-end-purple)" opacity="0.9"/>
+            <rect x="372" y="930" width="36" height="18" rx="4" fill="#0f172a" stroke="#a855f7" stroke-width="1"/>
+            <text x="390" y="943" fill="#e2e8f0" font-size="10" font-weight="700" text-anchor="middle">1 : N</text>
+        
+            <path d="M 650, 480 L 650, 420" fill="none" stroke="#10b981" stroke-width="2.5" stroke-dasharray="0" marker-end="url(#circle-end)" opacity="0.9"/>
+            <rect x="642" y="450" width="36" height="18" rx="4" fill="#0f172a" stroke="#10b981" stroke-width="1"/>
+            <text x="660" y="463" fill="#e2e8f0" font-size="10" font-weight="700" text-anchor="middle">1 : 1</text>
+        
+            <path d="M 650, 934 L 650, 1040" fill="none" stroke="#10b981" stroke-width="2.5" stroke-dasharray="0" marker-end="url(#circle-end)" opacity="0.9"/>
+            <rect x="642" y="990" width="36" height="18" rx="4" fill="#0f172a" stroke="#10b981" stroke-width="1"/>
+            <text x="660" y="1003" fill="#e2e8f0" font-size="10" font-weight="700" text-anchor="middle">1 : 1</text>
+        
+            <path d="M 830, 547 H 880 V 163 H 950" fill="none" stroke="#10b981" stroke-width="2.5" stroke-dasharray="0" marker-end="url(#circle-end)" opacity="0.9"/>
+            <rect x="862" y="190" width="36" height="18" rx="4" fill="#0f172a" stroke="#10b981" stroke-width="1"/>
+            <text x="880" y="203" fill="#e2e8f0" font-size="10" font-weight="700" text-anchor="middle">1 : 1</text>
+        
+            <path d="M 830, 587 H 915 V 453 H 950" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="0" marker-end="url(#crow-end-rose)" opacity="0.9"/>
+            <rect x="897" y="430" width="36" height="18" rx="4" fill="#0f172a" stroke="#f43f5e" stroke-width="1"/>
+            <text x="915" y="443" fill="#e2e8f0" font-size="10" font-weight="700" text-anchor="middle">1 : N</text>
+        
+            <path d="M 830, 627 H 890 V 999 H 950" fill="none" stroke="#0ea5e9" stroke-width="2.5" stroke-dasharray="0" marker-end="url(#crow-end)" opacity="0.9"/>
+            <rect x="872" y="790" width="36" height="18" rx="4" fill="#0f172a" stroke="#0ea5e9" stroke-width="1"/>
+            <text x="890" y="803" fill="#e2e8f0" font-size="10" font-weight="700" text-anchor="middle">1 : N</text>
+        
+            <path d="M 1320, 947 H 1420" fill="none" stroke="#0ea5e9" stroke-width="2.5" stroke-dasharray="0" marker-end="url(#crow-end)" opacity="0.9"/>
+            <rect x="1352" y="925" width="36" height="18" rx="4" fill="#0f172a" stroke="#0ea5e9" stroke-width="1"/>
+            <text x="1370" y="938" fill="#e2e8f0" font-size="10" font-weight="700" text-anchor="middle">1 : N</text>
+        </g>
+        <g id="table-state" transform="translate(60, 80)" filter="url(#shadow)">
+            <!-- Outer Box -->
+            <rect width="310" height="220" rx="10" fill="#111827" stroke="#7e22ce" stroke-width="1.5"/>
+            
+            <!-- Header Background with Gradient -->
+            <defs>
+                <linearGradient id="hdr-grad-state" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#581c87"/>
+                    <stop offset="100%" stop-color="#7e22ce"/>
+                </linearGradient>
+            </defs>
+            <path d="M 0 10 Q 0 0 10 0 L 300 0 Q 310 0 310 10 L 310 54 L 0 54 Z" fill="url(#hdr-grad-state)"/>
+            
+            <!-- Header Text -->
+            <text x="14" y="24" fill="#ffffff" font-size="15" font-weight="800" letter-spacing="0.3">state</text>
+            <text x="14" y="42" fill="#cbd5e1" font-size="11" font-weight="500">Entidades federativas (INEGI)</text>
+            
+            <!-- Category Tag Pill in Header -->
+            <rect x="200" y="12" width="98" height="20" rx="10" fill="rgba(168, 85, 247, 0.2)" stroke="#a855f7" stroke-width="0.8"/>
+            <text x="249" y="26" fill="#d8b4fe" font-size="9" font-weight="700" text-anchor="middle">CATÁLOGO</text>
+            
+            <!-- Table Header Bottom Divider -->
+            <line x1="0" y1="54" x2="310" y2="54" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+            
+            <!-- Columns Rows -->
+            <g transform="translate(0, 54)">
+        <rect y="0" width="310" height="26" fill="transparent"/>
+                    <rect x="12" y="4" width="26" height="18" rx="4" fill="#f59e0b" />
+                    <text x="25" y="16" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">PK</text>
+                <text x="48" y="17" fill="#f8fafc" font-size="12" font-weight="700">id_state</text><text x="296" y="17" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">SMALLINT</text><line x1="12" y1="26" x2="298" y2="26" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="26" width="310" height="26" fill="rgba(255,255,255,0.02)"/>
+                    <rect x="12" y="30" width="26" height="18" rx="4" fill="#6366f1" />
+                    <text x="25" y="42" fill="#ffffff" font-size="9" font-weight="800" text-anchor="middle">UQ</text>
+                <text x="48" y="43" fill="#e2e8f0" font-size="12" font-weight="500">cve_ent</text><text x="296" y="43" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">CHAR(2)</text><line x1="12" y1="52" x2="298" y2="52" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="52" width="310" height="26" fill="transparent"/><text x="46" y="69" fill="#e2e8f0" font-size="12" font-weight="500">name</text><text x="296" y="69" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="78" x2="298" y2="78" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="78" width="310" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="95" fill="#e2e8f0" font-size="12" font-weight="500">is_active</text><text x="296" y="95" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">BOOLEAN</text><line x1="12" y1="104" x2="298" y2="104" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="104" width="310" height="26" fill="transparent"/><text x="46" y="121" fill="#e2e8f0" font-size="12" font-weight="500">created_at</text><text x="296" y="121" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text><line x1="12" y1="130" x2="298" y2="130" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="130" width="310" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="147" fill="#e2e8f0" font-size="12" font-weight="500">updated_at</text><text x="296" y="147" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text>
+            </g>
+        </g>
+        
+        <g id="table-municipality" transform="translate(60, 320)" filter="url(#shadow)">
+            <!-- Outer Box -->
+            <rect width="310" height="246" rx="10" fill="#111827" stroke="#7e22ce" stroke-width="1.5"/>
+            
+            <!-- Header Background with Gradient -->
+            <defs>
+                <linearGradient id="hdr-grad-municipality" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#581c87"/>
+                    <stop offset="100%" stop-color="#7e22ce"/>
+                </linearGradient>
+            </defs>
+            <path d="M 0 10 Q 0 0 10 0 L 300 0 Q 310 0 310 10 L 310 54 L 0 54 Z" fill="url(#hdr-grad-municipality)"/>
+            
+            <!-- Header Text -->
+            <text x="14" y="24" fill="#ffffff" font-size="15" font-weight="800" letter-spacing="0.3">municipality</text>
+            <text x="14" y="42" fill="#cbd5e1" font-size="11" font-weight="500">Municipios por Estado</text>
+            
+            <!-- Category Tag Pill in Header -->
+            <rect x="200" y="12" width="98" height="20" rx="10" fill="rgba(168, 85, 247, 0.2)" stroke="#a855f7" stroke-width="0.8"/>
+            <text x="249" y="26" fill="#d8b4fe" font-size="9" font-weight="700" text-anchor="middle">CATÁLOGO</text>
+            
+            <!-- Table Header Bottom Divider -->
+            <line x1="0" y1="54" x2="310" y2="54" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+            
+            <!-- Columns Rows -->
+            <g transform="translate(0, 54)">
+        <rect y="0" width="310" height="26" fill="transparent"/>
+                    <rect x="12" y="4" width="26" height="18" rx="4" fill="#f59e0b" />
+                    <text x="25" y="16" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">PK</text>
+                <text x="48" y="17" fill="#f8fafc" font-size="12" font-weight="700">id_municipality</text><text x="296" y="17" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">INTEGER</text><line x1="12" y1="26" x2="298" y2="26" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="26" width="310" height="26" fill="rgba(255,255,255,0.02)"/>
+                    <rect x="12" y="30" width="26" height="18" rx="4" fill="#0ea5e9" />
+                    <text x="25" y="42" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">FK</text>
+                <text x="48" y="43" fill="#f8fafc" font-size="12" font-weight="700">id_state</text><text x="296" y="43" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">SMALLINT</text><line x1="12" y1="52" x2="298" y2="52" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="52" width="310" height="26" fill="transparent"/><text x="46" y="69" fill="#e2e8f0" font-size="12" font-weight="500">cve_mun</text><text x="296" y="69" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">CHAR(3)</text><line x1="12" y1="78" x2="298" y2="78" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="78" width="310" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="95" fill="#e2e8f0" font-size="12" font-weight="500">name</text><text x="296" y="95" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="104" x2="298" y2="104" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="104" width="310" height="26" fill="transparent"/><text x="46" y="121" fill="#e2e8f0" font-size="12" font-weight="500">is_active</text><text x="296" y="121" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">BOOLEAN</text><line x1="12" y1="130" x2="298" y2="130" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="130" width="310" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="147" fill="#e2e8f0" font-size="12" font-weight="500">created_at</text><text x="296" y="147" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text><line x1="12" y1="156" x2="298" y2="156" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="156" width="310" height="26" fill="transparent"/><text x="46" y="173" fill="#e2e8f0" font-size="12" font-weight="500">updated_at</text><text x="296" y="173" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text>
+            </g>
+        </g>
+        
+        <g id="table-gender" transform="translate(60, 600)" filter="url(#shadow)">
+            <!-- Outer Box -->
+            <rect width="310" height="220" rx="10" fill="#111827" stroke="#7e22ce" stroke-width="1.5"/>
+            
+            <!-- Header Background with Gradient -->
+            <defs>
+                <linearGradient id="hdr-grad-gender" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#581c87"/>
+                    <stop offset="100%" stop-color="#7e22ce"/>
+                </linearGradient>
+            </defs>
+            <path d="M 0 10 Q 0 0 10 0 L 300 0 Q 310 0 310 10 L 310 54 L 0 54 Z" fill="url(#hdr-grad-gender)"/>
+            
+            <!-- Header Text -->
+            <text x="14" y="24" fill="#ffffff" font-size="15" font-weight="800" letter-spacing="0.3">gender</text>
+            <text x="14" y="42" fill="#cbd5e1" font-size="11" font-weight="500">Sexo / Género (CURP H/M)</text>
+            
+            <!-- Category Tag Pill in Header -->
+            <rect x="200" y="12" width="98" height="20" rx="10" fill="rgba(168, 85, 247, 0.2)" stroke="#a855f7" stroke-width="0.8"/>
+            <text x="249" y="26" fill="#d8b4fe" font-size="9" font-weight="700" text-anchor="middle">CATÁLOGO</text>
+            
+            <!-- Table Header Bottom Divider -->
+            <line x1="0" y1="54" x2="310" y2="54" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+            
+            <!-- Columns Rows -->
+            <g transform="translate(0, 54)">
+        <rect y="0" width="310" height="26" fill="transparent"/>
+                    <rect x="12" y="4" width="26" height="18" rx="4" fill="#f59e0b" />
+                    <text x="25" y="16" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">PK</text>
+                <text x="48" y="17" fill="#f8fafc" font-size="12" font-weight="700">id_gender</text><text x="296" y="17" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">SMALLINT</text><line x1="12" y1="26" x2="298" y2="26" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="26" width="310" height="26" fill="rgba(255,255,255,0.02)"/>
+                    <rect x="12" y="30" width="26" height="18" rx="4" fill="#6366f1" />
+                    <text x="25" y="42" fill="#ffffff" font-size="9" font-weight="800" text-anchor="middle">UQ</text>
+                <text x="48" y="43" fill="#e2e8f0" font-size="12" font-weight="500">name</text><text x="296" y="43" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="52" x2="298" y2="52" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="52" width="310" height="26" fill="transparent"/><text x="46" y="69" fill="#e2e8f0" font-size="12" font-weight="500">description</text><text x="296" y="69" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="78" x2="298" y2="78" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="78" width="310" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="95" fill="#e2e8f0" font-size="12" font-weight="500">is_active</text><text x="296" y="95" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">BOOLEAN</text><line x1="12" y1="104" x2="298" y2="104" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="104" width="310" height="26" fill="transparent"/><text x="46" y="121" fill="#e2e8f0" font-size="12" font-weight="500">created_at</text><text x="296" y="121" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text><line x1="12" y1="130" x2="298" y2="130" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="130" width="310" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="147" fill="#e2e8f0" font-size="12" font-weight="500">updated_at</text><text x="296" y="147" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text>
+            </g>
+        </g>
+        
+        <g id="table-nationality" transform="translate(60, 850)" filter="url(#shadow)">
+            <!-- Outer Box -->
+            <rect width="310" height="220" rx="10" fill="#111827" stroke="#7e22ce" stroke-width="1.5"/>
+            
+            <!-- Header Background with Gradient -->
+            <defs>
+                <linearGradient id="hdr-grad-nationality" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#581c87"/>
+                    <stop offset="100%" stop-color="#7e22ce"/>
+                </linearGradient>
+            </defs>
+            <path d="M 0 10 Q 0 0 10 0 L 300 0 Q 310 0 310 10 L 310 54 L 0 54 Z" fill="url(#hdr-grad-nationality)"/>
+            
+            <!-- Header Text -->
+            <text x="14" y="24" fill="#ffffff" font-size="15" font-weight="800" letter-spacing="0.3">nationality</text>
+            <text x="14" y="42" fill="#cbd5e1" font-size="11" font-weight="500">Nacionalidades</text>
+            
+            <!-- Category Tag Pill in Header -->
+            <rect x="200" y="12" width="98" height="20" rx="10" fill="rgba(168, 85, 247, 0.2)" stroke="#a855f7" stroke-width="0.8"/>
+            <text x="249" y="26" fill="#d8b4fe" font-size="9" font-weight="700" text-anchor="middle">CATÁLOGO</text>
+            
+            <!-- Table Header Bottom Divider -->
+            <line x1="0" y1="54" x2="310" y2="54" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+            
+            <!-- Columns Rows -->
+            <g transform="translate(0, 54)">
+        <rect y="0" width="310" height="26" fill="transparent"/>
+                    <rect x="12" y="4" width="26" height="18" rx="4" fill="#f59e0b" />
+                    <text x="25" y="16" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">PK</text>
+                <text x="48" y="17" fill="#f8fafc" font-size="12" font-weight="700">id_nationality</text><text x="296" y="17" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">SMALLINT</text><line x1="12" y1="26" x2="298" y2="26" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="26" width="310" height="26" fill="rgba(255,255,255,0.02)"/>
+                    <rect x="12" y="30" width="26" height="18" rx="4" fill="#6366f1" />
+                    <text x="25" y="42" fill="#ffffff" font-size="9" font-weight="800" text-anchor="middle">UQ</text>
+                <text x="48" y="43" fill="#e2e8f0" font-size="12" font-weight="500">name</text><text x="296" y="43" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="52" x2="298" y2="52" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="52" width="310" height="26" fill="transparent"/><text x="46" y="69" fill="#e2e8f0" font-size="12" font-weight="500">description</text><text x="296" y="69" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="78" x2="298" y2="78" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="78" width="310" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="95" fill="#e2e8f0" font-size="12" font-weight="500">is_active</text><text x="296" y="95" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">BOOLEAN</text><line x1="12" y1="104" x2="298" y2="104" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="104" width="310" height="26" fill="transparent"/><text x="46" y="121" fill="#e2e8f0" font-size="12" font-weight="500">created_at</text><text x="296" y="121" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text><line x1="12" y1="130" x2="298" y2="130" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="130" width="310" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="147" fill="#e2e8f0" font-size="12" font-weight="500">updated_at</text><text x="296" y="147" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text>
+            </g>
+        </g>
+        
+        <g id="table-marital_status" transform="translate(60, 1100)" filter="url(#shadow)">
+            <!-- Outer Box -->
+            <rect width="310" height="220" rx="10" fill="#111827" stroke="#7e22ce" stroke-width="1.5"/>
+            
+            <!-- Header Background with Gradient -->
+            <defs>
+                <linearGradient id="hdr-grad-marital_status" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#581c87"/>
+                    <stop offset="100%" stop-color="#7e22ce"/>
+                </linearGradient>
+            </defs>
+            <path d="M 0 10 Q 0 0 10 0 L 300 0 Q 310 0 310 10 L 310 54 L 0 54 Z" fill="url(#hdr-grad-marital_status)"/>
+            
+            <!-- Header Text -->
+            <text x="14" y="24" fill="#ffffff" font-size="15" font-weight="800" letter-spacing="0.3">marital_status</text>
+            <text x="14" y="42" fill="#cbd5e1" font-size="11" font-weight="500">Estado Civil</text>
+            
+            <!-- Category Tag Pill in Header -->
+            <rect x="200" y="12" width="98" height="20" rx="10" fill="rgba(168, 85, 247, 0.2)" stroke="#a855f7" stroke-width="0.8"/>
+            <text x="249" y="26" fill="#d8b4fe" font-size="9" font-weight="700" text-anchor="middle">CATÁLOGO</text>
+            
+            <!-- Table Header Bottom Divider -->
+            <line x1="0" y1="54" x2="310" y2="54" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+            
+            <!-- Columns Rows -->
+            <g transform="translate(0, 54)">
+        <rect y="0" width="310" height="26" fill="transparent"/>
+                    <rect x="12" y="4" width="26" height="18" rx="4" fill="#f59e0b" />
+                    <text x="25" y="16" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">PK</text>
+                <text x="48" y="17" fill="#f8fafc" font-size="12" font-weight="700">id_marital_status</text><text x="296" y="17" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">SMALLINT</text><line x1="12" y1="26" x2="298" y2="26" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="26" width="310" height="26" fill="rgba(255,255,255,0.02)"/>
+                    <rect x="12" y="30" width="26" height="18" rx="4" fill="#6366f1" />
+                    <text x="25" y="42" fill="#ffffff" font-size="9" font-weight="800" text-anchor="middle">UQ</text>
+                <text x="48" y="43" fill="#e2e8f0" font-size="12" font-weight="500">name</text><text x="296" y="43" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="52" x2="298" y2="52" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="52" width="310" height="26" fill="transparent"/><text x="46" y="69" fill="#e2e8f0" font-size="12" font-weight="500">description</text><text x="296" y="69" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="78" x2="298" y2="78" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="78" width="310" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="95" fill="#e2e8f0" font-size="12" font-weight="500">is_active</text><text x="296" y="95" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">BOOLEAN</text><line x1="12" y1="104" x2="298" y2="104" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="104" width="310" height="26" fill="transparent"/><text x="46" y="121" fill="#e2e8f0" font-size="12" font-weight="500">created_at</text><text x="296" y="121" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text><line x1="12" y1="130" x2="298" y2="130" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="130" width="310" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="147" fill="#e2e8f0" font-size="12" font-weight="500">updated_at</text><text x="296" y="147" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text>
+            </g>
+        </g>
+        
+        <g id="table-home" transform="translate(470, 70)" filter="url(#shadow)">
+            <!-- Outer Box -->
+            <rect width="360" height="350" rx="10" fill="#111827" stroke="#059669" stroke-width="1.5"/>
+            
+            <!-- Header Background with Gradient -->
+            <defs>
+                <linearGradient id="hdr-grad-home" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#064e3b"/>
+                    <stop offset="100%" stop-color="#059669"/>
+                </linearGradient>
+            </defs>
+            <path d="M 0 10 Q 0 0 10 0 L 350 0 Q 360 0 360 10 L 360 54 L 0 54 Z" fill="url(#hdr-grad-home)"/>
+            
+            <!-- Header Text -->
+            <text x="14" y="24" fill="#ffffff" font-size="15" font-weight="800" letter-spacing="0.3">home</text>
+            <text x="14" y="42" fill="#cbd5e1" font-size="11" font-weight="500">Dirección fiscal del cliente</text>
+            
+            <!-- Category Tag Pill in Header -->
+            <rect x="250" y="12" width="98" height="20" rx="10" fill="rgba(16, 185, 129, 0.2)" stroke="#10b981" stroke-width="0.8"/>
+            <text x="299" y="26" fill="#6ee7b7" font-size="9" font-weight="700" text-anchor="middle">DOMICILIO (1 : 1)</text>
+            
+            <!-- Table Header Bottom Divider -->
+            <line x1="0" y1="54" x2="360" y2="54" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+            
+            <!-- Columns Rows -->
+            <g transform="translate(0, 54)">
+        <rect y="0" width="360" height="26" fill="transparent"/>
+                    <rect x="12" y="4" width="26" height="18" rx="4" fill="#f59e0b" />
+                    <text x="25" y="16" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">PK</text>
+                <text x="48" y="17" fill="#f8fafc" font-size="12" font-weight="700">id_home</text><text x="346" y="17" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">BIGINT</text><line x1="12" y1="26" x2="348" y2="26" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="26" width="360" height="26" fill="rgba(255,255,255,0.02)"/>
+                    <rect x="12" y="30" width="26" height="18" rx="4" fill="#0ea5e9" />
+                    <text x="25" y="42" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">FK</text>
+                
+                    <rect x="42" y="30" width="26" height="18" rx="4" fill="#6366f1" />
+                    <text x="55" y="42" fill="#ffffff" font-size="9" font-weight="800" text-anchor="middle">UQ</text>
+                <text x="78" y="43" fill="#f8fafc" font-size="12" font-weight="700">id_client</text><text x="346" y="43" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">BIGINT</text><line x1="12" y1="52" x2="348" y2="52" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="52" width="360" height="26" fill="transparent"/><text x="46" y="69" fill="#e2e8f0" font-size="12" font-weight="500">street</text><text x="346" y="69" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="78" x2="348" y2="78" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="78" width="360" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="95" fill="#e2e8f0" font-size="12" font-weight="500">exterior_number</text><text x="346" y="95" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="104" x2="348" y2="104" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="104" width="360" height="26" fill="transparent"/><text x="46" y="121" fill="#e2e8f0" font-size="12" font-weight="500">interior_number</text><text x="346" y="121" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="130" x2="348" y2="130" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="130" width="360" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="147" fill="#e2e8f0" font-size="12" font-weight="500">neighborhood</text><text x="346" y="147" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="156" x2="348" y2="156" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="156" width="360" height="26" fill="transparent"/>
+                    <rect x="12" y="160" width="26" height="18" rx="4" fill="#0ea5e9" />
+                    <text x="25" y="172" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">FK</text>
+                <text x="48" y="173" fill="#f8fafc" font-size="12" font-weight="700">id_municipality</text><text x="346" y="173" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">INTEGER</text><line x1="12" y1="182" x2="348" y2="182" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="182" width="360" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="199" fill="#e2e8f0" font-size="12" font-weight="500">postal_code</text><text x="346" y="199" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">CHAR(5)</text><line x1="12" y1="208" x2="348" y2="208" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="208" width="360" height="26" fill="transparent"/><text x="46" y="225" fill="#e2e8f0" font-size="12" font-weight="500">country</text><text x="346" y="225" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="234" x2="348" y2="234" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="234" width="360" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="251" fill="#e2e8f0" font-size="12" font-weight="500">created_at</text><text x="346" y="251" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text><line x1="12" y1="260" x2="348" y2="260" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="260" width="360" height="26" fill="transparent"/><text x="46" y="277" fill="#e2e8f0" font-size="12" font-weight="500">updated_at</text><text x="346" y="277" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text>
+            </g>
+        </g>
+        
+        <g id="table-client" transform="translate(470, 480)" filter="url(#shadow)">
+            <!-- Outer Box -->
+            <rect width="360" height="454" rx="10" fill="#111827" stroke="#3b82f6" stroke-width="1.5"/>
+            
+            <!-- Header Background with Gradient -->
+            <defs>
+                <linearGradient id="hdr-grad-client" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#1e3a8a"/>
+                    <stop offset="100%" stop-color="#2563eb"/>
+                </linearGradient>
+            </defs>
+            <path d="M 0 10 Q 0 0 10 0 L 350 0 Q 360 0 360 10 L 360 54 L 0 54 Z" fill="url(#hdr-grad-client)"/>
+            
+            <!-- Header Text -->
+            <text x="14" y="24" fill="#ffffff" font-size="15" font-weight="800" letter-spacing="0.3">client</text>
+            <text x="14" y="42" fill="#cbd5e1" font-size="11" font-weight="500">Cliente Persona Física</text>
+            
+            <!-- Category Tag Pill in Header -->
+            <rect x="250" y="12" width="98" height="20" rx="10" fill="rgba(59, 130, 246, 0.2)" stroke="#3b82f6" stroke-width="0.8"/>
+            <text x="299" y="26" fill="#93c5fd" font-size="9" font-weight="700" text-anchor="middle">ENTIDAD CENTRAL</text>
+            
+            <!-- Table Header Bottom Divider -->
+            <line x1="0" y1="54" x2="360" y2="54" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+            
+            <!-- Columns Rows -->
+            <g transform="translate(0, 54)">
+        <rect y="0" width="360" height="26" fill="transparent"/>
+                    <rect x="12" y="4" width="26" height="18" rx="4" fill="#f59e0b" />
+                    <text x="25" y="16" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">PK</text>
+                <text x="48" y="17" fill="#f8fafc" font-size="12" font-weight="700">id_client</text><text x="346" y="17" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">BIGINT</text><line x1="12" y1="26" x2="348" y2="26" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="26" width="360" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="43" fill="#e2e8f0" font-size="12" font-weight="500">name</text><text x="346" y="43" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="52" x2="348" y2="52" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="52" width="360" height="26" fill="transparent"/><text x="46" y="69" fill="#e2e8f0" font-size="12" font-weight="500">second_name</text><text x="346" y="69" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="78" x2="348" y2="78" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="78" width="360" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="95" fill="#e2e8f0" font-size="12" font-weight="500">last_name</text><text x="346" y="95" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="104" x2="348" y2="104" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="104" width="360" height="26" fill="transparent"/><text x="46" y="121" fill="#e2e8f0" font-size="12" font-weight="500">second_last_name</text><text x="346" y="121" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="130" x2="348" y2="130" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="130" width="360" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="147" fill="#e2e8f0" font-size="12" font-weight="500">birth_date</text><text x="346" y="147" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">DATE</text><line x1="12" y1="156" x2="348" y2="156" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="156" width="360" height="26" fill="transparent"/>
+                    <rect x="12" y="160" width="26" height="18" rx="4" fill="#6366f1" />
+                    <text x="25" y="172" fill="#ffffff" font-size="9" font-weight="800" text-anchor="middle">UQ</text>
+                <text x="48" y="173" fill="#e2e8f0" font-size="12" font-weight="500">curp</text><text x="346" y="173" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">CHAR(18)</text><line x1="12" y1="182" x2="348" y2="182" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="182" width="360" height="26" fill="rgba(255,255,255,0.02)"/>
+                    <rect x="12" y="186" width="26" height="18" rx="4" fill="#6366f1" />
+                    <text x="25" y="198" fill="#ffffff" font-size="9" font-weight="800" text-anchor="middle">UQ</text>
+                <text x="48" y="199" fill="#e2e8f0" font-size="12" font-weight="500">rfc</text><text x="346" y="199" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="208" x2="348" y2="208" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="208" width="360" height="26" fill="transparent"/>
+                    <rect x="12" y="212" width="26" height="18" rx="4" fill="#0ea5e9" />
+                    <text x="25" y="224" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">FK</text>
+                <text x="48" y="225" fill="#f8fafc" font-size="12" font-weight="700">id_gender</text><text x="346" y="225" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">SMALLINT</text><line x1="12" y1="234" x2="348" y2="234" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="234" width="360" height="26" fill="rgba(255,255,255,0.02)"/>
+                    <rect x="12" y="238" width="26" height="18" rx="4" fill="#0ea5e9" />
+                    <text x="25" y="250" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">FK</text>
+                <text x="48" y="251" fill="#f8fafc" font-size="12" font-weight="700">id_nationality</text><text x="346" y="251" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">SMALLINT</text><line x1="12" y1="260" x2="348" y2="260" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="260" width="360" height="26" fill="transparent"/>
+                    <rect x="12" y="264" width="26" height="18" rx="4" fill="#0ea5e9" />
+                    <text x="25" y="276" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">FK</text>
+                <text x="48" y="277" fill="#f8fafc" font-size="12" font-weight="700">id_marital_status</text><text x="346" y="277" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">SMALLINT</text><line x1="12" y1="286" x2="348" y2="286" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="286" width="360" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="303" fill="#e2e8f0" font-size="12" font-weight="500">is_active</text><text x="346" y="303" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">BOOLEAN</text><line x1="12" y1="312" x2="348" y2="312" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="312" width="360" height="26" fill="transparent"/><text x="46" y="329" fill="#e2e8f0" font-size="12" font-weight="500">deactivated_at</text><text x="346" y="329" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text><line x1="12" y1="338" x2="348" y2="338" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="338" width="360" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="355" fill="#e2e8f0" font-size="12" font-weight="500">created_at</text><text x="346" y="355" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text><line x1="12" y1="364" x2="348" y2="364" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="364" width="360" height="26" fill="transparent"/><text x="46" y="381" fill="#e2e8f0" font-size="12" font-weight="500">updated_at</text><text x="346" y="381" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text>
+            </g>
+        </g>
+        
+        <g id="table-contact_details" transform="translate(470, 1040)" filter="url(#shadow)">
+            <!-- Outer Box -->
+            <rect width="360" height="246" rx="10" fill="#111827" stroke="#059669" stroke-width="1.5"/>
+            
+            <!-- Header Background with Gradient -->
+            <defs>
+                <linearGradient id="hdr-grad-contact_details" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#064e3b"/>
+                    <stop offset="100%" stop-color="#059669"/>
+                </linearGradient>
+            </defs>
+            <path d="M 0 10 Q 0 0 10 0 L 350 0 Q 360 0 360 10 L 360 54 L 0 54 Z" fill="url(#hdr-grad-contact_details)"/>
+            
+            <!-- Header Text -->
+            <text x="14" y="24" fill="#ffffff" font-size="15" font-weight="800" letter-spacing="0.3">contact_details</text>
+            <text x="14" y="42" fill="#cbd5e1" font-size="11" font-weight="500">Teléfonos y Correo Único</text>
+            
+            <!-- Category Tag Pill in Header -->
+            <rect x="250" y="12" width="98" height="20" rx="10" fill="rgba(16, 185, 129, 0.2)" stroke="#10b981" stroke-width="0.8"/>
+            <text x="299" y="26" fill="#6ee7b7" font-size="9" font-weight="700" text-anchor="middle">CONTACTO (1 : 1)</text>
+            
+            <!-- Table Header Bottom Divider -->
+            <line x1="0" y1="54" x2="360" y2="54" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+            
+            <!-- Columns Rows -->
+            <g transform="translate(0, 54)">
+        <rect y="0" width="360" height="26" fill="transparent"/>
+                    <rect x="12" y="4" width="26" height="18" rx="4" fill="#f59e0b" />
+                    <text x="25" y="16" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">PK</text>
+                <text x="48" y="17" fill="#f8fafc" font-size="12" font-weight="700">id_contact_detail</text><text x="346" y="17" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">BIGINT</text><line x1="12" y1="26" x2="348" y2="26" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="26" width="360" height="26" fill="rgba(255,255,255,0.02)"/>
+                    <rect x="12" y="30" width="26" height="18" rx="4" fill="#0ea5e9" />
+                    <text x="25" y="42" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">FK</text>
+                
+                    <rect x="42" y="30" width="26" height="18" rx="4" fill="#6366f1" />
+                    <text x="55" y="42" fill="#ffffff" font-size="9" font-weight="800" text-anchor="middle">UQ</text>
+                <text x="78" y="43" fill="#f8fafc" font-size="12" font-weight="700">id_client</text><text x="346" y="43" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">BIGINT</text><line x1="12" y1="52" x2="348" y2="52" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="52" width="360" height="26" fill="transparent"/>
+                    <rect x="12" y="56" width="26" height="18" rx="4" fill="#6366f1" />
+                    <text x="25" y="68" fill="#ffffff" font-size="9" font-weight="800" text-anchor="middle">UQ</text>
+                <text x="48" y="69" fill="#e2e8f0" font-size="12" font-weight="500">email</text><text x="346" y="69" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="78" x2="348" y2="78" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="78" width="360" height="26" fill="rgba(255,255,255,0.02)"/>
+                    <rect x="12" y="82" width="26" height="18" rx="4" fill="#6366f1" />
+                    <text x="25" y="94" fill="#ffffff" font-size="9" font-weight="800" text-anchor="middle">UQ</text>
+                <text x="48" y="95" fill="#e2e8f0" font-size="12" font-weight="500">mobile_phone</text><text x="346" y="95" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">CHAR(10)</text><line x1="12" y1="104" x2="348" y2="104" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="104" width="360" height="26" fill="transparent"/><text x="46" y="121" fill="#e2e8f0" font-size="12" font-weight="500">alternative_phone</text><text x="346" y="121" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">CHAR(10)</text><line x1="12" y1="130" x2="348" y2="130" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="130" width="360" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="147" fill="#e2e8f0" font-size="12" font-weight="500">created_at</text><text x="346" y="147" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text><line x1="12" y1="156" x2="348" y2="156" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="156" width="360" height="26" fill="transparent"/><text x="46" y="173" fill="#e2e8f0" font-size="12" font-weight="500">updated_at</text><text x="346" y="173" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text>
+            </g>
+        </g>
+        
+        <g id="table-employment_information" transform="translate(950, 70)" filter="url(#shadow)">
+            <!-- Outer Box -->
+            <rect width="370" height="246" rx="10" fill="#111827" stroke="#059669" stroke-width="1.5"/>
+            
+            <!-- Header Background with Gradient -->
+            <defs>
+                <linearGradient id="hdr-grad-employment_information" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#064e3b"/>
+                    <stop offset="100%" stop-color="#059669"/>
+                </linearGradient>
+            </defs>
+            <path d="M 0 10 Q 0 0 10 0 L 360 0 Q 370 0 370 10 L 370 54 L 0 54 Z" fill="url(#hdr-grad-employment_information)"/>
+            
+            <!-- Header Text -->
+            <text x="14" y="24" fill="#ffffff" font-size="15" font-weight="800" letter-spacing="0.3">employment_information</text>
+            <text x="14" y="42" fill="#cbd5e1" font-size="11" font-weight="500">Ocupación e Ingreso Mensual</text>
+            
+            <!-- Category Tag Pill in Header -->
+            <rect x="260" y="12" width="98" height="20" rx="10" fill="rgba(16, 185, 129, 0.2)" stroke="#10b981" stroke-width="0.8"/>
+            <text x="309" y="26" fill="#6ee7b7" font-size="9" font-weight="700" text-anchor="middle">LABORAL (1 : 1)</text>
+            
+            <!-- Table Header Bottom Divider -->
+            <line x1="0" y1="54" x2="370" y2="54" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+            
+            <!-- Columns Rows -->
+            <g transform="translate(0, 54)">
+        <rect y="0" width="370" height="26" fill="transparent"/>
+                    <rect x="12" y="4" width="26" height="18" rx="4" fill="#f59e0b" />
+                    <text x="25" y="16" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">PK</text>
+                <text x="48" y="17" fill="#f8fafc" font-size="12" font-weight="700">id_employment</text><text x="356" y="17" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">BIGINT</text><line x1="12" y1="26" x2="358" y2="26" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="26" width="370" height="26" fill="rgba(255,255,255,0.02)"/>
+                    <rect x="12" y="30" width="26" height="18" rx="4" fill="#0ea5e9" />
+                    <text x="25" y="42" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">FK</text>
+                
+                    <rect x="42" y="30" width="26" height="18" rx="4" fill="#6366f1" />
+                    <text x="55" y="42" fill="#ffffff" font-size="9" font-weight="800" text-anchor="middle">UQ</text>
+                <text x="78" y="43" fill="#f8fafc" font-size="12" font-weight="700">id_client</text><text x="356" y="43" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">BIGINT</text><line x1="12" y1="52" x2="358" y2="52" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="52" width="370" height="26" fill="transparent"/><text x="46" y="69" fill="#e2e8f0" font-size="12" font-weight="500">occupation</text><text x="356" y="69" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="78" x2="358" y2="78" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="78" width="370" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="95" fill="#e2e8f0" font-size="12" font-weight="500">company</text><text x="356" y="95" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="104" x2="358" y2="104" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="104" width="370" height="26" fill="transparent"/><text x="46" y="121" fill="#e2e8f0" font-size="12" font-weight="500">monthly_income</text><text x="356" y="121" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">NUMERIC(12,2)</text><line x1="12" y1="130" x2="358" y2="130" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="130" width="370" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="147" fill="#e2e8f0" font-size="12" font-weight="500">created_at</text><text x="356" y="147" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text><line x1="12" y1="156" x2="358" y2="156" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="156" width="370" height="26" fill="transparent"/><text x="46" y="173" fill="#e2e8f0" font-size="12" font-weight="500">updated_at</text><text x="356" y="173" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text>
+            </g>
+        </g>
+        
+        <g id="table-auth" transform="translate(950, 360)" filter="url(#shadow)">
+            <!-- Outer Box -->
+            <rect width="370" height="428" rx="10" fill="#111827" stroke="#db2777" stroke-width="1.5"/>
+            
+            <!-- Header Background with Gradient -->
+            <defs>
+                <linearGradient id="hdr-grad-auth" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#831843"/>
+                    <stop offset="100%" stop-color="#db2777"/>
+                </linearGradient>
+            </defs>
+            <path d="M 0 10 Q 0 0 10 0 L 360 0 Q 370 0 370 10 L 370 54 L 0 54 Z" fill="url(#hdr-grad-auth)"/>
+            
+            <!-- Header Text -->
+            <text x="14" y="24" fill="#ffffff" font-size="15" font-weight="800" letter-spacing="0.3">auth</text>
+            <text x="14" y="42" fill="#cbd5e1" font-size="11" font-weight="500">Credenciales y Biometría</text>
+            
+            <!-- Category Tag Pill in Header -->
+            <rect x="260" y="12" width="98" height="20" rx="10" fill="rgba(244, 63, 94, 0.2)" stroke="#f43f5e" stroke-width="0.8"/>
+            <text x="309" y="26" fill="#fda4af" font-size="9" font-weight="700" text-anchor="middle">SEGURIDAD Y ACCESO</text>
+            
+            <!-- Table Header Bottom Divider -->
+            <line x1="0" y1="54" x2="370" y2="54" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+            
+            <!-- Columns Rows -->
+            <g transform="translate(0, 54)">
+        <rect y="0" width="370" height="26" fill="transparent"/>
+                    <rect x="12" y="4" width="26" height="18" rx="4" fill="#f59e0b" />
+                    <text x="25" y="16" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">PK</text>
+                <text x="48" y="17" fill="#f8fafc" font-size="12" font-weight="700">id_login</text><text x="356" y="17" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">BIGINT</text><line x1="12" y1="26" x2="358" y2="26" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="26" width="370" height="26" fill="rgba(255,255,255,0.02)"/>
+                    <rect x="12" y="30" width="26" height="18" rx="4" fill="#0ea5e9" />
+                    <text x="25" y="42" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">FK</text>
+                <text x="48" y="43" fill="#f8fafc" font-size="12" font-weight="700">id_client</text><text x="356" y="43" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">BIGINT</text><line x1="12" y1="52" x2="358" y2="52" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="52" width="370" height="26" fill="transparent"/>
+                    <rect x="12" y="56" width="26" height="18" rx="4" fill="#6366f1" />
+                    <text x="25" y="68" fill="#ffffff" font-size="9" font-weight="800" text-anchor="middle">UQ</text>
+                <text x="48" y="69" fill="#e2e8f0" font-size="12" font-weight="500">email</text><text x="356" y="69" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="78" x2="358" y2="78" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="78" width="370" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="95" fill="#e2e8f0" font-size="12" font-weight="500">password_hash</text><text x="356" y="95" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="104" x2="358" y2="104" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="104" width="370" height="26" fill="transparent"/><text x="46" y="121" fill="#e2e8f0" font-size="12" font-weight="500">biometric_type</text><text x="356" y="121" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="130" x2="358" y2="130" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="130" width="370" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="147" fill="#e2e8f0" font-size="12" font-weight="500">biometric_template</text><text x="356" y="147" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">BYTEA</text><line x1="12" y1="156" x2="358" y2="156" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="156" width="370" height="26" fill="transparent"/><text x="46" y="173" fill="#e2e8f0" font-size="12" font-weight="500">biometric_registered_at</text><text x="356" y="173" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text><line x1="12" y1="182" x2="358" y2="182" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="182" width="370" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="199" fill="#e2e8f0" font-size="12" font-weight="500">refresh_token</text><text x="356" y="199" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="208" x2="358" y2="208" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="208" width="370" height="26" fill="transparent"/><text x="46" y="225" fill="#e2e8f0" font-size="12" font-weight="500">refresh_token_expires_at</text><text x="356" y="225" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text><line x1="12" y1="234" x2="358" y2="234" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="234" width="370" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="251" fill="#e2e8f0" font-size="12" font-weight="500">is_active</text><text x="356" y="251" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">BOOLEAN</text><line x1="12" y1="260" x2="358" y2="260" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="260" width="370" height="26" fill="transparent"/><text x="46" y="277" fill="#e2e8f0" font-size="12" font-weight="500">failed_attempts</text><text x="356" y="277" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">SMALLINT</text><line x1="12" y1="286" x2="358" y2="286" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="286" width="370" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="303" fill="#e2e8f0" font-size="12" font-weight="500">last_login_at</text><text x="356" y="303" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text><line x1="12" y1="312" x2="358" y2="312" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="312" width="370" height="26" fill="transparent"/><text x="46" y="329" fill="#e2e8f0" font-size="12" font-weight="500">created_at</text><text x="356" y="329" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text><line x1="12" y1="338" x2="358" y2="338" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="338" width="370" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="355" fill="#e2e8f0" font-size="12" font-weight="500">updated_at</text><text x="356" y="355" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text>
+            </g>
+        </g>
+        
+        <g id="table-account" transform="translate(950, 880)" filter="url(#shadow)">
+            <!-- Outer Box -->
+            <rect width="370" height="246" rx="10" fill="#111827" stroke="#0284c7" stroke-width="1.5"/>
+            
+            <!-- Header Background with Gradient -->
+            <defs>
+                <linearGradient id="hdr-grad-account" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#0c4a6e"/>
+                    <stop offset="100%" stop-color="#0284c7"/>
+                </linearGradient>
+            </defs>
+            <path d="M 0 10 Q 0 0 10 0 L 360 0 Q 370 0 370 10 L 370 54 L 0 54 Z" fill="url(#hdr-grad-account)"/>
+            
+            <!-- Header Text -->
+            <text x="14" y="24" fill="#ffffff" font-size="15" font-weight="800" letter-spacing="0.3">account</text>
+            <text x="14" y="42" fill="#cbd5e1" font-size="11" font-weight="500">Cuenta de Ahorro / Cheques</text>
+            
+            <!-- Category Tag Pill in Header -->
+            <rect x="260" y="12" width="98" height="20" rx="10" fill="rgba(14, 165, 233, 0.2)" stroke="#0ea5e9" stroke-width="0.8"/>
+            <text x="309" y="26" fill="#7dd3fc" font-size="9" font-weight="700" text-anchor="middle">CUENTAS BANCARIAS</text>
+            
+            <!-- Table Header Bottom Divider -->
+            <line x1="0" y1="54" x2="370" y2="54" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+            
+            <!-- Columns Rows -->
+            <g transform="translate(0, 54)">
+        <rect y="0" width="370" height="26" fill="transparent"/>
+                    <rect x="12" y="4" width="26" height="18" rx="4" fill="#f59e0b" />
+                    <text x="25" y="16" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">PK</text>
+                <text x="48" y="17" fill="#f8fafc" font-size="12" font-weight="700">id_account</text><text x="356" y="17" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">BIGINT</text><line x1="12" y1="26" x2="358" y2="26" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="26" width="370" height="26" fill="rgba(255,255,255,0.02)"/>
+                    <rect x="12" y="30" width="26" height="18" rx="4" fill="#6366f1" />
+                    <text x="25" y="42" fill="#ffffff" font-size="9" font-weight="800" text-anchor="middle">UQ</text>
+                <text x="48" y="43" fill="#e2e8f0" font-size="12" font-weight="500">account_number</text><text x="356" y="43" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">CHAR(10)</text><line x1="12" y1="52" x2="358" y2="52" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="52" width="370" height="26" fill="transparent"/>
+                    <rect x="12" y="56" width="26" height="18" rx="4" fill="#0ea5e9" />
+                    <text x="25" y="68" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">FK</text>
+                <text x="48" y="69" fill="#f8fafc" font-size="12" font-weight="700">id_client</text><text x="356" y="69" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">BIGINT</text><line x1="12" y1="78" x2="358" y2="78" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="78" width="370" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="95" fill="#e2e8f0" font-size="12" font-weight="500">balance</text><text x="356" y="95" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">NUMERIC(15,2)</text><line x1="12" y1="104" x2="358" y2="104" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="104" width="370" height="26" fill="transparent"/><text x="46" y="121" fill="#e2e8f0" font-size="12" font-weight="500">status</text><text x="356" y="121" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="130" x2="358" y2="130" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="130" width="370" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="147" fill="#e2e8f0" font-size="12" font-weight="500">opened_at</text><text x="356" y="147" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text><line x1="12" y1="156" x2="358" y2="156" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="156" width="370" height="26" fill="transparent"/><text x="46" y="173" fill="#e2e8f0" font-size="12" font-weight="500">updated_at</text><text x="356" y="173" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text>
+            </g>
+        </g>
+        
+        <g id="table-account_balance" transform="translate(1420, 880)" filter="url(#shadow)">
+            <!-- Outer Box -->
+            <rect width="380" height="272" rx="10" fill="#111827" stroke="#0284c7" stroke-width="1.5"/>
+            
+            <!-- Header Background with Gradient -->
+            <defs>
+                <linearGradient id="hdr-grad-account_balance" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#0c4a6e"/>
+                    <stop offset="100%" stop-color="#0284c7"/>
+                </linearGradient>
+            </defs>
+            <path d="M 0 10 Q 0 0 10 0 L 370 0 Q 380 0 380 10 L 380 54 L 0 54 Z" fill="url(#hdr-grad-account_balance)"/>
+            
+            <!-- Header Text -->
+            <text x="14" y="24" fill="#ffffff" font-size="15" font-weight="800" letter-spacing="0.3">account_balance</text>
+            <text x="14" y="42" fill="#cbd5e1" font-size="11" font-weight="500">Historial de saldos y transacciones</text>
+            
+            <!-- Category Tag Pill in Header -->
+            <rect x="270" y="12" width="98" height="20" rx="10" fill="rgba(14, 165, 233, 0.2)" stroke="#0ea5e9" stroke-width="0.8"/>
+            <text x="319" y="26" fill="#7dd3fc" font-size="9" font-weight="700" text-anchor="middle">LIBRO MAYOR</text>
+            
+            <!-- Table Header Bottom Divider -->
+            <line x1="0" y1="54" x2="380" y2="54" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+            
+            <!-- Columns Rows -->
+            <g transform="translate(0, 54)">
+        <rect y="0" width="380" height="26" fill="transparent"/>
+                    <rect x="12" y="4" width="26" height="18" rx="4" fill="#f59e0b" />
+                    <text x="25" y="16" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">PK</text>
+                <text x="48" y="17" fill="#f8fafc" font-size="12" font-weight="700">id_balance</text><text x="366" y="17" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">BIGINT</text><line x1="12" y1="26" x2="368" y2="26" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="26" width="380" height="26" fill="rgba(255,255,255,0.02)"/>
+                    <rect x="12" y="30" width="26" height="18" rx="4" fill="#0ea5e9" />
+                    <text x="25" y="42" fill="#0f172a" font-size="9" font-weight="900" text-anchor="middle">FK</text>
+                <text x="48" y="43" fill="#f8fafc" font-size="12" font-weight="700">id_account</text><text x="366" y="43" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">BIGINT</text><line x1="12" y1="52" x2="368" y2="52" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="52" width="380" height="26" fill="transparent"/><text x="46" y="69" fill="#e2e8f0" font-size="12" font-weight="500">previous_balance</text><text x="366" y="69" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">NUMERIC(15,2)</text><line x1="12" y1="78" x2="368" y2="78" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="78" width="380" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="95" fill="#e2e8f0" font-size="12" font-weight="500">amount</text><text x="366" y="95" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">NUMERIC(15,2)</text><line x1="12" y1="104" x2="368" y2="104" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="104" width="380" height="26" fill="transparent"/><text x="46" y="121" fill="#e2e8f0" font-size="12" font-weight="500">current_balance</text><text x="366" y="121" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">NUMERIC(15,2)</text><line x1="12" y1="130" x2="368" y2="130" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="130" width="380" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="147" fill="#e2e8f0" font-size="12" font-weight="500">movement_type</text><text x="366" y="147" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="156" x2="368" y2="156" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="156" width="380" height="26" fill="transparent"/><text x="46" y="173" fill="#e2e8f0" font-size="12" font-weight="500">description</text><text x="366" y="173" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TEXT</text><line x1="12" y1="182" x2="368" y2="182" stroke="rgba(255,255,255,0.04)" stroke-width="1"/><rect y="182" width="380" height="26" fill="rgba(255,255,255,0.02)"/><text x="46" y="199" fill="#e2e8f0" font-size="12" font-weight="500">created_at</text><text x="366" y="199" fill="#94a3b8" font-size="11" font-weight="500" font-family="Consolas, monospace" text-anchor="end">TIMESTAMPTZ</text>
+            </g>
+        </g>
+        </svg>
