@@ -50,6 +50,18 @@ Cumpliendo con la directiva estricta de **NO USAR `VARCHAR`**, la base de datos 
 
 ## 📊 Diagrama Entidad-Relación (ER)
 
+<p align="center">
+  <img src="./modelo_entidad_relacion.svg" alt="Diagrama Entidad-Relación - Banco API" width="100%">
+</p>
+
+> 📥 **Formatos disponibles para descarga y visualización:**
+> * **Vectorial SVG:** [`modelo_entidad_relacion.svg`](./modelo_entidad_relacion.svg)
+> * **Imagen PNG en Alta Resolución:** [`modelo_entidad_relacion.png`](./modelo_entidad_relacion.png)
+> * **Visor Web Interactivo con Zoom y Paneo:** [`modelo_entidad_relacion.html`](./modelo_entidad_relacion.html)
+
+<details>
+<summary><b>Ver código fuente Mermaid del diagrama</b></summary>
+
 ```mermaid
 erDiagram
     CLIENT ||--|| CONTACT_DETAILS : "tiene contacto (1:1)"
@@ -155,6 +167,7 @@ erDiagram
         timestamptz updated_at
     }
 ```
+</details>
 
 ---
 
