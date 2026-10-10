@@ -105,7 +105,7 @@ public class CatalogServiceImpl implements CatalogService {
 
         // 2. Buscar estado en PostgreSQL
         State state = stateRepository.findByCveEnt(cveEnt)
-                .orElseThrow(() -> new BusinessValidationException("No existe el estado con cve_ent: " + cveEnt, "cveEnt"));
+                .orElseThrow(() -> new com.intrumentoev.demo.exception.CatalogNotFoundException("Estado con cve_ent", cveEnt));
 
         List<Municipality> municipiosDb = municipalityRepository.findByIdStateAndIsActiveTrueOrderByNameAsc(state.getIdState());
 

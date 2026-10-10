@@ -51,6 +51,11 @@ public class ClientController {
     }
 
     @Operation(summary = "Listar todos los clientes", description = "Obtiene la lista completa de todos los clientes registrados sin exponer identificadores internos numéricos.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lista completa de clientes obtenida exitosamente"),
+            @ApiResponse(responseCode = "401", description = "Sesión no iniciada o inactiva en el servidor"),
+            @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<ClientResponse>> obtenerTodosLosClientes() {
         return ResponseEntity.ok(clientService.obtenerTodosLosClientes());
@@ -62,7 +67,10 @@ public class ClientController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Búsqueda realizada con éxito"),
-            @ApiResponse(responseCode = "400", description = "Cuerpo vacío o sin filtros de búsqueda válidos")
+            @ApiResponse(responseCode = "400", description = "Cuerpo vacío o sin filtros de búsqueda válidos"),
+            @ApiResponse(responseCode = "401", description = "Sesión no iniciada o inactiva en el servidor"),
+            @ApiResponse(responseCode = "422", description = "Rango de fechas inválido"),
+            @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     })
     @PostMapping(
             value = "/buscar",
@@ -85,6 +93,14 @@ public class ClientController {
             summary = "Obtener cliente por CURP o RFC con soporte modular e includes",
             description = "Recupera la información del cliente identificado exclusivamente por su CURP o RFC. Soporta parámetro ?include=contact,home,employment,accounts,catalogs para cargar módulos específicos."
     )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Detalle del cliente obtenido exitosamente"),
+            @ApiResponse(responseCode = "400", description = "Formato de CURP o RFC inválido"),
+            @ApiResponse(responseCode = "401", description = "Sesión no iniciada o inactiva en el servidor"),
+            @ApiResponse(responseCode = "403", description = "No autorizado para consultar la información de otro cliente"),
+            @ApiResponse(responseCode = "404", description = "Cliente no encontrado con la CURP o RFC especificado"),
+            @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
     @GetMapping(value = "/{identificador}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ClientDetailResponse> obtenerClientePorIdentificador(
             @PathVariable("identificador")
@@ -97,6 +113,14 @@ public class ClientController {
     }
 
     @Operation(summary = "Reemplazo completo de cliente (PUT por CURP o RFC)", description = "Actualiza todos los datos personales permitidos identificado exclusivamente por CURP o RFC. CURP y RFC no pueden ser modificados. No se permite editar por ID numérico.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Cliente actualizado exitosamente"),
+            @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos"),
+            @ApiResponse(responseCode = "401", description = "Sesión no iniciada o inactiva en el servidor"),
+            @ApiResponse(responseCode = "403", description = "No autorizado para modificar datos de otro cliente"),
+            @ApiResponse(responseCode = "404", description = "Cliente no encontrado"),
+            @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
     @PutMapping(
             value = "/{identificador}",
             consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -112,6 +136,15 @@ public class ClientController {
     }
 
     @Operation(summary = "Actualización parcial de cliente (PATCH por CURP o RFC)", description = "Actualiza los campos especificados identificado exclusivamente por CURP o RFC. CURP y RFC no pueden ser modificados. No se permite editar por ID numérico.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Cliente actualizado parcialmente con éxito"),
+            @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos"),
+            @ApiResponse(responseCode = "401", description = "Sesión no iniciada o inactiva en el servidor"),
+            @ApiResponse(responseCode = "403", description = "No autorizado para modificar datos de otro cliente"),
+            @ApiResponse(responseCode = "404", description = "Cliente no encontrado"),
+            @ApiResponse(responseCode = "422", description = "Cuerpo de solicitud sin campos válidos"),
+            @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
     @PatchMapping(
             value = "/{identificador}",
             consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -127,6 +160,14 @@ public class ClientController {
     }
 
     @Operation(summary = "Baja lógica de cliente (DELETE por CURP o RFC)", description = "Desactiva al cliente identificado exclusivamente por CURP o RFC y pasa todas sus cuentas bancarias asociadas a estatus INACTIVA.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Cliente y cuentas bancarias desactivados exitosamente"),
+            @ApiResponse(responseCode = "400", description = "Formato de CURP o RFC inválido"),
+            @ApiResponse(responseCode = "401", description = "Sesión no iniciada o inactiva en el servidor"),
+            @ApiResponse(responseCode = "403", description = "No autorizado"),
+            @ApiResponse(responseCode = "404", description = "Cliente no encontrado"),
+            @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
     @DeleteMapping("/{identificador}")
     public ResponseEntity<Void> eliminarCliente(
             @PathVariable("identificador")

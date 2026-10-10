@@ -182,4 +182,36 @@ class AllEndpointsSecurityAndSessionTest {
                     .andExpect(status().isOk());
         }
     }
+
+    @Nested
+    @DisplayName("4. Control de Autorización - Prevención de manipulación de ID (403 Forbidden)")
+    class AuthorizationIdTamperingTests {
+
+        @Test
+        @DisplayName("Cliente autenticado no puede consultar cuentas de otro cliente modificando el ID en la URL (403 Forbidden)")
+        void testCannotAccessOtherClientAccountsById() throws Exception {
+            // Usuario regular logueado con ID 10
+            serverSessionManager.setLoggedIn(true, "cliente10@banco.com", 10L);
+
+            // Intenta consultar cuentas del cliente 20
+            mockMvc.perform(get("/v1/cuentas/cliente/20")
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.error.code", is("FORBIDDEN")))
+                    .andExpect(jsonPath("$.error.message", containsString("No tiene autorización")));
+        }
+
+        @Test
+        @DisplayName("Administrador sí tiene autorización para consultar cualquier registro")
+        void testAdminCanAccessAnyClientAccounts() throws Exception {
+            // Sesión admin
+            serverSessionManager.setLoggedIn(true, "admin@banco.com", 1L);
+
+            // Al consultar un cliente inexistente, debe dar 404 (no 403 por autorización)
+            mockMvc.perform(get("/v1/cuentas/cliente/999999")
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error.code", is("CLIENT_NOT_FOUND")));
+        }
+    }
 }
