@@ -39,6 +39,15 @@ public interface ContactDetailMapper {
     void updateEntityFromRequest(ContactDetailRequest request, @MappingTarget ContactDetail entity);
 
     /**
+     * Actualiza los datos de contacto usando ContactDetailUpdateRequest (sin requerir idClient).
+     */
+    @Mapping(target = "idContactDetail", ignore = true)
+    @Mapping(target = "idClient", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    void updateEntityFromUpdateRequest(com.intrumentoev.demo.model.contactDetail.ContactDetailUpdateRequest request, @MappingTarget ContactDetail entity);
+
+    /**
      * Actualiza parcialmente una entidad existente (PATCH).
      * Modifica únicamente los campos no nulos del DTO de entrada.
      */

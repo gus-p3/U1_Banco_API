@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface NationalityRepository extends JpaRepository<Nationality, Short> {
     Optional<Nationality> findByName(String name);
     List<Nationality> findByIsActiveTrue();
+    Boolean existsByIdNationality(Number id);
 }

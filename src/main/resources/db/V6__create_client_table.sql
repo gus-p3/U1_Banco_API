@@ -6,7 +6,7 @@ CREATE TABLE client (
     name              TEXT  NOT NULL,
     second_name       TEXT,
     last_name         TEXT  NOT NULL,
-    second_last_name  TEXT  NOT NULL,
+    second_last_name  TEXT,
     birth_date        DATE         NOT NULL,
     curp              CHAR(18)     NOT NULL,
     rfc               TEXT  NOT NULL,

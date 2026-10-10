@@ -9,9 +9,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -21,6 +24,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/v1/cuentas")
 @RequiredArgsConstructor
+@Validated
 public class AccountController {
 
     private final AccountService accountService;
@@ -45,7 +49,9 @@ public class AccountController {
     @Operation(summary = "Consultar cuenta por número", description = "Obtiene los detalles de la cuenta bancaria por su número de 10 dígitos.")
     @GetMapping(value = "/{numeroCuenta}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<AccountResponse> obtenerCuentaPorNumero(
-            @PathVariable("numeroCuenta") String numeroCuenta) {
+            @PathVariable("numeroCuenta")
+            @Pattern(regexp = "^[0-9]{10}$", message = "El número de cuenta debe contener exactamente 10 dígitos numéricos")
+            String numeroCuenta) {
         AccountResponse response = accountService.obtenerCuentaPorNumero(numeroCuenta);
         return ResponseEntity.ok(response);
     }
@@ -53,7 +59,9 @@ public class AccountController {
     @Operation(summary = "Consultar saldo de cuenta bancaria", description = "Obtiene el saldo disponible y estatus de la cuenta.")
     @GetMapping(value = "/{numeroCuenta}/saldo", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<AccountBalanceResponse> obtenerSaldoPorNumeroCuenta(
-            @PathVariable("numeroCuenta") String numeroCuenta) {
+            @PathVariable("numeroCuenta")
+            @Pattern(regexp = "^[0-9]{10}$", message = "El número de cuenta debe contener exactamente 10 dígitos numéricos")
+            String numeroCuenta) {
         AccountBalanceResponse response = accountService.obtenerSaldoPorNumeroCuenta(numeroCuenta);
         return ResponseEntity.ok(response);
     }
@@ -68,7 +76,9 @@ public class AccountController {
     @Operation(summary = "Consultar cuentas de un cliente", description = "Retorna el listado de cuentas bancarias asociadas al cliente.")
     @GetMapping(value = "/cliente/{idClient}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<AccountResponse>> obtenerCuentasPorCliente(
-            @PathVariable("idClient") Long idClient) {
+            @PathVariable("idClient")
+            @Positive(message = "El identificador del cliente debe ser un número entero positivo mayor a 0")
+            Long idClient) {
         List<AccountResponse> response = accountService.obtenerCuentasPorCliente(idClient);
         return ResponseEntity.ok(response);
     }
@@ -76,7 +86,9 @@ public class AccountController {
     @Operation(summary = "Consultar historial de la tabla de saldos", description = "Retorna el historial completo de saldos y movimientos registrados en la tabla de saldos (libro mayor).")
     @GetMapping(value = {"/{numeroCuenta}/saldos", "/{numeroCuenta}/movimientos"}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<com.intrumentoev.demo.model.account.AccountBalanceMovementResponse>> obtenerMovimientosPorNumeroCuenta(
-            @PathVariable("numeroCuenta") String numeroCuenta) {
+            @PathVariable("numeroCuenta")
+            @Pattern(regexp = "^[0-9]{10}$", message = "El número de cuenta debe contener exactamente 10 dígitos numéricos")
+            String numeroCuenta) {
         List<com.intrumentoev.demo.model.account.AccountBalanceMovementResponse> response = accountService.obtenerMovimientosPorNumeroCuenta(numeroCuenta);
         return ResponseEntity.ok(response);
     }

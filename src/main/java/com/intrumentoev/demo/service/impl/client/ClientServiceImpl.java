@@ -81,6 +81,22 @@ public class ClientServiceImpl implements ClientService {
         // Regla de Negocio: Mayoría de edad (18 años o más)
         validarMayoriaDeEdad(request.getBirthDate());
 
+        if(!genderRepository.existsByIdGender(request.getIdGender())){
+            throw new CatalogNotFoundException("Gender",request.getIdGender());
+        }
+
+        if(!nationalityRepository.existsByIdNationality(request.getIdNationality())){
+            throw new CatalogNotFoundException("Nacionality",request.getIdNationality());
+        }
+
+        if(!municipalityRepository.existsByIdMunicipality(request.getIdMunicipality())){
+            throw new CatalogNotFoundException("Municipaly",request.getIdMunicipality());
+        }
+
+        if(!maritalStatusRepository.existsByIdMaritalStatus(request.getIdMaritalStatus())){
+            throw new CatalogNotFoundException("Marital",request.getIdMaritalStatus());
+        }
+
         // Regla de Negocio: CURP y RFC únicos
         if (clientRepository.existsByCurp(request.getCurp())) {
             throw new CurpDuplicatedException(request.getCurp());
@@ -164,10 +180,16 @@ public class ClientServiceImpl implements ClientService {
             log.info("Credenciales de acceso creadas automáticamente para cliente ID: {}", idClient);
         }
 
+        ClientResponse clienteDto = clientMapper.toResponse(clienteGuardado);
+        enrichClientWithCatalogs(clienteDto);
+
+        HomeResponse homeDto = homeMapper.toResponse(domicilioGuardado);
+        enrichHomeWithCatalogs(homeDto);
+
         return ClientDetailResponse.builder()
-                .client(clientMapper.toResponse(clienteGuardado))
+                .client(clienteDto)
                 .contactDetail(contactDetailMapper.toResponse(contactoGuardado))
-                .home(homeMapper.toResponse(domicilioGuardado))
+                .home(homeDto)
                 .employmentInformation(employmentMapper.toResponse(laboralGuardado))
                 .primaryAccount(cuentaGuardada)
                 .accounts(List.of(cuentaGuardada))
@@ -268,12 +290,6 @@ public class ClientServiceImpl implements ClientService {
                 .build();
     }
 
-    // 5. GET /v1/clientes/{id}/detalle
-    @Override
-    @Transactional(readOnly = true)
-    public ClientDetailResponse obtenerDetalleCompletoClientePorId(Long id) {
-        return obtenerClientePorIdConIncludes(id, "all");
-    }
 
     private void enrichClientWithCatalogs(ClientResponse response) {
         if (response == null) return;
@@ -418,7 +434,43 @@ public class ClientServiceImpl implements ClientService {
         return clientMapper.toResponseList(clientes);
     }
 
-    // 12. PUT /v1/clientes/{id} (Reemplazo completo)
+    // 12. PUT /v1/clientes/{id} (Reemplazo completo con DTO dedicado)
+    @Override
+    @Transactional
+    public ClientResponse reemplazarCliente(Long id, ClientUpdateRequest request) {
+        log.info("Reemplazando información personal de cliente con ID: {}", id);
+        Client existente = clientRepository.findById(id)
+                .orElseThrow(() -> new ClientNotFoundException(id));
+
+        // Regla de Negocio: No se permite modificar CURP ni RFC si vienen en la petición
+        if (request.getCurp() != null && !request.getCurp().equals(existente.getCurp())) {
+            throw new BusinessValidationException("No está permitido modificar la CURP del cliente", "curp");
+        }
+        if (request.getRfc() != null && !request.getRfc().equalsIgnoreCase(existente.getRfc())) {
+            throw new BusinessValidationException("No está permitido modificar el RFC del cliente", "rfc");
+        }
+
+        validarMayoriaDeEdad(request.getBirthDate());
+
+        // Regla de Negocio: IDs de catálogos deben existir en la BD
+        if (!genderRepository.existsById(request.getIdGender())) {
+            throw new CatalogNotFoundException("idGender", request.getIdGender());
+        }
+        if (!nationalityRepository.existsById(request.getIdNationality())) {
+            throw new CatalogNotFoundException("idNationality", request.getIdNationality());
+        }
+        if (!maritalStatusRepository.existsById(request.getIdMaritalStatus())) {
+            throw new CatalogNotFoundException("idMaritalStatus", request.getIdMaritalStatus());
+        }
+
+        clientMapper.updateEntityFromUpdateRequest(request, existente);
+        Client actualizado = clientRepository.save(existente);
+        ClientResponse response = clientMapper.toResponse(actualizado);
+        enrichClientWithCatalogs(response);
+        return response;
+    }
+
+    // 12.b PUT /v1/clientes/{id} (Sobrecarga de compatibilidad)
     @Override
     @Transactional
     public ClientResponse reemplazarCliente(Long id, ClientRequest request) {
@@ -436,9 +488,22 @@ public class ClientServiceImpl implements ClientService {
 
         validarMayoriaDeEdad(request.getBirthDate());
 
+        // Regla de Negocio: IDs de catálogos deben existir en la BD
+        if (!genderRepository.existsById(request.getIdGender())) {
+            throw new CatalogNotFoundException("idGender", request.getIdGender());
+        }
+        if (!nationalityRepository.existsById(request.getIdNationality())) {
+            throw new CatalogNotFoundException("idNationality", request.getIdNationality());
+        }
+        if (!maritalStatusRepository.existsById(request.getIdMaritalStatus())) {
+            throw new CatalogNotFoundException("idMaritalStatus", request.getIdMaritalStatus());
+        }
+
         clientMapper.updateEntityFromRequest(request, existente);
         Client actualizado = clientRepository.save(existente);
-        return clientMapper.toResponse(actualizado);
+        ClientResponse response = clientMapper.toResponse(actualizado);
+        enrichClientWithCatalogs(response);
+        return response;
     }
 
     // 13. PATCH /v1/clientes/{id} (Actualización parcial)
@@ -446,6 +511,10 @@ public class ClientServiceImpl implements ClientService {
     @Transactional
     public ClientResponse actualizarParcialCliente(Long id, ClientPatchRequest request) {
         log.info("Actualizando parcialmente cliente con ID: {}", id);
+        if (request == null || request.isEmpty()) {
+            throw new BusinessValidationException("Debe proporcionar al menos un campo válido para actualizar", "requestBody");
+        }
+
         Client existente = clientRepository.findById(id)
                 .orElseThrow(() -> new ClientNotFoundException(id));
 
@@ -459,6 +528,17 @@ public class ClientServiceImpl implements ClientService {
 
         if (request.getBirthDate() != null) {
             validarMayoriaDeEdad(request.getBirthDate());
+        }
+
+        // Regla de Negocio: IDs de catálogos opcionales deben existir si se envían
+        if (request.getIdGender() != null && !genderRepository.existsById(request.getIdGender())) {
+            throw new CatalogNotFoundException("idGender", request.getIdGender());
+        }
+        if (request.getIdNationality() != null && !nationalityRepository.existsById(request.getIdNationality())) {
+            throw new CatalogNotFoundException("idNationality", request.getIdNationality());
+        }
+        if (request.getIdMaritalStatus() != null && !maritalStatusRepository.existsById(request.getIdMaritalStatus())) {
+            throw new CatalogNotFoundException("idMaritalStatus", request.getIdMaritalStatus());
         }
 
         clientMapper.updateEntityFromPatch(request, existente);
@@ -475,7 +555,9 @@ public class ClientServiceImpl implements ClientService {
         }
 
         Client actualizado = clientRepository.save(existente);
-        return clientMapper.toResponse(actualizado);
+        ClientResponse response = clientMapper.toResponse(actualizado);
+        enrichClientWithCatalogs(response);
+        return response;
     }
 
     // 14. DELETE /v1/clientes/{id} (Baja lógica)

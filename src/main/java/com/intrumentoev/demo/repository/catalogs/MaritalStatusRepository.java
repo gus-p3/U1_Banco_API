@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface MaritalStatusRepository extends JpaRepository<MaritalStatus, Short> {
     Optional<MaritalStatus> findByName(String name);
     List<MaritalStatus> findByIsActiveTrue();
+    Boolean existsByIdMaritalStatus(Number id);
 }

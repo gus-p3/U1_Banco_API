@@ -1,5 +1,6 @@
 package com.intrumentoev.demo.model.client;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,6 +13,7 @@ import java.time.LocalDate;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ClientRequest {
 
     @NotBlank(message = "El primer nombre es obligatorio")
@@ -54,11 +56,14 @@ public class ClientRequest {
     private String rfc;
 
     @NotNull(message = "El género es obligatorio")
+    @Positive(message = "El identificador del género debe ser positivo")
     private Short idGender;
 
     @NotNull(message = "La nacionalidad es obligatoria")
+    @Positive(message = "El identificador de la nacionalidad debe ser positivo")
     private Short idNationality;
 
     @NotNull(message = "El estado civil es obligatorio")
+    @Positive(message = "El identificador del estado civil debe ser positivo")
     private Short idMaritalStatus;
 }

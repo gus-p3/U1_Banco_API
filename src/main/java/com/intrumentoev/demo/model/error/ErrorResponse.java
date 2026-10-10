@@ -1,17 +1,20 @@
 package com.intrumentoev.demo.model.error;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import java.util.List;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ErrorResponse {
 
     private ErrorDetail error;
 
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class ErrorDetail {
         private String code;
         private String message;
@@ -21,6 +24,7 @@ public class ErrorResponse {
 
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class ErrorDetailItem {
         private String code;
         private String target;

@@ -7,9 +7,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/v1/auth")
 @RequiredArgsConstructor
+@Validated
 public class AuthController {
 
     private final AuthService authService;
@@ -26,7 +30,7 @@ public class AuthController {
 
     @Operation(
             summary = "Consultar estado del booleano del servidor y contador de inactividad",
-            description = "Devuelve si el usuario tiene sesión activa en el servidor (login = true/false), contador de segundos de inactividad y segundos restantes antes del timeout de 5 segundos."
+            description = "Devuelve si el usuario tiene sesión activa en el servidor (login = true/false), contador de segundos de inactividad y segundos restantes antes del timeout de 5 minutos (300 segundos)."
     )
     @GetMapping(
             value = {"/session-status", "/estado-servidor"},
@@ -122,7 +126,11 @@ public class AuthController {
             @ApiResponse(responseCode = "204", description = "Sesión cerrada exitosamente")
     })
     @PostMapping(value = "/logout")
-    public ResponseEntity<Void> logout(@RequestParam("email") String email) {
+    public ResponseEntity<Void> logout(
+            @RequestParam("email")
+            @NotBlank(message = "El correo electrónico es requerido para cerrar sesión")
+            @Email(message = "El formato del correo electrónico proporcionado para logout no es válido")
+            String email) {
         authService.logout(email);
         return ResponseEntity.noContent().build();
     }

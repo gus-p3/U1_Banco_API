@@ -30,10 +30,6 @@ public interface ClientService {
      */
     ClientDetailResponse obtenerClientePorIdConIncludes(Long id, String include);
 
-    /**
-     * Obtener detalle completo del cliente (personal, contacto, domicilio, laboral y cuentas).
-     */
-    ClientDetailResponse obtenerDetalleCompletoClientePorId(Long id);
 
     /**
      * Buscar cliente por CURP
@@ -64,6 +60,12 @@ public interface ClientService {
      * Obtener clientes registrados en un rango de fechas
      */
     List<ClientResponse> obtenerClientesPorRangoFechas(OffsetDateTime desde, OffsetDateTime hasta);
+
+    /**
+     * Reemplazo completo de información personal del cliente con DTO dedicado (PUT /v1/clientes/{id})
+     * No se permite modificar CURP ni RFC.
+     */
+    ClientResponse reemplazarCliente(Long id, ClientUpdateRequest request);
 
     /**
      * Reemplazo completo de información personal del cliente (PUT /v1/clientes/{id})

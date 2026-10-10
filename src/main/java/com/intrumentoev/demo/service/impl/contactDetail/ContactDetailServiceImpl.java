@@ -46,7 +46,36 @@ public class ContactDetailServiceImpl implements ContactDetailService {
         return contactDetailMapper.toResponse(detalle);
     }
 
-    // 5. PUT /v1/contact-details/{id} (Reemplazo completo)
+    // 5. PUT /v1/contact-details/{id} (Reemplazo completo con DTO dedicado)
+    @Override
+    @Transactional
+    public ContactDetailResponse reemplazarContactDetail(Long id, com.intrumentoev.demo.model.contactDetail.ContactDetailUpdateRequest request) {
+        log.info("Reemplazando completamente el detalle de contacto con ID: {}", id);
+        ContactDetail existente = contactDetailRepository.findById(id)
+                .orElseThrow(() -> new BusinessValidationException("Detalle de contacto no encontrado con ID: " + id, "idContactDetail"));
+
+        String emailNormalizado = request.getEmail().trim().toLowerCase();
+
+        // Validar que el nuevo email no pertenezca a otro registro
+        if (!existente.getEmail().equalsIgnoreCase(emailNormalizado) &&
+                contactDetailRepository.existsByEmail(emailNormalizado)) {
+            throw new EmailDuplicatedException(emailNormalizado);
+        }
+
+        // Validar que el nuevo teléfono no pertenezca a otro registro
+        if (!existente.getMobilePhone().equals(request.getMobilePhone()) &&
+                contactDetailRepository.existsByMobilePhone(request.getMobilePhone())) {
+            throw new PhoneDuplicatedException(request.getMobilePhone());
+        }
+
+        contactDetailMapper.updateEntityFromUpdateRequest(request, existente);
+        existente.setEmail(emailNormalizado);
+
+        ContactDetail actualizado = contactDetailRepository.save(existente);
+        return contactDetailMapper.toResponse(actualizado);
+    }
+
+    // 5.b PUT /v1/contact-details/{id} (Sobrecarga de compatibilidad)
     @Override
     @Transactional
     public ContactDetailResponse reemplazarContactDetail(Long id, ContactDetailRequest request) {
@@ -80,6 +109,10 @@ public class ContactDetailServiceImpl implements ContactDetailService {
     @Transactional
     public ContactDetailResponse actualizarParcialContactDetail(Long id, ContactDetailPatchRequest request) {
         log.info("Actualizando parcialmente el detalle de contacto con ID: {}", id);
+        if (request == null || request.isEmpty()) {
+            throw new BusinessValidationException("Debe proporcionar al menos un campo válido para actualizar", "requestBody");
+        }
+
         ContactDetail existente = contactDetailRepository.findById(id)
                 .orElseThrow(() -> new BusinessValidationException("Detalle de contacto no encontrado con ID: " + id, "idContactDetail"));
 

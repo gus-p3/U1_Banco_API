@@ -1,5 +1,6 @@
 package com.intrumentoev.demo.model.client;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.intrumentoev.demo.model.account.AccountResponse;
 import com.intrumentoev.demo.model.auth.AuthResponse;
 import com.intrumentoev.demo.model.contactDetail.ContactDetailResponse;
@@ -16,6 +17,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ClientDetailResponse {
 
     private ClientResponse client;

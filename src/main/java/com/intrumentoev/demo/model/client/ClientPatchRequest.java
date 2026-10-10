@@ -1,5 +1,6 @@
 package com.intrumentoev.demo.model.client;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -15,6 +16,7 @@ import java.time.OffsetDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ClientPatchRequest {
 
     @Size(min = 2, max = 50, message = "El nombre debe tener entre 2 y 50 caracteres")
@@ -50,9 +52,21 @@ public class ClientPatchRequest {
     )
     private String rfc;
 
+    @jakarta.validation.constraints.Positive(message = "El identificador del género debe ser positivo")
     private Short idGender;
+
+    @jakarta.validation.constraints.Positive(message = "El identificador de la nacionalidad debe ser positivo")
     private Short idNationality;
+
+    @jakarta.validation.constraints.Positive(message = "El identificador del estado civil debe ser positivo")
     private Short idMaritalStatus;
+
     private Boolean isActive;
     private OffsetDateTime deactivatedAt;
+
+    public boolean isEmpty() {
+        return name == null && secondName == null && lastName == null && secondLastName == null
+                && birthDate == null && curp == null && rfc == null && idGender == null
+                && idNationality == null && idMaritalStatus == null && isActive == null && deactivatedAt == null;
+    }
 }

@@ -1,5 +1,6 @@
 package com.intrumentoev.demo.model.contactDetail;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -12,6 +13,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ContactDetailPatchRequest {
 
     @Email(message = "Debe ser una dirección de correo electrónico válida")
@@ -33,4 +35,8 @@ public class ContactDetailPatchRequest {
             message = "El teléfono alternativo debe tener exactamente 10 dígitos numéricos"
     )
     private String alternativePhone;
+
+    public boolean isEmpty() {
+        return email == null && mobilePhone == null && alternativePhone == null;
+    }
 }

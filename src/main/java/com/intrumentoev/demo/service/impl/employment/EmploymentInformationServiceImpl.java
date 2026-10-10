@@ -2,12 +2,12 @@ package com.intrumentoev.demo.service.impl.employment;
 
 import com.intrumentoev.demo.entity.employment.EmploymentInformation;
 import com.intrumentoev.demo.exception.BusinessValidationException;
-
+import com.intrumentoev.demo.exception.ClientNotFoundException;
 import com.intrumentoev.demo.mapper.employment.EmploymentInformationMapper;
 import com.intrumentoev.demo.model.employment.EmploymentInformationPatchRequest;
 import com.intrumentoev.demo.model.employment.EmploymentInformationRequest;
 import com.intrumentoev.demo.model.employment.EmploymentInformationResponse;
-
+import com.intrumentoev.demo.repository.client.ClientRepository;
 import com.intrumentoev.demo.repository.employment.EmploymentInformationRepository;
 import com.intrumentoev.demo.service.service.employment.EmploymentInformationService;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,7 @@ import java.math.BigDecimal;
 public class EmploymentInformationServiceImpl implements EmploymentInformationService {
 
     private final EmploymentInformationRepository employmentRepository;
-
+    private final ClientRepository clientRepository;
     private final EmploymentInformationMapper employmentMapper;
 
     @Override
@@ -46,10 +46,36 @@ public class EmploymentInformationServiceImpl implements EmploymentInformationSe
 
     @Override
     @Transactional
+    public EmploymentInformationResponse reemplazarEmploymentInformation(Long id, com.intrumentoev.demo.model.employment.EmploymentInformationUpdateRequest request) {
+        log.info("Reemplazando información laboral con ID: {}", id);
+        EmploymentInformation existente = employmentRepository.findById(id)
+                .orElseThrow(() -> new BusinessValidationException("Información laboral no encontrada con ID: " + id, "idEmployment"));
+
+        // Si se envía idClient, verificar que exista
+        if (request.getIdClient() != null && !clientRepository.existsById(request.getIdClient())) {
+            throw new ClientNotFoundException(request.getIdClient());
+        }
+
+        if (request.getMonthlyIncome() != null && request.getMonthlyIncome().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessValidationException("El ingreso mensual debe ser mayor a cero", "monthlyIncome");
+        }
+
+        employmentMapper.updateEntityFromUpdateRequest(request, existente);
+        EmploymentInformation actualizado = employmentRepository.save(existente);
+        return employmentMapper.toResponse(actualizado);
+    }
+
+    @Override
+    @Transactional
     public EmploymentInformationResponse reemplazarEmploymentInformation(Long id, EmploymentInformationRequest request) {
         log.info("Reemplazando información laboral con ID: {}", id);
         EmploymentInformation existente = employmentRepository.findById(id)
                 .orElseThrow(() -> new BusinessValidationException("Información laboral no encontrada con ID: " + id, "idEmployment"));
+
+        // Regla de Negocio: El cliente referenciado debe existir
+        if (!clientRepository.existsById(request.getIdClient())) {
+            throw new ClientNotFoundException(request.getIdClient());
+        }
 
         if (request.getMonthlyIncome() != null && request.getMonthlyIncome().compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessValidationException("El ingreso mensual debe ser mayor a cero", "monthlyIncome");
@@ -64,6 +90,10 @@ public class EmploymentInformationServiceImpl implements EmploymentInformationSe
     @Transactional
     public EmploymentInformationResponse actualizarParcialEmploymentInformation(Long id, EmploymentInformationPatchRequest request) {
         log.info("Actualizando parcialmente información laboral con ID: {}", id);
+        if (request == null || request.isEmpty()) {
+            throw new BusinessValidationException("Debe proporcionar al menos un campo válido para actualizar", "requestBody");
+        }
+
         EmploymentInformation existente = employmentRepository.findById(id)
                 .orElseThrow(() -> new BusinessValidationException("Información laboral no encontrada con ID: " + id, "idEmployment"));
 

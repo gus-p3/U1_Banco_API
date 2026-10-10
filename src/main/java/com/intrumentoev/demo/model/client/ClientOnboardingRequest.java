@@ -1,5 +1,6 @@
 package com.intrumentoev.demo.model.client;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,6 +14,7 @@ import java.time.LocalDate;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ClientOnboardingRequest {
 
     // --- 1. Datos Personales ---
@@ -30,7 +32,6 @@ public class ClientOnboardingRequest {
     @Pattern(regexp = "^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{2,50}$", message = "El apellido paterno contiene caracteres no válidos")
     private String lastName;
 
-    @NotBlank(message = "El apellido materno es obligatorio")
     @Size(min = 2, max = 50, message = "El apellido materno debe tener entre 2 y 50 caracteres")
     @Pattern(regexp = "^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{2,50}$", message = "El apellido materno contiene caracteres no válidos")
     private String secondLastName;
@@ -56,12 +57,15 @@ public class ClientOnboardingRequest {
     private String rfc;
 
     @NotNull(message = "El sexo es obligatorio")
+    @Positive(message = "El identificador del género debe ser positivo")
     private Short idGender;
 
     @NotNull(message = "La nacionalidad es obligatoria")
+    @Positive(message = "El identificador de la nacionalidad debe ser positivo")
     private Short idNationality;
 
     @NotNull(message = "El estado civil es obligatorio")
+    @Positive(message = "El identificador del estado civil debe ser positivo")
     private Short idMaritalStatus;
 
     // --- 2. Datos de Contacto ---
@@ -98,6 +102,7 @@ public class ClientOnboardingRequest {
     private String neighborhood;
 
     @NotNull(message = "El municipio es obligatorio")
+    @Positive(message = "El identificador del municipio debe ser positivo")
     private Integer idMunicipality;
 
     @NotBlank(message = "El código postal es obligatorio")

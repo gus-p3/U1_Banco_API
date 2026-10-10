@@ -1,5 +1,6 @@
 package com.intrumentoev.demo.controller.client;
 
+import com.intrumentoev.demo.exception.BusinessValidationException;
 import com.intrumentoev.demo.model.client.*;
 import com.intrumentoev.demo.service.service.client.ClientService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -8,11 +9,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -23,6 +28,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/v1/clientes")
 @RequiredArgsConstructor
+@Validated
 public class ClientController {
 
     private final ClientService clientService;
@@ -49,13 +55,52 @@ public class ClientController {
     @Operation(summary = "Consultar clientes con filtros (Microsoft REST Guidelines)", description = "Permite consultar todos los clientes o aplicar filtros vía parámetros de consulta (curp, rfc, email, numeroCuenta, activo, rango de fechas).")
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> obtenerClientes(
-            @Parameter(description = "Filtrar por CURP") @RequestParam(value = "curp", required = false) String curp,
-            @Parameter(description = "Filtrar por RFC") @RequestParam(value = "rfc", required = false) String rfc,
-            @Parameter(description = "Filtrar por correo electrónico") @RequestParam(value = "email", required = false) String email,
-            @Parameter(description = "Filtrar por número de cuenta asociada") @RequestParam(value = "numeroCuenta", required = false) String numeroCuenta,
-            @Parameter(description = "Filtrar clientes activos") @RequestParam(value = "activo", required = false) Boolean activo,
-            @Parameter(description = "Fecha inicial de registro (ISO-8601)") @RequestParam(value = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime desde,
-            @Parameter(description = "Fecha final de registro (ISO-8601)") @RequestParam(value = "hasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime hasta) {
+            @Parameter(description = "Filtrar por CURP")
+            @RequestParam(value = "curp", required = false)
+            @Pattern(regexp = "^[A-Z]{4}[0-9]{6}[HM][A-Z]{2}[B-DF-HJ-NP-TV-Z]{3}[A-Z0-9][0-9]$", message = "El formato del CURP es inválido (debe tener 18 caracteres alfanuméricos)")
+            String curp,
+
+            @Parameter(description = "Filtrar por RFC")
+            @RequestParam(value = "rfc", required = false)
+            @Pattern(regexp = "^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$", message = "El formato del RFC es inválido (debe tener 12 o 13 caracteres)")
+            String rfc,
+
+            @Parameter(description = "Filtrar por correo electrónico")
+            @RequestParam(value = "email", required = false)
+            @Email(message = "El formato del correo electrónico es inválido")
+            String email,
+
+            @Parameter(description = "Filtrar por número de cuenta asociada")
+            @RequestParam(value = "numeroCuenta", required = false)
+            @Pattern(regexp = "^[0-9]{10}$", message = "El número de cuenta debe contener exactamente 10 dígitos numéricos")
+            String numeroCuenta,
+
+            @Parameter(description = "Filtrar clientes activos")
+            @RequestParam(value = "activo", required = false)
+            Boolean activo,
+
+            @Parameter(description = "Fecha inicial de registro (ISO-8601)")
+            @RequestParam(value = "desde", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            OffsetDateTime desde,
+
+            @Parameter(description = "Fecha final de registro (ISO-8601)")
+            @RequestParam(value = "hasta", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            OffsetDateTime hasta) {
+
+        if (desde != null && hasta == null) {
+            throw new BusinessValidationException("Para filtrar por rango de fechas debe proporcionar ambos parámetros: 'desde' y 'hasta'", "rangoFechas");
+        }
+        if (desde == null && hasta != null) {
+            throw new BusinessValidationException("Para filtrar por rango de fechas debe proporcionar ambos parámetros: 'desde' y 'hasta'", "rangoFechas");
+        }
+        if (desde != null && hasta != null) {
+            if (desde.isAfter(hasta)) {
+                throw new BusinessValidationException("La fecha inicial 'desde' no puede ser posterior a la fecha final 'hasta'", "rangoFechas");
+            }
+            return ResponseEntity.ok(clientService.obtenerClientesPorRangoFechas(desde, hasta));
+        }
 
         if (curp != null && !curp.isBlank()) {
             return ResponseEntity.ok(clientService.obtenerClientePorCurp(curp));
@@ -72,9 +117,6 @@ public class ClientController {
         if (Boolean.TRUE.equals(activo)) {
             return ResponseEntity.ok(clientService.obtenerClientesActivos());
         }
-        if (desde != null && hasta != null) {
-            return ResponseEntity.ok(clientService.obtenerClientesPorRangoFechas(desde, hasta));
-        }
 
         List<ClientResponse> clientes = clientService.obtenerTodosLosClientes();
         return ResponseEntity.ok(clientes);
@@ -86,44 +128,50 @@ public class ClientController {
     )
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ClientDetailResponse> obtenerClientePorId(
-            @PathVariable("id") Long id,
+            @PathVariable("id") @Positive(message = "El identificador del cliente debe ser un número entero positivo mayor a 0") Long id,
             @Parameter(description = "Módulos a incluir separados por coma: contact,home,employment,accounts,catalogs,all")
             @RequestParam(value = "include", required = false) String include) {
         ClientDetailResponse detalle = clientService.obtenerClientePorIdConIncludes(id, include);
         return ResponseEntity.ok(detalle);
     }
 
-    @Operation(summary = "Obtener detalle completo de cliente", description = "Retorna el expediente integral: datos personales, contacto, domicilio, laboral y cuentas bancarias.")
-    @GetMapping(value = "/{id}/detalle", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ClientDetailResponse> obtenerDetalleCompletoClientePorId(@PathVariable("id") Long id) {
-        ClientDetailResponse detalle = clientService.obtenerDetalleCompletoClientePorId(id);
-        return ResponseEntity.ok(detalle);
-    }
 
     @Operation(summary = "Buscar cliente por CURP", description = "Localiza un cliente específico mediante su clave CURP de 18 caracteres.")
     @GetMapping(value = "/curp/{curp}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ClientResponse> obtenerClientePorCurp(@PathVariable("curp") String curp) {
+    public ResponseEntity<ClientResponse> obtenerClientePorCurp(
+            @PathVariable("curp")
+            @Pattern(regexp = "^[A-Z]{4}[0-9]{6}[HM][A-Z]{2}[B-DF-HJ-NP-TV-Z]{3}[A-Z0-9][0-9]$", message = "El formato del CURP es inválido (debe tener 18 caracteres alfanuméricos)")
+            String curp) {
         ClientResponse cliente = clientService.obtenerClientePorCurp(curp);
         return ResponseEntity.ok(cliente);
     }
 
     @Operation(summary = "Buscar cliente por RFC", description = "Localiza un cliente específico mediante su clave RFC de 12 o 13 caracteres.")
     @GetMapping(value = "/rfc/{rfc}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ClientResponse> obtenerClientePorRfc(@PathVariable("rfc") String rfc) {
+    public ResponseEntity<ClientResponse> obtenerClientePorRfc(
+            @PathVariable("rfc")
+            @Pattern(regexp = "^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$", message = "El formato del RFC es inválido (debe tener 12 o 13 caracteres)")
+            String rfc) {
         ClientResponse cliente = clientService.obtenerClientePorRfc(rfc);
         return ResponseEntity.ok(cliente);
     }
 
     @Operation(summary = "Buscar cliente por Correo", description = "Localiza un cliente a partir de su dirección de correo electrónico registrada.")
     @GetMapping(value = "/correo/{email}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ClientResponse> obtenerClientePorCorreo(@PathVariable("email") String email) {
+    public ResponseEntity<ClientResponse> obtenerClientePorCorreo(
+            @PathVariable("email")
+            @Email(message = "El correo electrónico debe ser una dirección válida")
+            String email) {
         ClientResponse cliente = clientService.obtenerClientePorCorreo(email);
         return ResponseEntity.ok(cliente);
     }
 
     @Operation(summary = "Buscar cliente por Número de Cuenta", description = "Localiza al titular asociado a un número de cuenta bancaria de 10 dígitos.")
     @GetMapping(value = "/cuenta/{numeroCuenta}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ClientResponse> obtenerClientePorNumeroCuenta(@PathVariable("numeroCuenta") String numeroCuenta) {
+    public ResponseEntity<ClientResponse> obtenerClientePorNumeroCuenta(
+            @PathVariable("numeroCuenta")
+            @Pattern(regexp = "^[0-9]{10}$", message = "El número de cuenta debe contener exactamente 10 dígitos numéricos")
+            String numeroCuenta) {
         ClientResponse cliente = clientService.obtenerClientePorNumeroCuenta(numeroCuenta);
         return ResponseEntity.ok(cliente);
     }
@@ -140,19 +188,22 @@ public class ClientController {
     public ResponseEntity<List<ClientResponse>> obtenerClientesPorRangoFechas(
             @RequestParam("desde") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime desde,
             @RequestParam("hasta") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime hasta) {
+        if (desde.isAfter(hasta)) {
+            throw new BusinessValidationException("La fecha inicial 'desde' no puede ser posterior a la fecha final 'hasta'", "rangoFechas");
+        }
         List<ClientResponse> clientes = clientService.obtenerClientesPorRangoFechas(desde, hasta);
         return ResponseEntity.ok(clientes);
     }
 
-    @Operation(summary = "Reemplazo completo de cliente (PUT)", description = "Actualiza todos los datos personales permitidos. CURP y RFC no pueden ser modificados.")
+    @Operation(summary = "Reemplazo completo de cliente (PUT)", description = "Actualiza todos los datos personales permitidos con DTO de edición. CURP y RFC no pueden ser modificados.")
     @PutMapping(
             value = "/{id}",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<ClientResponse> reemplazarCliente(
-            @PathVariable("id") Long id,
-            @Valid @RequestBody ClientRequest request) {
+            @PathVariable("id") @Positive(message = "El identificador del cliente debe ser un número entero positivo mayor a 0") Long id,
+            @Valid @RequestBody ClientUpdateRequest request) {
         ClientResponse actualizado = clientService.reemplazarCliente(id, request);
         return ResponseEntity.ok(actualizado);
     }
@@ -164,7 +215,7 @@ public class ClientController {
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<ClientResponse> actualizarParcialCliente(
-            @PathVariable("id") Long id,
+            @PathVariable("id") @Positive(message = "El identificador del cliente debe ser un número entero positivo mayor a 0") Long id,
             @Valid @RequestBody ClientPatchRequest request) {
         ClientResponse actualizado = clientService.actualizarParcialCliente(id, request);
         return ResponseEntity.ok(actualizado);
@@ -172,7 +223,8 @@ public class ClientController {
 
     @Operation(summary = "Baja lógica de cliente (DELETE)", description = "Desactiva al cliente y pasa todas sus cuentas bancarias asociadas a estatus INACTIVA sin borrar físicamente la información.")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarCliente(@PathVariable("id") Long id) {
+    public ResponseEntity<Void> eliminarCliente(
+            @PathVariable("id") @Positive(message = "El identificador del cliente debe ser un número entero positivo mayor a 0") Long id) {
         clientService.eliminarCliente(id);
         return ResponseEntity.noContent().build();
     }

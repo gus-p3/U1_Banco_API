@@ -1,7 +1,10 @@
 package com.intrumentoev.demo.service.service.catalog;
 
 import com.intrumentoev.demo.model.catalog.CatalogSyncResponse;
+import com.intrumentoev.demo.model.catalog.GenderResponse;
+import com.intrumentoev.demo.model.catalog.MaritalStatusResponse;
 import com.intrumentoev.demo.model.catalog.MunicipalityResponse;
+import com.intrumentoev.demo.model.catalog.NationalityResponse;
 import com.intrumentoev.demo.model.catalog.StateResponse;
 
 import java.util.List;
@@ -26,4 +29,13 @@ public interface CatalogService {
      * persistiéndolos en PostgreSQL y actualizando la caché en Redis.
      */
     CatalogSyncResponse sincronizarCatalogos();
+
+    /** Obtiene los géneros activos. */
+    List<GenderResponse> obtenerGeneros();
+
+    /** Obtiene las nacionalidades activas. */
+    List<NationalityResponse> obtenerNacionalidades();
+
+    /** Obtiene los estados civiles activos. */
+    List<MaritalStatusResponse> obtenerEstadosCiviles();
 }

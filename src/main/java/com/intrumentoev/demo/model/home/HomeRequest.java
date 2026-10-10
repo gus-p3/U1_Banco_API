@@ -1,5 +1,6 @@
 package com.intrumentoev.demo.model.home;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -13,9 +14,11 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class HomeRequest {
 
     @NotNull(message = "El ID del cliente es obligatorio")
+    @jakarta.validation.constraints.Positive(message = "El ID del cliente debe ser un número entero positivo mayor a 0")
     private Long idClient;
 
     @NotBlank(message = "La calle es obligatoria")
@@ -34,6 +37,7 @@ public class HomeRequest {
     private String neighborhood;
 
     @NotNull(message = "El ID del municipio es obligatorio")
+    @jakarta.validation.constraints.Positive(message = "El ID del municipio debe ser un número entero positivo mayor a 0")
     private Integer idMunicipality;
 
     @NotBlank(message = "El código postal es obligatorio")

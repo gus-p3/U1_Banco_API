@@ -10,6 +10,8 @@ public interface HomeService {
 
     HomeResponse obtenerHomePorIdClient(Long idClient);
 
+    HomeResponse reemplazarHome(Long id, com.intrumentoev.demo.model.home.HomeUpdateRequest request);
+
     HomeResponse reemplazarHome(Long id, HomeRequest request);
 
     HomeResponse actualizarParcialHome(Long id, HomePatchRequest request);

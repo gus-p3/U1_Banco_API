@@ -29,6 +29,12 @@ public interface EmploymentInformationMapper {
     @Mapping(target = "updatedAt", ignore = true)
     void updateEntityFromRequest(EmploymentInformationRequest request, @MappingTarget EmploymentInformation entity);
 
+    @Mapping(target = "idEmployment", ignore = true)
+    @Mapping(target = "idClient", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    void updateEntityFromUpdateRequest(com.intrumentoev.demo.model.employment.EmploymentInformationUpdateRequest request, @MappingTarget EmploymentInformation entity);
+
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "idEmployment", ignore = true)
     @Mapping(target = "idClient", ignore = true)
