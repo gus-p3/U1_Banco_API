@@ -34,6 +34,9 @@ public class OpenApiConfig {
                                 .url("https://www.apache.org/licenses/LICENSE-2.0.html")))
                 .servers(List.of(
                         new Server()
+                                .url("https://u1bancoapi-production.up.railway.app")
+                                .description("Servidor de Producción (Railway)"),
+                        new Server()
                                 .url("http://localhost:8080")
                                 .description("Servidor Local de Desarrollo")
                 ));
