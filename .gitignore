@@ -1,6 +1,7 @@
-# Markdown files (solo conservar README.md)
+# Markdown files (conservar README.md y DOC_TECNICA.md)
 *.md
 !README.md
+!DOC_TECNICA.md
 
 # Scripts y entornos de Python
 *.py
