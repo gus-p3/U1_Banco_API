@@ -36,7 +36,8 @@ public class ServerSessionInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        String path = request.getRequestURI();
+        String rawPath = request.getRequestURI();
+        String path = rawPath != null ? rawPath.replaceAll("/+", "/") : "";
         String method = request.getMethod();
 
         // 1. Métodos pre-flight CORS
@@ -64,7 +65,7 @@ public class ServerSessionInterceptor implements HandlerInterceptor {
             errorBody.put("error", "Acceso No Autorizado (Sesión Inactiva)");
             errorBody.put("message", "Operación restringida: Para realizar consultas en el servidor, debe iniciar sesión (login = true). " +
                     "Si ya había iniciado sesión, esta expiró automáticamente tras " + limit + " segundos de inactividad.");
-            errorBody.put("path", path);
+            errorBody.put("path", rawPath);
             errorBody.put("inactivityLimitSeconds", limit);
 
             response.getWriter().write(objectMapper.writeValueAsString(errorBody));
@@ -77,35 +78,43 @@ public class ServerSessionInterceptor implements HandlerInterceptor {
     }
 
     private boolean isPublicEndpoint(String path, String method) {
+        String cleanPath = path == null ? "" : path.replaceAll("/+", "/");
+        if (cleanPath.length() > 1 && cleanPath.endsWith("/")) {
+            cleanPath = cleanPath.substring(0, cleanPath.length() - 1);
+        }
+
         // Creación y registro de cliente / cuenta (Onboarding)
         if ("POST".equalsIgnoreCase(method) && (
-                path.equals("/v1/clientes/onboarding") ||
-                path.equals("/v1/cuentas") ||
-                        path.equals("/v1/catalogos/sincronizar")
+                cleanPath.equals("/v1/clientes/onboarding") ||
+                cleanPath.endsWith("/v1/clientes/onboarding") ||
+                cleanPath.equals("/v1/cuentas") ||
+                cleanPath.endsWith("/v1/cuentas") ||
+                cleanPath.equals("/v1/catalogos/sincronizar") ||
+                cleanPath.endsWith("/v1/catalogos/sincronizar")
         )) {
             return true;
         }
 
         // Autenticación (Login, Biometría, Refresh, Estado del Servidor)
-        if (path.startsWith("/v1/auth/login") ||
-            path.startsWith("/v1/auth/login-biometrico") ||
-            path.startsWith("/v1/auth/refresh") ||
-            path.startsWith("/v1/auth/session-status") ||
-            path.startsWith("/v1/auth/estado-servidor")) {
+        if (cleanPath.contains("/v1/auth/login") ||
+            cleanPath.contains("/v1/auth/login-biometrico") ||
+            cleanPath.contains("/v1/auth/refresh") ||
+            cleanPath.contains("/v1/auth/session-status") ||
+            cleanPath.contains("/v1/auth/estado-servidor")) {
             return true;
         }
 
         // Catálogos auxiliares (requeridos para llenar los formularios de onboarding)
-        if ("GET".equalsIgnoreCase(method) && path.startsWith("/v1/catalogos")) {
+        if ("GET".equalsIgnoreCase(method) && cleanPath.contains("/v1/catalogos")) {
             return true;
         }
 
         // Documentación Swagger / OpenAPI
-        if (path.startsWith("/swagger-ui") ||
-            path.startsWith("/v3/api-docs") ||
-            path.equals("/swagger-ui.html") ||
-            path.equals("/favicon.ico") ||
-            path.startsWith("/error")) {
+        if (cleanPath.contains("/swagger-ui") ||
+            cleanPath.contains("/v3/api-docs") ||
+            cleanPath.contains("/swagger-ui.html") ||
+            cleanPath.contains("/favicon.ico") ||
+            cleanPath.startsWith("/error")) {
             return true;
         }
 
