@@ -57,7 +57,6 @@ Cumpliendo con la directiva estricta de **NO USAR `VARCHAR`**, la base de datos 
 > 📥 **Formatos disponibles para descarga y visualización:**
 > * **Vectorial SVG:** [`modelo_entidad_relacion.svg`](./modelo_entidad_relacion.svg)
 > * **Imagen PNG en Alta Resolución:** [`modelo_entidad_relacion.png`](./modelo_entidad_relacion.png)
-> * **Visor Web Interactivo con Zoom y Paneo:** [`modelo_entidad_relacion.html`](./modelo_entidad_relacion.html)
 
 <details>
 <summary><b>Ver código fuente Mermaid del diagrama</b></summary>
