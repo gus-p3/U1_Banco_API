@@ -30,6 +30,11 @@ public class HomePatchRequest {
     @jakarta.validation.constraints.Positive(message = "El identificador del municipio debe ser positivo")
     private Integer idMunicipality;
 
+    @com.fasterxml.jackson.annotation.JsonAlias({"cveEnt", "clave_entidad"})
+    @Pattern(regexp = "^[0-9]{2}$", message = "La clave de entidad debe tener 2 dígitos numéricos (ej. '09')")
+    @io.swagger.v3.oas.annotations.media.Schema(example = "09", description = "Clave INEGI de la entidad federativa (2 dígitos, opcional)")
+    private String claveEntidad;
+
     @Pattern(regexp = "^[0-9]{5}$", message = "El código postal debe contener exactamente 5 dígitos")
     private String postalCode;
 
@@ -38,6 +43,6 @@ public class HomePatchRequest {
 
     public boolean isEmpty() {
         return street == null && exteriorNumber == null && interiorNumber == null
-                && neighborhood == null && idMunicipality == null && postalCode == null && country == null;
+                && neighborhood == null && idMunicipality == null && claveEntidad == null && postalCode == null && country == null;
     }
 }

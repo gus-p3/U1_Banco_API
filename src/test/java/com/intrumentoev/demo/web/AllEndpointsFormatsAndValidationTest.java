@@ -187,7 +187,7 @@ class AllEndpointsFormatsAndValidationTest {
                   "alternativePhone": "55112233aa"
                 }
                 """;
-            mockMvc.perform(put("/v1/contact-details/1")
+            mockMvc.perform(put("/v1/contact-details/cliente/TEST850101HDFRRN01")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json))
                     .andExpect(status().isBadRequest())

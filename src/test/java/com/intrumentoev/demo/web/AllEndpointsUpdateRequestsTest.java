@@ -48,10 +48,8 @@ public class AllEndpointsUpdateRequestsTest {
     private com.intrumentoev.demo.repository.catalogs.MunicipalityRepository municipalityRepository;
 
     private MockHttpSession authenticatedSession;
-    private Long createdClientId;
-    private Long createdContactDetailId;
-    private Long createdHomeId;
-    private Long createdEmploymentId;
+    private String createdClientCurp;
+    private String createdClientRfc;
 
     private Short gender1Id;
     private Short gender2Id;
@@ -134,18 +132,16 @@ public class AllEndpointsUpdateRequestsTest {
                 .andReturn();
 
         JsonNode root = objectMapper.readTree(result.getResponse().getContentAsString());
-        createdClientId = root.path("client").path("idClient").asLong();
-        createdContactDetailId = root.path("contactDetail").path("idContactDetail").asLong();
-        createdHomeId = root.path("home").path("idHome").asLong();
-        createdEmploymentId = root.path("employmentInformation").path("idEmployment").asLong();
+        createdClientCurp = root.path("client").path("curp").asText();
+        createdClientRfc = root.path("client").path("rfc").asText();
     }
 
     @Nested
-    @DisplayName("1. PUT /v1/clientes/{id} con ClientUpdateRequest")
+    @DisplayName("1. PUT /v1/clientes/{identificador} con ClientUpdateRequest")
     class ClientUpdateTests {
 
         @Test
-        @DisplayName("Actualiza datos personales exitosamente sin enviar CURP ni RFC")
+        @DisplayName("Actualiza datos personales exitosamente vía CURP sin enviar CURP ni RFC")
         void testUpdateClientSuccessWithoutCurpAndRfc() throws Exception {
             String updateJson = """
                 {
@@ -160,7 +156,7 @@ public class AllEndpointsUpdateRequestsTest {
                 }
                 """.formatted(gender2Id, nationality1Id, marital2Id);
 
-            mockMvc.perform(put("/v1/clientes/" + createdClientId)
+            mockMvc.perform(put("/v1/clientes/" + createdClientCurp)
                             .session(authenticatedSession)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(updateJson))
@@ -170,6 +166,30 @@ public class AllEndpointsUpdateRequestsTest {
                     .andExpect(jsonPath("$.idMaritalStatus", is(marital2Id.intValue())))
                     .andExpect(jsonPath("$.curp", notNullValue()))
                     .andExpect(jsonPath("$.rfc", notNullValue()));
+        }
+
+        @Test
+        @DisplayName("Actualiza datos personales exitosamente vía RFC")
+        void testUpdateClientSuccessViaRfc() throws Exception {
+            String updateJson = """
+                {
+                  "name": "Pedro Via RFC",
+                  "secondName": "Antonio",
+                  "lastName": "Ramirez",
+                  "secondLastName": "Sanchez",
+                  "birthDate": "1985-01-01",
+                  "idGender": %d,
+                  "idNationality": %d,
+                  "idMaritalStatus": %d
+                }
+                """.formatted(gender1Id, nationality1Id, marital1Id);
+
+            mockMvc.perform(put("/v1/clientes/" + createdClientRfc)
+                            .session(authenticatedSession)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(updateJson))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.name", is("Pedro Via RFC")));
         }
 
         @Test
@@ -188,7 +208,7 @@ public class AllEndpointsUpdateRequestsTest {
                 }
                 """.formatted(gender1Id, nationality1Id, marital1Id);
 
-            mockMvc.perform(put("/v1/clientes/" + createdClientId)
+            mockMvc.perform(put("/v1/clientes/" + createdClientCurp)
                             .session(authenticatedSession)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(updateJson))
@@ -198,11 +218,11 @@ public class AllEndpointsUpdateRequestsTest {
     }
 
     @Nested
-    @DisplayName("2. PUT /v1/contact-details/{id} con ContactDetailUpdateRequest")
+    @DisplayName("2. PUT /v1/contact-details/cliente/{identificador} con ContactDetailUpdateRequest")
     class ContactDetailUpdateTests {
 
         @Test
-        @DisplayName("Actualiza datos de contacto exitosamente sin enviar idClient")
+        @DisplayName("Actualiza datos de contacto exitosamente por CURP")
         void testUpdateContactDetailSuccessWithoutIdClient() throws Exception {
             String updateJson = """
                 {
@@ -212,7 +232,7 @@ public class AllEndpointsUpdateRequestsTest {
                 }
                 """;
 
-            mockMvc.perform(put("/v1/contact-details/" + createdContactDetailId)
+            mockMvc.perform(put("/v1/contact-details/cliente/" + createdClientCurp)
                             .session(authenticatedSession)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(updateJson))
@@ -232,7 +252,7 @@ public class AllEndpointsUpdateRequestsTest {
                 }
                 """;
 
-            mockMvc.perform(put("/v1/contact-details/" + createdContactDetailId)
+            mockMvc.perform(put("/v1/contact-details/cliente/" + createdClientCurp)
                             .session(authenticatedSession)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(updateJson))
@@ -242,11 +262,11 @@ public class AllEndpointsUpdateRequestsTest {
     }
 
     @Nested
-    @DisplayName("3. PUT /v1/domicilios/{id} con HomeUpdateRequest")
+    @DisplayName("3. PUT /v1/domicilios/cliente/{identificador} con HomeUpdateRequest")
     class HomeUpdateTests {
 
         @Test
-        @DisplayName("Actualiza domicilio exitosamente sin enviar idClient")
+        @DisplayName("Actualiza domicilio exitosamente por CURP")
         void testUpdateHomeSuccessWithoutIdClient() throws Exception {
             String updateJson = """
                 {
@@ -260,7 +280,7 @@ public class AllEndpointsUpdateRequestsTest {
                 }
                 """.formatted(municipalityId);
 
-            mockMvc.perform(put("/v1/domicilios/" + createdHomeId)
+            mockMvc.perform(put("/v1/domicilios/cliente/" + createdClientCurp)
                             .session(authenticatedSession)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(updateJson))
@@ -283,7 +303,7 @@ public class AllEndpointsUpdateRequestsTest {
                 }
                 """.formatted(municipalityId);
 
-            mockMvc.perform(put("/v1/domicilios/" + createdHomeId)
+            mockMvc.perform(put("/v1/domicilios/cliente/" + createdClientCurp)
                             .session(authenticatedSession)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(updateJson))
@@ -293,11 +313,11 @@ public class AllEndpointsUpdateRequestsTest {
     }
 
     @Nested
-    @DisplayName("4. PUT /v1/laboral/{id} con EmploymentInformationUpdateRequest")
+    @DisplayName("4. PUT /v1/laboral/cliente/{identificador} con EmploymentInformationUpdateRequest")
     class EmploymentUpdateTests {
 
         @Test
-        @DisplayName("Actualiza información laboral exitosamente sin enviar idClient")
+        @DisplayName("Actualiza información laboral exitosamente por CURP")
         void testUpdateEmploymentSuccessWithoutIdClient() throws Exception {
             String updateJson = """
                 {
@@ -307,7 +327,7 @@ public class AllEndpointsUpdateRequestsTest {
                 }
                 """;
 
-            mockMvc.perform(put("/v1/laboral/" + createdEmploymentId)
+            mockMvc.perform(put("/v1/laboral/cliente/" + createdClientCurp)
                             .session(authenticatedSession)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(updateJson))
@@ -328,7 +348,7 @@ public class AllEndpointsUpdateRequestsTest {
                 }
                 """;
 
-            mockMvc.perform(put("/v1/laboral/" + createdEmploymentId)
+            mockMvc.perform(put("/v1/laboral/cliente/" + createdClientCurp)
                             .session(authenticatedSession)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(updateJson))
@@ -348,7 +368,7 @@ public class AllEndpointsUpdateRequestsTest {
                 }
                 """;
 
-            mockMvc.perform(put("/v1/laboral/" + createdEmploymentId)
+            mockMvc.perform(put("/v1/laboral/cliente/" + createdClientCurp)
                             .session(authenticatedSession)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(updateJson))

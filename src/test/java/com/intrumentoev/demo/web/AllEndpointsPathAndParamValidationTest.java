@@ -35,30 +35,9 @@ class AllEndpointsPathAndParamValidationTest {
     class PathVariableValidations {
 
         @Test
-        @DisplayName("Rechaza texto en lugar de ID numérico con INVALID_TYPE")
-        void testNonNumericIdReturnsInvalidType() throws Exception {
-            mockMvc.perform(get("/v1/clientes/no-es-un-numero")
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.error.code", is("INVALID_TYPE")))
-                    .andExpect(jsonPath("$.error.target", is("id")))
-                    .andExpect(jsonPath("$.error.message", containsString("número entero")));
-        }
-
-        @Test
-        @DisplayName("Rechaza ID menor o igual a cero con mensaje descriptivo")
-        void testNegativeOrZeroIdReturnsBadRequest() throws Exception {
-            mockMvc.perform(get("/v1/clientes/-5")
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.error.code", is("BAD_REQUEST")))
-                    .andExpect(jsonPath("$.error.details[0].message", containsString("mayor a 0")));
-        }
-
-        @Test
-        @DisplayName("Rechaza CURP con formato inválido en ruta")
-        void testInvalidCurpInPathReturnsBadRequest() throws Exception {
-            mockMvc.perform(get("/v1/clientes/curp/CURPINVALIDA123")
+        @DisplayName("Rechaza identificador de cliente con formato inválido (no es CURP ni RFC)")
+        void testInvalidIdentifierInPathReturnsBadRequest() throws Exception {
+            mockMvc.perform(get("/v1/clientes/no-es-curp-ni-rfc")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.error.code", is("BAD_REQUEST")))
@@ -66,13 +45,13 @@ class AllEndpointsPathAndParamValidationTest {
         }
 
         @Test
-        @DisplayName("Rechaza RFC con formato inválido en ruta")
-        void testInvalidRfcInPathReturnsBadRequest() throws Exception {
-            mockMvc.perform(get("/v1/clientes/rfc/RFC_MALO")
+        @DisplayName("Rechaza intento de acceso por ID numérico en ruta de cliente")
+        void testNumericIdInClientPathReturnsBadRequest() throws Exception {
+            mockMvc.perform(get("/v1/clientes/123")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.error.code", is("BAD_REQUEST")))
-                    .andExpect(jsonPath("$.error.details[0].message", containsString("RFC")));
+                    .andExpect(jsonPath("$.error.details[0].message", containsString("No se permite el uso de IDs numéricos")));
         }
 
         @Test
@@ -97,36 +76,51 @@ class AllEndpointsPathAndParamValidationTest {
     }
 
     @Nested
-    @DisplayName("Validaciones de Parámetros de Consulta (@RequestParam)")
-    class QueryParamValidations {
+    @DisplayName("Validaciones de Búsqueda Unificada (@RequestBody)")
+    class UnifiedSearchValidations {
 
         @Test
-        @DisplayName("Rechaza rango de fechas si solo se proporciona 'desde'")
-        void testOnlyDesdeProvidedReturnsBadRequest() throws Exception {
-            mockMvc.perform(get("/v1/clientes?desde=2026-01-01T00:00:00Z")
-                            .contentType(MediaType.APPLICATION_JSON))
+        @DisplayName("Rechaza búsqueda POST /v1/clientes/buscar con cuerpo vacío")
+        void testEmptySearchBodyReturnsBadRequest() throws Exception {
+            mockMvc.perform(post("/v1/clientes/buscar")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{}"))
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.error.target", is("filtros")))
+                    .andExpect(jsonPath("$.error.message", containsString("al menos un filtro de búsqueda")));
+        }
+
+        @Test
+        @DisplayName("Rechaza búsqueda POST /v1/clientes/buscar si solo se proporciona 'desde'")
+        void testSearchOnlyDesdeProvidedReturnsBadRequest() throws Exception {
+            String searchJson = """
+                {
+                  "desde": "2026-01-01T00:00:00Z"
+                }
+                """;
+            mockMvc.perform(post("/v1/clientes/buscar")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(searchJson))
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(jsonPath("$.error.target", is("rangoFechas")))
                     .andExpect(jsonPath("$.error.message", containsString("ambos parámetros")));
         }
 
         @Test
-        @DisplayName("Rechaza rango de fechas si 'desde' es posterior a 'hasta'")
-        void testDesdeAfterHastaReturnsBadRequest() throws Exception {
-            mockMvc.perform(get("/v1/clientes?desde=2026-12-31T23:59:59Z&hasta=2026-01-01T00:00:00Z")
-                            .contentType(MediaType.APPLICATION_JSON))
+        @DisplayName("Rechaza búsqueda POST /v1/clientes/buscar si 'desde' es posterior a 'hasta'")
+        void testSearchDesdeAfterHastaReturnsBadRequest() throws Exception {
+            String searchJson = """
+                {
+                  "desde": "2026-12-31T23:59:59Z",
+                  "hasta": "2026-01-01T00:00:00Z"
+                }
+                """;
+            mockMvc.perform(post("/v1/clientes/buscar")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(searchJson))
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(jsonPath("$.error.target", is("rangoFechas")))
                     .andExpect(jsonPath("$.error.message", containsString("no puede ser posterior")));
-        }
-
-        @Test
-        @DisplayName("Rechaza formato de email inválido en query param")
-        void testInvalidEmailQueryParamReturnsBadRequest() throws Exception {
-            mockMvc.perform(get("/v1/clientes?email=no-es-correo")
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.error.details[0].message", containsString("correo electrónico")));
         }
 
         @Test
@@ -154,7 +148,7 @@ class AllEndpointsPathAndParamValidationTest {
                 }
                 """;
 
-            mockMvc.perform(patch("/v1/clientes/1")
+            mockMvc.perform(patch("/v1/clientes/TEST850101HDFRRN01")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(bodyWithUnknownField))
                     .andExpect(status().isBadRequest())
@@ -166,7 +160,7 @@ class AllEndpointsPathAndParamValidationTest {
         @Test
         @DisplayName("Rechaza cuerpo de PATCH completamente vacío")
         void testEmptyPatchBodyReturnsBadRequest() throws Exception {
-            mockMvc.perform(patch("/v1/clientes/1")
+            mockMvc.perform(patch("/v1/clientes/TEST850101HDFRRN01")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{}"))
                     .andExpect(status().isUnprocessableEntity())

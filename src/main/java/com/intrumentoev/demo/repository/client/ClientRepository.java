@@ -21,5 +21,7 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
 
     List<Client> findByIsActiveTrue();
 
+    List<Client> findByIsActive(Boolean isActive);
+
     List<Client> findByCreatedAtBetween(OffsetDateTime start, OffsetDateTime end);
 }

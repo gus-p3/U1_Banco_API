@@ -104,20 +104,22 @@ class AllEndpointsSecurityAndSessionTest {
         }
 
         @Test
-        @DisplayName("GET /v1/clientes/{id} devuelve 401 si no hay sesión")
+        @DisplayName("GET /v1/clientes/{identificador} devuelve 401 si no hay sesión")
         void testGetClienteByIdBlocked() throws Exception {
             serverSessionManager.setLoggedIn(false, null, null);
 
-            mockMvc.perform(get("/v1/clientes/1"))
+            mockMvc.perform(get("/v1/clientes/TEST850101HDFRRN01"))
                     .andExpect(status().isUnauthorized());
         }
 
         @Test
-        @DisplayName("GET /v1/clientes/activos devuelve 401 si no hay sesión")
-        void testGetClientesActivosBlocked() throws Exception {
+        @DisplayName("POST /v1/clientes/buscar devuelve 401 si no hay sesión")
+        void testBuscarClientesBlocked() throws Exception {
             serverSessionManager.setLoggedIn(false, null, null);
 
-            mockMvc.perform(get("/v1/clientes/activos"))
+            mockMvc.perform(post("/v1/clientes/buscar")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"activo\":true}"))
                     .andExpect(status().isUnauthorized());
         }
 
@@ -131,29 +133,29 @@ class AllEndpointsSecurityAndSessionTest {
         }
 
         @Test
-        @DisplayName("GET /v1/contact-details/1 devuelve 401 si no hay sesión")
+        @DisplayName("GET /v1/contact-details/cliente/{identificador} devuelve 401 si no hay sesión")
         void testGetContactDetailBlocked() throws Exception {
             serverSessionManager.setLoggedIn(false, null, null);
 
-            mockMvc.perform(get("/v1/contact-details/1"))
+            mockMvc.perform(get("/v1/contact-details/cliente/TEST850101HDFRRN01"))
                     .andExpect(status().isUnauthorized());
         }
 
         @Test
-        @DisplayName("GET /v1/laboral/1 devuelve 401 si no hay sesión")
+        @DisplayName("GET /v1/laboral/cliente/{identificador} devuelve 401 si no hay sesión")
         void testGetLaboralBlocked() throws Exception {
             serverSessionManager.setLoggedIn(false, null, null);
 
-            mockMvc.perform(get("/v1/laboral/1"))
+            mockMvc.perform(get("/v1/laboral/cliente/TEST850101HDFRRN01"))
                     .andExpect(status().isUnauthorized());
         }
 
         @Test
-        @DisplayName("GET /v1/domicilios/1 devuelve 401 si no hay sesión")
+        @DisplayName("GET /v1/domicilios/cliente/{identificador} devuelve 401 si no hay sesión")
         void testGetDomiciliosBlocked() throws Exception {
             serverSessionManager.setLoggedIn(false, null, null);
 
-            mockMvc.perform(get("/v1/domicilios/1"))
+            mockMvc.perform(get("/v1/domicilios/cliente/TEST850101HDFRRN01"))
                     .andExpect(status().isUnauthorized());
         }
     }

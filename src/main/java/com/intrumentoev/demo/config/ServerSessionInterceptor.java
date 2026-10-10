@@ -83,6 +83,11 @@ public class ServerSessionInterceptor implements HandlerInterceptor {
             cleanPath = cleanPath.substring(0, cleanPath.length() - 1);
         }
 
+        // Ruta raíz / salud del servidor
+        if ("GET".equalsIgnoreCase(method) && (cleanPath.isEmpty() || cleanPath.equals("/") || cleanPath.equals("/health"))) {
+            return true;
+        }
+
         // Creación y registro de cliente / cuenta (Onboarding)
         if ("POST".equalsIgnoreCase(method) && (
                 cleanPath.equals("/v1/clientes/onboarding") ||

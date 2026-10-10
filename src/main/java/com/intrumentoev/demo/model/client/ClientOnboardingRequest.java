@@ -105,6 +105,11 @@ public class ClientOnboardingRequest {
     @Positive(message = "El identificador del municipio debe ser positivo")
     private Integer idMunicipality;
 
+    @com.fasterxml.jackson.annotation.JsonAlias({"cveEnt", "clave_entidad"})
+    @Pattern(regexp = "^[0-9]{2}$", message = "La clave de entidad debe tener 2 dígitos numéricos (ej. '09')")
+    @io.swagger.v3.oas.annotations.media.Schema(example = "09", description = "Clave INEGI de la entidad federativa (2 dígitos, opcional)")
+    private String claveEntidad;
+
     @NotBlank(message = "El código postal es obligatorio")
     @Pattern(regexp = "^[0-9]{5}$", message = "El código postal debe contener exactamente 5 dígitos numéricos")
     private String postalCode;

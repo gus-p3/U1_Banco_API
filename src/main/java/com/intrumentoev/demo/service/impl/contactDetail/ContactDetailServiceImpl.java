@@ -24,7 +24,52 @@ import org.springframework.transaction.annotation.Transactional;
 public class ContactDetailServiceImpl implements ContactDetailService {
 
     private final ContactDetailRepository contactDetailRepository;
+    private final com.intrumentoev.demo.repository.client.ClientRepository clientRepository;
     private final ContactDetailMapper contactDetailMapper;
+
+    private com.intrumentoev.demo.entity.client.Client resolverClientePorIdentificador(String identificador) {
+        if (identificador == null || identificador.isBlank()) {
+            throw new BusinessValidationException("El identificador (CURP o RFC) es obligatorio", "identificador");
+        }
+        String idLimpio = identificador.trim().toUpperCase();
+        return clientRepository.findByCurp(idLimpio)
+                .or(() -> clientRepository.findByRfc(idLimpio))
+                .orElseThrow(() -> new com.intrumentoev.demo.exception.ClientNotFoundException("No se encontró cliente con CURP o RFC: " + identificador));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ContactDetailResponse obtenerContactDetailPorIdentificador(String identificador) {
+        var cliente = resolverClientePorIdentificador(identificador);
+        return obtenerContactDetailPorIdClient(cliente.getIdClient());
+    }
+
+    @Override
+    @Transactional
+    public ContactDetailResponse reemplazarContactDetailPorIdentificador(String identificador, com.intrumentoev.demo.model.contactDetail.ContactDetailUpdateRequest request) {
+        var cliente = resolverClientePorIdentificador(identificador);
+        ContactDetail existente = contactDetailRepository.findByIdClient(cliente.getIdClient())
+                .orElseThrow(() -> new BusinessValidationException("No existe detalle de contacto registrado para el cliente: " + identificador, "identificador"));
+        return reemplazarContactDetail(existente.getIdContactDetail(), request);
+    }
+
+    @Override
+    @Transactional
+    public ContactDetailResponse actualizarParcialContactDetailPorIdentificador(String identificador, ContactDetailPatchRequest request) {
+        var cliente = resolverClientePorIdentificador(identificador);
+        ContactDetail existente = contactDetailRepository.findByIdClient(cliente.getIdClient())
+                .orElseThrow(() -> new BusinessValidationException("No existe detalle de contacto registrado para el cliente: " + identificador, "identificador"));
+        return actualizarParcialContactDetail(existente.getIdContactDetail(), request);
+    }
+
+    @Override
+    @Transactional
+    public void eliminarContactDetailPorIdentificador(String identificador) {
+        var cliente = resolverClientePorIdentificador(identificador);
+        ContactDetail existente = contactDetailRepository.findByIdClient(cliente.getIdClient())
+                .orElseThrow(() -> new BusinessValidationException("No existe detalle de contacto registrado para el cliente: " + identificador, "identificador"));
+        eliminarContactDetail(existente.getIdContactDetail());
+    }
 
     // 1. GET /v1/contact-details/{id}
     @Override

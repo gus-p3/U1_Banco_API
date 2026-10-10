@@ -51,6 +51,19 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "Credenciales incorrectas"),
             @ApiResponse(responseCode = "423", description = "Cuenta bloqueada por exceso de intentos fallidos")
     })
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "Credenciales de acceso para inicio de sesión de Alejandro Hernández",
+            required = true,
+            content = @io.swagger.v3.oas.annotations.media.Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = AuthRequest.class),
+                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                            name = "Credenciales Demo Alejandro Hernández",
+                            summary = "Usuario Demo predeterminado",
+                            value = "{\n  \"email\": \"alejandro.hernandez@banco-demo.com\",\n  \"password\": \"PasswordSegura#2026\"\n}"
+                    )
+            )
+    )
     @PostMapping(
             value = "/login",
             consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -71,6 +84,19 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "La firma biométrica no coincide o el cliente no tiene biometría"),
             @ApiResponse(responseCode = "423", description = "Cuenta bloqueada por exceso de intentos fallidos")
     })
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "Credenciales biométricas de Alejandro Hernández",
+            required = true,
+            content = @io.swagger.v3.oas.annotations.media.Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = BiometricLoginRequest.class),
+                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                            name = "Biometría Demo Alejandro Hernández",
+                            summary = "Huella dactilar Demo predeterminada",
+                            value = "{\n  \"email\": \"alejandro.hernandez@banco-demo.com\",\n  \"biometricType\": \"HUELLA\",\n  \"biometricData\": \"dGhpcy1pcy1hLXZhbGlkLWJpb21ldHJpYy1zaWduYXR1cmUtZGF0YQ==\"\n}"
+                    )
+            )
+    )
     @PostMapping(
             value = "/login-biometrico",
             consumes = MediaType.APPLICATION_JSON_VALUE,

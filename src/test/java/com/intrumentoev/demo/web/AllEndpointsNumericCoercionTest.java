@@ -298,11 +298,11 @@ class AllEndpointsNumericCoercionTest {
     class EmploymentNumericTests {
 
         @Test
-        @DisplayName("PUT /v1/laboral/{id} rechaza monthlyIncome como String")
+        @DisplayName("PUT /v1/laboral/cliente/{identificador} rechaza monthlyIncome como String")
         void testLaboralPutMonthlyIncomeAsString() throws Exception {
-            String json = "{\"idClient\": 1, \"occupation\": \"Ingeniero\", \"company\": \"Google\", \"monthlyIncome\": \"40000.00\"}";
+            String json = "{\"occupation\": \"Ingeniero\", \"company\": \"Google\", \"monthlyIncome\": \"40000.00\"}";
 
-            mockMvc.perform(put("/v1/laboral/1")
+            mockMvc.perform(put("/v1/laboral/cliente/TEST850101HDFRRN01")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json))
                     .andExpect(status().isBadRequest())
@@ -311,11 +311,11 @@ class AllEndpointsNumericCoercionTest {
         }
 
         @Test
-        @DisplayName("PUT /v1/laboral/{id} rechaza idClient como String")
+        @DisplayName("PUT /v1/laboral/cliente/{identificador} rechaza idClient como String")
         void testLaboralPutIdClientAsString() throws Exception {
             String json = "{\"idClient\": \"1\", \"occupation\": \"Ingeniero\", \"company\": \"Google\", \"monthlyIncome\": 40000.00}";
 
-            mockMvc.perform(put("/v1/laboral/1")
+            mockMvc.perform(put("/v1/laboral/cliente/TEST850101HDFRRN01")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json))
                     .andExpect(status().isBadRequest())
@@ -324,11 +324,11 @@ class AllEndpointsNumericCoercionTest {
         }
 
         @Test
-        @DisplayName("PATCH /v1/laboral/{id} rechaza monthlyIncome como String")
+        @DisplayName("PATCH /v1/laboral/cliente/{identificador} rechaza monthlyIncome como String")
         void testLaboralPatchMonthlyIncomeAsString() throws Exception {
             String json = "{\"monthlyIncome\": \"45000.00\"}";
 
-            mockMvc.perform(patch("/v1/laboral/1")
+            mockMvc.perform(patch("/v1/laboral/cliente/TEST850101HDFRRN01")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json))
                     .andExpect(status().isBadRequest())
@@ -342,11 +342,10 @@ class AllEndpointsNumericCoercionTest {
     class HomeNumericTests {
 
         @Test
-        @DisplayName("PUT /v1/domicilios/{id} rechaza idMunicipality como String")
+        @DisplayName("PUT /v1/domicilios/cliente/{identificador} rechaza idMunicipality como String")
         void testHomePutIdMunicipalityAsString() throws Exception {
             String json = """
                 {
-                  "idClient": 1,
                   "street": "Reforma",
                   "exteriorNumber": "123",
                   "neighborhood": "Juarez",
@@ -355,7 +354,7 @@ class AllEndpointsNumericCoercionTest {
                 }
                 """;
 
-            mockMvc.perform(put("/v1/domicilios/1")
+            mockMvc.perform(put("/v1/domicilios/cliente/TEST850101HDFRRN01")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json))
                     .andExpect(status().isBadRequest())
@@ -364,11 +363,11 @@ class AllEndpointsNumericCoercionTest {
         }
 
         @Test
-        @DisplayName("PATCH /v1/domicilios/{id} rechaza idMunicipality como String")
+        @DisplayName("PATCH /v1/domicilios/cliente/{identificador} rechaza idMunicipality como String")
         void testHomePatchIdMunicipalityAsString() throws Exception {
             String json = "{\"idMunicipality\": \"1\"}";
 
-            mockMvc.perform(patch("/v1/domicilios/1")
+            mockMvc.perform(patch("/v1/domicilios/cliente/TEST850101HDFRRN01")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json))
                     .andExpect(status().isBadRequest())
@@ -398,7 +397,7 @@ class AllEndpointsNumericCoercionTest {
                 }
                 """;
 
-            mockMvc.perform(put("/v1/clientes/1")
+            mockMvc.perform(put("/v1/clientes/GALC900101HDFRRN01")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json))
                     .andExpect(status().isBadRequest())
@@ -407,11 +406,11 @@ class AllEndpointsNumericCoercionTest {
         }
 
         @Test
-        @DisplayName("PATCH /v1/clientes/{id} rechaza idNationality como String")
+        @DisplayName("PATCH /v1/clientes/{identificador} rechaza idNationality como String")
         void testClientPatchIdNationalityAsString() throws Exception {
             String json = "{\"idNationality\": \"1\"}";
 
-            mockMvc.perform(patch("/v1/clientes/1")
+            mockMvc.perform(patch("/v1/clientes/GALC900101HDFRRN01")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json))
                     .andExpect(status().isBadRequest())
@@ -463,23 +462,23 @@ class AllEndpointsNumericCoercionTest {
         }
 
         @Test
-        @DisplayName("GET /v1/domicilios/{id} con 'no-numero' devuelve 400")
+        @DisplayName("GET /v1/domicilios/cliente/{identificador} con 'no-numero' devuelve 400")
         void testDomicilioIdPathVariableInvalid() throws Exception {
-            mockMvc.perform(get("/v1/domicilios/no-numero"))
+            mockMvc.perform(get("/v1/domicilios/cliente/no-numero"))
                     .andExpect(status().isBadRequest());
         }
 
         @Test
-        @DisplayName("GET /v1/laboral/{id} con 'abc' devuelve 400")
+        @DisplayName("GET /v1/laboral/cliente/{identificador} con 'abc' devuelve 400")
         void testLaboralIdPathVariableInvalid() throws Exception {
-            mockMvc.perform(get("/v1/laboral/abc"))
+            mockMvc.perform(get("/v1/laboral/cliente/abc"))
                     .andExpect(status().isBadRequest());
         }
 
         @Test
-        @DisplayName("GET /v1/contact-details/{id} con 'abc' devuelve 400")
+        @DisplayName("GET /v1/contact-details/cliente/{identificador} con 'abc' devuelve 400")
         void testContactDetailIdPathVariableInvalid() throws Exception {
-            mockMvc.perform(get("/v1/contact-details/abc"))
+            mockMvc.perform(get("/v1/contact-details/cliente/abc"))
                     .andExpect(status().isBadRequest());
         }
     }

@@ -26,6 +26,50 @@ public class EmploymentInformationServiceImpl implements EmploymentInformationSe
     private final ClientRepository clientRepository;
     private final EmploymentInformationMapper employmentMapper;
 
+    private com.intrumentoev.demo.entity.client.Client resolverClientePorIdentificador(String identificador) {
+        if (identificador == null || identificador.isBlank()) {
+            throw new BusinessValidationException("El identificador (CURP o RFC) es obligatorio", "identificador");
+        }
+        String idLimpio = identificador.trim().toUpperCase();
+        return clientRepository.findByCurp(idLimpio)
+                .or(() -> clientRepository.findByRfc(idLimpio))
+                .orElseThrow(() -> new ClientNotFoundException("No se encontró cliente con CURP o RFC: " + identificador));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public EmploymentInformationResponse obtenerEmploymentInformationPorIdentificador(String identificador) {
+        var cliente = resolverClientePorIdentificador(identificador);
+        return obtenerEmploymentInformationPorIdClient(cliente.getIdClient());
+    }
+
+    @Override
+    @Transactional
+    public EmploymentInformationResponse reemplazarEmploymentInformationPorIdentificador(String identificador, com.intrumentoev.demo.model.employment.EmploymentInformationUpdateRequest request) {
+        var cliente = resolverClientePorIdentificador(identificador);
+        EmploymentInformation existente = employmentRepository.findByIdClient(cliente.getIdClient())
+                .orElseThrow(() -> new BusinessValidationException("No existe información laboral registrada para el cliente: " + identificador, "identificador"));
+        return reemplazarEmploymentInformation(existente.getIdEmployment(), request);
+    }
+
+    @Override
+    @Transactional
+    public EmploymentInformationResponse actualizarParcialEmploymentInformationPorIdentificador(String identificador, EmploymentInformationPatchRequest request) {
+        var cliente = resolverClientePorIdentificador(identificador);
+        EmploymentInformation existente = employmentRepository.findByIdClient(cliente.getIdClient())
+                .orElseThrow(() -> new BusinessValidationException("No existe información laboral registrada para el cliente: " + identificador, "identificador"));
+        return actualizarParcialEmploymentInformation(existente.getIdEmployment(), request);
+    }
+
+    @Override
+    @Transactional
+    public void eliminarEmploymentInformationPorIdentificador(String identificador) {
+        var cliente = resolverClientePorIdentificador(identificador);
+        EmploymentInformation existente = employmentRepository.findByIdClient(cliente.getIdClient())
+                .orElseThrow(() -> new BusinessValidationException("No existe información laboral registrada para el cliente: " + identificador, "identificador"));
+        eliminarEmploymentInformation(existente.getIdEmployment());
+    }
+
     @Override
     @Transactional(readOnly = true)
     public EmploymentInformationResponse obtenerEmploymentInformationPorId(Long id) {

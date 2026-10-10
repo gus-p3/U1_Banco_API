@@ -16,6 +16,7 @@ import java.time.OffsetDateTime;
 public class HomeResponse {
 
     private Long idHome;
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Long idClient;
     private String street;
     private String exteriorNumber;
@@ -24,6 +25,7 @@ public class HomeResponse {
     private Integer idMunicipality;
     private String municipalityName;
     private Short idState;
+    private String cveEnt;
     private String stateName;
     private String postalCode;
     private String country;

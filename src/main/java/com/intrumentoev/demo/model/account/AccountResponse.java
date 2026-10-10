@@ -18,6 +18,7 @@ public class AccountResponse {
 
     private Long idAccount;
     private String accountNumber;
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Long idClient;
     private BigDecimal balance;
     private String status;

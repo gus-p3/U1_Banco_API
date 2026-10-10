@@ -1,0 +1,553 @@
+{
+  "info": {
+    "_postman_id": "banco-api-collection-2026",
+    "name": "Banco API - Colección Oficial (Dev)",
+    "description": "Colección completa de pruebas para Banco API.\nIncluye endpoints de salud, autenticación tradicional y biométrica (Alejandro Hernández), catálogos, onboarding con clave de entidad, búsqueda unificada por POST y edición por CURP/RFC sin exponer IDs sensibles de usuario.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "demoEmail",
+      "value": "alejandro.hernandez@banco-demo.com",
+      "type": "string"
+    },
+    {
+      "key": "demoCurp",
+      "value": "HERA900515HDFRND01",
+      "type": "string"
+    },
+    {
+      "key": "demoRfc",
+      "value": "HERA900515AB1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00. Salud Servidor",
+      "item": [
+        {
+          "name": "Ping Servidor Vivo (Root /)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            },
+            "description": "Devuelve HTTP 200 y 'conectado servidor vivo' sin requerir sesión activa."
+          }
+        },
+        {
+          "name": "Health Check (/health)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "01. Autenticación y Sesión",
+      "item": [
+        {
+          "name": "Login Tradicional (Alejandro Hernández)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('authToken', json.token);",
+                  "    pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alejandro.hernandez@banco-demo.com\",\n  \"password\": \"PasswordSegura#2026\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login Biométrico (Alejandro Hernández)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('authToken', json.token);",
+                  "    pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alejandro.hernandez@banco-demo.com\",\n  \"biometricType\": \"HUELLA\",\n  \"biometricData\": \"dGhpcy1pcy1hLXZhbGlkLWJpb21ldHJpYy1zaWduYXR1cmUtZGF0YQ==\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/login-biometrico",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "login-biometrico"]
+            }
+          }
+        },
+        {
+          "name": "Estado de Sesión Servidor (login = true/false)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/session-status",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "session-status"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/logout?email={{demoEmail}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "logout"],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "{{demoEmail}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. Catálogos",
+      "item": [
+        {
+          "name": "Géneros (idGender visible)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/catalogos/generos",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "catalogos", "generos"]
+            }
+          }
+        },
+        {
+          "name": "Nacionalidades (idNationality visible)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/catalogos/nacionalidades",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "catalogos", "nacionalidades"]
+            }
+          }
+        },
+        {
+          "name": "Estados Civiles (idMaritalStatus visible)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/catalogos/estados-civiles",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "catalogos", "estados-civiles"]
+            }
+          }
+        },
+        {
+          "name": "Estados (idState y cveEnt visibles)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/catalogos/estados",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "catalogos", "estados"]
+            }
+          }
+        },
+        {
+          "name": "Municipios (idMunicipality visible)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/catalogos/municipios",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "catalogos", "municipios"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. Clientes",
+      "item": [
+        {
+          "name": "Onboarding (Crear Cliente con Clave Entidad)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Fernando\",\n  \"lastName\": \"Morales\",\n  \"secondLastName\": \"Sánchez\",\n  \"birthDate\": \"1994-08-20\",\n  \"curp\": \"MOSF940820HDFRND03\",\n  \"rfc\": \"MOSF940820AB3\",\n  \"idGender\": 1,\n  \"idNationality\": 1,\n  \"idMaritalStatus\": 1,\n  \"email\": \"fernando.morales@banco-demo.com\",\n  \"mobilePhone\": \"5544332211\",\n  \"street\": \"Av. Insurgentes\",\n  \"exteriorNumber\": \"500\",\n  \"interiorNumber\": \"Apto 3B\",\n  \"neighborhood\": \"Del Valle\",\n  \"idMunicipality\": 1,\n  \"claveEntidad\": \"09\",\n  \"postalCode\": \"03100\",\n  \"occupation\": \"Analista de Datos\",\n  \"company\": \"Fintech México\",\n  \"monthlyIncome\": 35000.00,\n  \"initialBalance\": 5000.00,\n  \"password\": \"PasswordSegura#2026\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/clientes/onboarding",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "clientes", "onboarding"]
+            }
+          }
+        },
+        {
+          "name": "Búsqueda Unificada (POST con Filtros)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"curp\": \"{{demoCurp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/clientes/buscar",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "clientes", "buscar"]
+            }
+          }
+        },
+        {
+          "name": "Búsqueda Unificada Vacía (Validación Error)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/clientes/buscar",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "clientes", "buscar"]
+            }
+          }
+        },
+        {
+          "name": "Consultar Detalle Cliente por CURP/RFC",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/clientes/detalle/{{demoCurp}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "clientes", "detalle", "{{demoCurp}}"]
+            }
+          }
+        },
+        {
+          "name": "Editar Cliente por CURP/RFC (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alejandro\",\n  \"lastName\": \"Hernández\",\n  \"secondLastName\": \"Gómez Actualizado\",\n  \"birthDate\": \"1990-05-15\",\n  \"curp\": \"{{demoCurp}}\",\n  \"rfc\": \"{{demoRfc}}\",\n  \"idGender\": 1,\n  \"idNationality\": 1,\n  \"idMaritalStatus\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/clientes/{{demoCurp}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "clientes", "{{demoCurp}}"]
+            }
+          }
+        },
+        {
+          "name": "Editar Cliente por CURP/RFC (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"secondLastName\": \"Hernández Gómez\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/clientes/{{demoCurp}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "clientes", "{{demoCurp}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04. Domicilio (Home)",
+      "item": [
+        {
+          "name": "Consultar Domicilio por CURP/RFC",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/domicilios/cliente/{{demoCurp}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "domicilios", "cliente", "{{demoCurp}}"]
+            }
+          }
+        },
+        {
+          "name": "Editar Domicilio por CURP/RFC con Clave Entidad (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"street\": \"Av. Paseo de la Reforma\",\n  \"exteriorNumber\": \"505\",\n  \"interiorNumber\": \"Piso 15\",\n  \"neighborhood\": \"Cuauhtémoc\",\n  \"idMunicipality\": 1,\n  \"claveEntidad\": \"09\",\n  \"postalCode\": \"06500\",\n  \"country\": \"México\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/domicilios/cliente/{{demoCurp}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "domicilios", "cliente", "{{demoCurp}}"]
+            }
+          }
+        },
+        {
+          "name": "Actualizar Parcial Domicilio por CURP/RFC (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"interiorNumber\": \"Piso 20\",\n  \"claveEntidad\": \"09\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/domicilios/cliente/{{demoCurp}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "domicilios", "cliente", "{{demoCurp}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05. Contacto",
+      "item": [
+        {
+          "name": "Consultar Contacto por CURP/RFC",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/contactos/cliente/{{demoCurp}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "contactos", "cliente", "{{demoCurp}}"]
+            }
+          }
+        },
+        {
+          "name": "Editar Contacto por CURP/RFC (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alejandro.hernandez@banco-demo.com\",\n  \"mobilePhone\": \"5512345678\",\n  \"alternativePhone\": \"5587654321\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/contactos/cliente/{{demoCurp}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "contactos", "cliente", "{{demoCurp}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06. Empleo",
+      "item": [
+        {
+          "name": "Consultar Información Laboral por CURP/RFC",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/informacion-laboral/cliente/{{demoCurp}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "informacion-laboral", "cliente", "{{demoCurp}}"]
+            }
+          }
+        },
+        {
+          "name": "Editar Información Laboral por CURP/RFC (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"occupation\": \"Líder Técnico de Software\",\n  \"company\": \"Banco Demo Internacional\",\n  \"monthlyIncome\": 65000.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/informacion-laboral/cliente/{{demoCurp}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "informacion-laboral", "cliente", "{{demoCurp}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
