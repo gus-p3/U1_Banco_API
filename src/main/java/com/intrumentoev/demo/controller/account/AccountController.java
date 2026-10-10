@@ -47,6 +47,13 @@ public class AccountController {
     }
 
     @Operation(summary = "Consultar cuenta por número", description = "Obtiene los detalles de la cuenta bancaria por su número de 10 dígitos.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Detalles de la cuenta bancaria obtenidos exitosamente"),
+            @ApiResponse(responseCode = "400", description = "Número de cuenta inválido (debe contener exactamente 10 dígitos)"),
+            @ApiResponse(responseCode = "401", description = "Sesión no iniciada o inactiva en el servidor"),
+            @ApiResponse(responseCode = "404", description = "Cuenta bancaria no encontrada"),
+            @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
     @GetMapping(value = "/{numeroCuenta}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<AccountResponse> obtenerCuentaPorNumero(
             @PathVariable("numeroCuenta")
@@ -57,6 +64,13 @@ public class AccountController {
     }
 
     @Operation(summary = "Consultar saldo de cuenta bancaria", description = "Obtiene el saldo disponible y estatus de la cuenta.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Saldo y estatus de cuenta obtenidos exitosamente"),
+            @ApiResponse(responseCode = "400", description = "Número de cuenta inválido (debe contener 10 dígitos)"),
+            @ApiResponse(responseCode = "401", description = "Sesión no iniciada o inactiva en el servidor"),
+            @ApiResponse(responseCode = "404", description = "Cuenta bancaria no encontrada"),
+            @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
     @GetMapping(value = "/{numeroCuenta}/saldo", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<AccountBalanceResponse> obtenerSaldoPorNumeroCuenta(
             @PathVariable("numeroCuenta")
@@ -67,13 +81,26 @@ public class AccountController {
     }
 
     @Operation(summary = "Consultar cuentas activas", description = "Lista todas las cuentas bancarias con estatus ACTIVA.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Listado de cuentas activas obtenido exitosamente"),
+            @ApiResponse(responseCode = "401", description = "Sesión no iniciada o inactiva en el servidor"),
+            @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
     @GetMapping(value = "/activas", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<AccountResponse>> obtenerCuentasActivas() {
         List<AccountResponse> response = accountService.obtenerCuentasActivas();
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Consultar cuentas de un cliente", description = "Retorna el listado de cuentas bancarias asociadas al cliente.")
+    @Operation(summary = "Consultar cuentas de un cliente", description = "Retorna el listado de cuentas bancarias asociadas al cliente especificado por su ID positivo.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Listado de cuentas del cliente obtenido exitosamente"),
+            @ApiResponse(responseCode = "400", description = "ID de cliente inválido o menor a 1"),
+            @ApiResponse(responseCode = "401", description = "Sesión no iniciada o inactiva en el servidor"),
+            @ApiResponse(responseCode = "403", description = "No autorizado para consultar registros o cuentas de otro cliente"),
+            @ApiResponse(responseCode = "404", description = "Cliente no encontrado con el ID especificado"),
+            @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
     @GetMapping(value = "/cliente/{idClient}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<AccountResponse>> obtenerCuentasPorCliente(
             @PathVariable("idClient")
@@ -84,6 +111,13 @@ public class AccountController {
     }
 
     @Operation(summary = "Consultar historial de la tabla de saldos", description = "Retorna el historial completo de saldos y movimientos registrados en la tabla de saldos (libro mayor).")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Historial de saldos y movimientos obtenido exitosamente"),
+            @ApiResponse(responseCode = "400", description = "Número de cuenta inválido"),
+            @ApiResponse(responseCode = "401", description = "Sesión no iniciada o inactiva en el servidor"),
+            @ApiResponse(responseCode = "404", description = "Cuenta bancaria no encontrada"),
+            @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
     @GetMapping(value = {"/{numeroCuenta}/saldos", "/{numeroCuenta}/movimientos"}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<com.intrumentoev.demo.model.account.AccountBalanceMovementResponse>> obtenerMovimientosPorNumeroCuenta(
             @PathVariable("numeroCuenta")

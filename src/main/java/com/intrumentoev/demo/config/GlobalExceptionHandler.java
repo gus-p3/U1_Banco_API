@@ -210,6 +210,36 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(response);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
+        log.warn("Argumento ilegal o inválido recibido: {}", ex.getMessage());
+
+        ErrorResponse.ErrorDetail detail = new ErrorResponse.ErrorDetail();
+        detail.setCode("BAD_REQUEST");
+        detail.setMessage(ex.getMessage() != null ? ex.getMessage() : "Argumento proporcionado inválido");
+        detail.setTarget("parameter");
+
+        ErrorResponse response = new ErrorResponse();
+        response.setError(detail);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<ErrorResponse> handleSecurityException(SecurityException ex) {
+        log.warn("Violación de seguridad detectada: {}", ex.getMessage());
+
+        ErrorResponse.ErrorDetail detail = new ErrorResponse.ErrorDetail();
+        detail.setCode("FORBIDDEN");
+        detail.setMessage(ex.getMessage() != null ? ex.getMessage() : "Acceso no autorizado al recurso solicitado");
+        detail.setTarget("security");
+
+        ErrorResponse response = new ErrorResponse();
+        response.setError(detail);
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex) {
         log.error("RuntimeException no controlada: {}", ex.getMessage(), ex);

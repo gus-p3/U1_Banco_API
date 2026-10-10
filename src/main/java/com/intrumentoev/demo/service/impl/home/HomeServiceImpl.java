@@ -30,15 +30,31 @@ public class HomeServiceImpl implements HomeService {
     private final MunicipalityRepository municipalityRepository;
     private final StateRepository stateRepository;
     private final HomeMapper homeMapper;
+    private final com.intrumentoev.demo.service.service.auth.ServerSessionManager serverSessionManager;
 
     private com.intrumentoev.demo.entity.client.Client resolverClientePorIdentificador(String identificador) {
         if (identificador == null || identificador.isBlank()) {
             throw new BusinessValidationException("El identificador (CURP o RFC) es obligatorio", "identificador");
         }
         String idLimpio = identificador.trim().toUpperCase();
-        return clientRepository.findByCurp(idLimpio)
+        var cliente = clientRepository.findByCurp(idLimpio)
                 .or(() -> clientRepository.findByRfc(idLimpio))
                 .orElseThrow(() -> new ClientNotFoundException("No se encontró cliente con CURP o RFC: " + identificador));
+
+        // Control de autorización: verificación para evitar manipulación de identificadores (IDOR / BOLA)
+        if (serverSessionManager.isUserLoggedIn()) {
+            Long activeClientId = serverSessionManager.getActiveClientId();
+            if (activeClientId != null && !activeClientId.equals(cliente.getIdClient()) && !serverSessionManager.isAdmin()) {
+                log.warn("ACCESO DENEGADO: Cliente autenticado ID {} intentó acceder a datos de domicilio del cliente ID {}",
+                        activeClientId, cliente.getIdClient());
+                throw new com.intrumentoev.demo.exception.AccessDeniedException(
+                        "No tiene autorización para consultar o modificar la información de otro cliente",
+                        "identificador"
+                );
+            }
+        }
+
+        return cliente;
     }
 
     private void validarCoherenciaEntidad(String claveEntidad, Integer idMunicipality) {

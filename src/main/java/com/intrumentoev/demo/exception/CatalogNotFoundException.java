@@ -8,7 +8,16 @@ public class CatalogNotFoundException extends BaseBusinessException {
         super(
             "No se encontró el catálogo '" + catalogName + "' con ID: " + id,
             "CATALOG_NOT_FOUND",
-            HttpStatus.UNPROCESSABLE_ENTITY,
+            HttpStatus.NOT_FOUND,
+            catalogName
+        );
+    }
+
+    public CatalogNotFoundException(String catalogName, String id) {
+        super(
+            "No se encontró el catálogo '" + catalogName + "' con clave/ID: " + id,
+            "CATALOG_NOT_FOUND",
+            HttpStatus.NOT_FOUND,
             catalogName
         );
     }

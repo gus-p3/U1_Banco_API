@@ -47,6 +47,9 @@ class AccountServiceTest {
     @Mock
     private com.intrumentoev.demo.repository.account.AccountBalanceRepository accountBalanceRepository;
 
+    @Mock
+    private com.intrumentoev.demo.service.service.auth.ServerSessionManager serverSessionManager;
+
     @InjectMocks
     private AccountServiceImpl accountService;
 
@@ -191,5 +194,46 @@ class AccountServiceTest {
         assertThat(cuenta1.getStatus()).isEqualTo("INACTIVA");
         assertThat(cuenta2.getStatus()).isEqualTo("INACTIVA");
         verify(accountRepository, times(1)).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("Consultar cuentas por cliente exitoso para usuario autorizado")
+    void testObtenerCuentasPorClienteExitoso() {
+        when(clientRepository.findById(1L)).thenReturn(Optional.of(activeClient));
+        when(serverSessionManager.isUserLoggedIn()).thenReturn(true);
+        when(serverSessionManager.getActiveClientId()).thenReturn(1L);
+
+        Account c = Account.builder().idAccount(10L).accountNumber("1234567890").idClient(1L).build();
+        when(accountRepository.findByIdClient(1L)).thenReturn(List.of(c));
+        when(accountMapper.toResponseList(List.of(c))).thenReturn(List.of(
+                AccountResponse.builder().idAccount(10L).accountNumber("1234567890").build()
+        ));
+
+        List<AccountResponse> result = accountService.obtenerCuentasPorCliente(1L);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getAccountNumber()).isEqualTo("1234567890");
+    }
+
+    @Test
+    @DisplayName("Consultar cuentas por cliente lanza ClientNotFoundException (404) si el cliente no existe")
+    void testObtenerCuentasPorClienteNoExiste() {
+        when(clientRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> accountService.obtenerCuentasPorCliente(999L))
+                .isInstanceOf(com.intrumentoev.demo.exception.ClientNotFoundException.class)
+                .hasMessageContaining("999");
+    }
+
+    @Test
+    @DisplayName("Consultar cuentas por cliente lanza AccessDeniedException (403) si el usuario intenta consultar cuentas ajenas")
+    void testObtenerCuentasPorClienteAccesoDenegado() {
+        when(serverSessionManager.isUserLoggedIn()).thenReturn(true);
+        when(serverSessionManager.getActiveClientId()).thenReturn(1L);
+        when(serverSessionManager.isAdmin()).thenReturn(false);
+
+        assertThatThrownBy(() -> accountService.obtenerCuentasPorCliente(2L))
+                .isInstanceOf(com.intrumentoev.demo.exception.AccessDeniedException.class)
+                .hasMessageContaining("No tiene autorización");
     }
 }

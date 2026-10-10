@@ -33,6 +33,22 @@ public class ServerSessionManager {
         return inactivityLimitSeconds;
     }
 
+    public synchronized Long getActiveClientId() {
+        return isUserLoggedIn() ? activeClientId.get() : null;
+    }
+
+    public synchronized String getActiveUserEmail() {
+        return isUserLoggedIn() ? activeUserEmail.get() : null;
+    }
+
+    public synchronized boolean isAdmin() {
+        if (!isUserLoggedIn()) {
+            return false;
+        }
+        String email = activeUserEmail.get();
+        return email != null && (email.toLowerCase().contains("admin") || email.toLowerCase().contains("root"));
+    }
+
     /**
      * Establece el estado del booleano en el servidor cuando el usuario hace login o logout.
      */

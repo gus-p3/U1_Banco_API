@@ -113,4 +113,16 @@ class CatalogServiceTest {
         verify(municipalityRepository, times(1)).save(any(Municipality.class));
         verify(valueOperations, times(1)).set(eq("catalogo:estados"), any(), any());
     }
+
+    @Test
+    @DisplayName("Obtener municipios por estado lanza CatalogNotFoundException cuando no existe el estado")
+    void testObtenerMunicipiosPorEstadoNoExiste() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("catalogo:municipios:99")).thenReturn(null);
+        when(stateRepository.findByCveEnt("99")).thenReturn(Optional.empty());
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> catalogService.obtenerMunicipiosPorEstado("99"))
+                .isInstanceOf(com.intrumentoev.demo.exception.CatalogNotFoundException.class)
+                .hasMessageContaining("99");
+    }
 }

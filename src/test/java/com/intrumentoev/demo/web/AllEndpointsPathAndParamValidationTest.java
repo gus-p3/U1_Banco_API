@@ -73,6 +73,42 @@ class AllEndpointsPathAndParamValidationTest {
                     .andExpect(jsonPath("$.error.code", is("BAD_REQUEST")))
                     .andExpect(jsonPath("$.error.details[0].message", containsString("2 dígitos")));
         }
+
+        @Test
+        @DisplayName("Rechaza ID de cliente negativo o cero en consulta de cuentas (400 Bad Request)")
+        void testNegativeOrZeroClientIdReturnsBadRequest() throws Exception {
+            mockMvc.perform(get("/v1/cuentas/cliente/-5")
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.code", is("BAD_REQUEST")))
+                    .andExpect(jsonPath("$.error.details[0].message", containsString("positivo mayor a 0")));
+
+            mockMvc.perform(get("/v1/cuentas/cliente/0")
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.code", is("BAD_REQUEST")))
+                    .andExpect(jsonPath("$.error.details[0].message", containsString("positivo mayor a 0")));
+        }
+
+        @Test
+        @DisplayName("Rechaza ID de cliente no numérico en consulta de cuentas (400 Bad Request)")
+        void testNonNumericClientIdReturnsBadRequest() throws Exception {
+            mockMvc.perform(get("/v1/cuentas/cliente/abc")
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.code", is("INVALID_TYPE")))
+                    .andExpect(jsonPath("$.error.message", containsString("número entero")));
+        }
+
+        @Test
+        @DisplayName("Retorna 404 Not Found cuando el cliente no existe en consulta de cuentas por ID")
+        void testNonExistentClientIdReturnsNotFound() throws Exception {
+            mockMvc.perform(get("/v1/cuentas/cliente/999999")
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error.code", is("CLIENT_NOT_FOUND")))
+                    .andExpect(jsonPath("$.error.message", containsString("Cliente no encontrado")));
+        }
     }
 
     @Nested
