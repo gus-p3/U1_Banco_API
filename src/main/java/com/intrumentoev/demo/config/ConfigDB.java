@@ -38,12 +38,38 @@ public class ConfigDB {
     public DataSource sfDatasource() {
         HikariConfig config = new HikariConfig();
         try {
-            config.setJdbcUrl(env.getProperty("spring.datasource.url"));
-            config.setPassword(env.getProperty("spring.datasource.password"));
-            config.setUsername(env.getProperty("spring.datasource.username"));
+            String jdbcUrl = env.getProperty("spring.datasource.url");
+            String username = env.getProperty("spring.datasource.username");
+            String password = env.getProperty("spring.datasource.password");
+
+            // Soporte automático para DATABASE_URL de Railway / Heroku (postgresql:// o postgres://)
+            String rawDatabaseUrl = env.getProperty("DATABASE_URL");
+            if ((jdbcUrl == null || jdbcUrl.contains("localhost:5432")) && rawDatabaseUrl != null && !rawDatabaseUrl.isBlank()) {
+                try {
+                    if (rawDatabaseUrl.startsWith("postgres://") || rawDatabaseUrl.startsWith("postgresql://")) {
+                        java.net.URI dbUri = new java.net.URI(rawDatabaseUrl);
+                        String userInfo = dbUri.getUserInfo();
+                        if (userInfo != null && userInfo.contains(":")) {
+                            String[] parts = userInfo.split(":", 2);
+                            username = parts[0];
+                            password = parts[1];
+                        }
+                        int port = dbUri.getPort() != -1 ? dbUri.getPort() : 5432;
+                        String path = dbUri.getPath();
+                        jdbcUrl = "jdbc:postgresql://" + dbUri.getHost() + ":" + port + path;
+                        log.info("ConfigDB: Detectada DATABASE_URL de Railway. URL JDBC configurada: jdbc:postgresql://{}:{}{}", dbUri.getHost(), port, path);
+                    }
+                } catch (Exception ex) {
+                    log.warn("No se pudo parsear DATABASE_URL ({}), manteniendo configuración: {}", rawDatabaseUrl, ex.getMessage());
+                }
+            }
+
+            config.setJdbcUrl(jdbcUrl);
+            config.setPassword(password);
+            config.setUsername(username);
             config.setMaximumPoolSize(10);
             config.setMaxLifetime(1800000);
-            config.setConnectionTimeout(5000);
+            config.setConnectionTimeout(30000);
             config.setValidationTimeout(5000);
             config.setMinimumIdle(2);
             config.setConnectionTestQuery("SELECT 1");
@@ -51,7 +77,7 @@ public class ConfigDB {
 
         } catch (Exception e) {
             log.error("Ha ocurrido un error en la conexión a la base de datos, a causa de: ", e);
-            return null;
+            throw new IllegalStateException("Fallo al inicializar sfDatasource: " + e.getMessage(), e);
         }
         return new HikariDataSource(config);
     }
