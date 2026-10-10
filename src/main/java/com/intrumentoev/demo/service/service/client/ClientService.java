@@ -32,6 +32,37 @@ public interface ClientService {
 
 
     /**
+     * Búsqueda unificada de clientes vía POST con filtros en cuerpo (CURP, RFC, Email, No. Cuenta, Activo, Fechas).
+     * Si no se envía ningún filtro, arroja BusinessValidationException (HTTP 400).
+     */
+    List<ClientResponse> buscarClientes(ClientSearchRequest searchRequest);
+
+    /**
+     * Buscar cliente por CURP o RFC (identificador alfanumérico)
+     */
+    ClientResponse obtenerClientePorIdentificador(String identificador);
+
+    /**
+     * Obtener detalle completo o modular del cliente por CURP o RFC con soporte para ?include=...
+     */
+    ClientDetailResponse obtenerClientePorIdentificadorConIncludes(String identificador, String include);
+
+    /**
+     * Reemplazo completo de información personal del cliente por CURP o RFC (PUT /v1/clientes/{identificador})
+     */
+    ClientResponse reemplazarClientePorIdentificador(String identificador, ClientUpdateRequest request);
+
+    /**
+     * Actualización parcial del cliente por CURP o RFC (PATCH /v1/clientes/{identificador})
+     */
+    ClientResponse actualizarParcialClientePorIdentificador(String identificador, ClientPatchRequest request);
+
+    /**
+     * Baja lógica del cliente por CURP o RFC (DELETE /v1/clientes/{identificador})
+     */
+    void eliminarClientePorIdentificador(String identificador);
+
+    /**
      * Buscar cliente por CURP
      */
     ClientResponse obtenerClientePorCurp(String curp);

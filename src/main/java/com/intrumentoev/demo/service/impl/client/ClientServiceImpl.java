@@ -5,6 +5,8 @@ import com.intrumentoev.demo.entity.client.Client;
 import com.intrumentoev.demo.entity.contactDetail.ContactDetail;
 import com.intrumentoev.demo.entity.employment.EmploymentInformation;
 import com.intrumentoev.demo.entity.home.Home;
+import com.intrumentoev.demo.entity.catalogs.Municipality;
+import com.intrumentoev.demo.entity.catalogs.State;
 import com.intrumentoev.demo.exception.*;
 import com.intrumentoev.demo.entity.auth.Auth;
 import com.intrumentoev.demo.mapper.account.AccountMapper;
@@ -91,6 +93,16 @@ public class ClientServiceImpl implements ClientService {
 
         if(!municipalityRepository.existsByIdMunicipality(request.getIdMunicipality())){
             throw new CatalogNotFoundException("Municipaly",request.getIdMunicipality());
+        }
+
+        if (request.getClaveEntidad() != null && !request.getClaveEntidad().isBlank()) {
+            State state = stateRepository.findByCveEnt(request.getClaveEntidad().trim())
+                    .orElseThrow(() -> new BusinessValidationException("No existe entidad federativa con la clave: " + request.getClaveEntidad(), "claveEntidad"));
+            Municipality mun = municipalityRepository.findById(request.getIdMunicipality())
+                    .orElseThrow(() -> new CatalogNotFoundException("idMunicipality", request.getIdMunicipality()));
+            if (!mun.getIdState().equals(state.getIdState())) {
+                throw new BusinessValidationException("El municipio con ID " + request.getIdMunicipality() + " (" + mun.getName() + ") no pertenece a la entidad federativa " + state.getName() + " (clave: " + request.getClaveEntidad() + ")", "claveEntidad");
+            }
         }
 
         if(!maritalStatusRepository.existsByIdMaritalStatus(request.getIdMaritalStatus())){
@@ -203,7 +215,140 @@ public class ClientServiceImpl implements ClientService {
     public List<ClientResponse> obtenerTodosLosClientes() {
         log.info("Consultando todos los clientes de la BD");
         List<Client> clientes = clientRepository.findAll();
-        return clientMapper.toResponseList(clientes);
+        List<ClientResponse> responses = clientMapper.toResponseList(clientes);
+        responses.forEach(this::enrichClientWithCatalogs);
+        return responses;
+    }
+
+    // Búsqueda unificada POST /v1/clientes/buscar
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClientResponse> buscarClientes(ClientSearchRequest searchRequest) {
+        log.info("Búsqueda unificada de clientes con filtros: {}", searchRequest);
+        if (searchRequest == null || !searchRequest.hasAtLeastOneFilter()) {
+            throw new BusinessValidationException(
+                    "Debe proporcionar al menos un filtro de búsqueda (curp, rfc, email, numeroCuenta, activo o rango de fechas)",
+                    "filtros"
+            );
+        }
+
+        if (searchRequest.getDesde() != null && searchRequest.getHasta() == null) {
+            throw new BusinessValidationException("Para filtrar por rango de fechas debe proporcionar ambos parámetros: 'desde' y 'hasta'", "rangoFechas");
+        }
+        if (searchRequest.getDesde() == null && searchRequest.getHasta() != null) {
+            throw new BusinessValidationException("Para filtrar por rango de fechas debe proporcionar ambos parámetros: 'desde' y 'hasta'", "rangoFechas");
+        }
+        if (searchRequest.getDesde() != null && searchRequest.getHasta() != null) {
+            if (searchRequest.getDesde().isAfter(searchRequest.getHasta())) {
+                throw new BusinessValidationException("La fecha inicial 'desde' no puede ser posterior a la fecha final 'hasta'", "rangoFechas");
+            }
+            List<Client> clientesPorFecha = clientRepository.findByCreatedAtBetween(searchRequest.getDesde(), searchRequest.getHasta());
+            List<ClientResponse> res = clientMapper.toResponseList(clientesPorFecha);
+            res.forEach(this::enrichClientWithCatalogs);
+            return res;
+        }
+
+        if (searchRequest.getCurp() != null && !searchRequest.getCurp().isBlank()) {
+            return clientRepository.findByCurp(searchRequest.getCurp().trim().toUpperCase())
+                    .map(c -> {
+                        ClientResponse res = clientMapper.toResponse(c);
+                        enrichClientWithCatalogs(res);
+                        return List.of(res);
+                    })
+                    .orElse(Collections.emptyList());
+        }
+
+        if (searchRequest.getRfc() != null && !searchRequest.getRfc().isBlank()) {
+            return clientRepository.findByRfc(searchRequest.getRfc().trim().toUpperCase())
+                    .map(c -> {
+                        ClientResponse res = clientMapper.toResponse(c);
+                        enrichClientWithCatalogs(res);
+                        return List.of(res);
+                    })
+                    .orElse(Collections.emptyList());
+        }
+
+        if (searchRequest.getEmail() != null && !searchRequest.getEmail().isBlank()) {
+            String emailNorm = searchRequest.getEmail().trim().toLowerCase();
+            return contactDetailRepository.findByEmail(emailNorm)
+                    .flatMap(cd -> clientRepository.findById(cd.getIdClient()))
+                    .map(c -> {
+                        ClientResponse res = clientMapper.toResponse(c);
+                        enrichClientWithCatalogs(res);
+                        return List.of(res);
+                    })
+                    .orElse(Collections.emptyList());
+        }
+
+        if (searchRequest.getNumeroCuenta() != null && !searchRequest.getNumeroCuenta().isBlank()) {
+            return accountRepository.findByAccountNumber(searchRequest.getNumeroCuenta().trim())
+                    .flatMap(acc -> clientRepository.findById(acc.getIdClient()))
+                    .map(c -> {
+                        ClientResponse res = clientMapper.toResponse(c);
+                        enrichClientWithCatalogs(res);
+                        return List.of(res);
+                    })
+                    .orElse(Collections.emptyList());
+        }
+
+        if (searchRequest.getActivo() != null) {
+            List<Client> clientes = clientRepository.findByIsActive(searchRequest.getActivo());
+            List<ClientResponse> res = clientMapper.toResponseList(clientes);
+            res.forEach(this::enrichClientWithCatalogs);
+            return res;
+        }
+
+        return Collections.emptyList();
+    }
+
+    private Client resolverClientePorIdentificador(String identificador) {
+        if (identificador == null || identificador.isBlank()) {
+            throw new BusinessValidationException("El identificador (CURP o RFC) es obligatorio", "identificador");
+        }
+        String idLimpio = identificador.trim().toUpperCase();
+        return clientRepository.findByCurp(idLimpio)
+                .or(() -> clientRepository.findByRfc(idLimpio))
+                .orElseThrow(() -> new ClientNotFoundException("No se encontró cliente con CURP o RFC: " + identificador));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ClientResponse obtenerClientePorIdentificador(String identificador) {
+        Client cliente = resolverClientePorIdentificador(identificador);
+        ClientResponse response = clientMapper.toResponse(cliente);
+        enrichClientWithCatalogs(response);
+        return response;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ClientDetailResponse obtenerClientePorIdentificadorConIncludes(String identificador, String include) {
+        Client cliente = resolverClientePorIdentificador(identificador);
+        return obtenerClientePorIdConIncludes(cliente.getIdClient(), include);
+    }
+
+    @Override
+    @Transactional
+    public ClientResponse reemplazarClientePorIdentificador(String identificador, ClientUpdateRequest request) {
+        Client cliente = resolverClientePorIdentificador(identificador);
+        return reemplazarCliente(cliente.getIdClient(), request);
+    }
+
+    @Override
+    @Transactional
+    public ClientResponse actualizarParcialClientePorIdentificador(String identificador, ClientPatchRequest request) {
+        if (request == null || request.isEmpty()) {
+            throw new BusinessValidationException("Debe proporcionar al menos un campo válido para actualizar", "requestBody");
+        }
+        Client cliente = resolverClientePorIdentificador(identificador);
+        return actualizarParcialCliente(cliente.getIdClient(), request);
+    }
+
+    @Override
+    @Transactional
+    public void eliminarClientePorIdentificador(String identificador) {
+        Client cliente = resolverClientePorIdentificador(identificador);
+        eliminarCliente(cliente.getIdClient());
     }
 
     // 4. GET /v1/clientes/{id} (básico)
@@ -310,7 +455,10 @@ public class ClientServiceImpl implements ClientService {
             home.setMunicipalityName(mun.getName());
             home.setIdState(mun.getIdState());
             if (mun.getIdState() != null) {
-                stateRepository.findById(mun.getIdState()).ifPresent(st -> home.setStateName(st.getName()));
+                stateRepository.findById(mun.getIdState()).ifPresent(st -> {
+                    home.setStateName(st.getName());
+                    home.setCveEnt(st.getCveEnt());
+                });
             }
         });
     }

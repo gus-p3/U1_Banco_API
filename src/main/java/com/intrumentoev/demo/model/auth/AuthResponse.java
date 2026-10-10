@@ -20,6 +20,7 @@ public class AuthResponse {
     @Builder.Default
     private String tokenType = "Bearer";
     private Long expiresIn;
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Long idClient;
     private String email;
     private Boolean isActive;

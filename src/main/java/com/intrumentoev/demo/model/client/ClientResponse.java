@@ -16,6 +16,7 @@ import java.time.OffsetDateTime;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ClientResponse {
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Long idClient;
     private String name;
     private String secondName;

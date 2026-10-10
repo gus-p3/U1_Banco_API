@@ -16,6 +16,7 @@ import java.time.OffsetDateTime;
 public class ContactDetailResponse {
 
     private Long idContactDetail;
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Long idClient;
     private String email;
     private String mobilePhone;

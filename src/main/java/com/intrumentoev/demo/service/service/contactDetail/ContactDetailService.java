@@ -7,6 +7,14 @@ import com.intrumentoev.demo.model.contactDetail.ContactDetailResponse;
 
 public interface ContactDetailService {
 
+    ContactDetailResponse obtenerContactDetailPorIdentificador(String identificador);
+
+    ContactDetailResponse reemplazarContactDetailPorIdentificador(String identificador, com.intrumentoev.demo.model.contactDetail.ContactDetailUpdateRequest request);
+
+    ContactDetailResponse actualizarParcialContactDetailPorIdentificador(String identificador, ContactDetailPatchRequest request);
+
+    void eliminarContactDetailPorIdentificador(String identificador);
+
     // 1. Buscar detalle de contacto por ID (GET /v1/contact-details/{id})
     ContactDetailResponse obtenerContactDetailPorId(Long id);
 

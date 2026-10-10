@@ -21,6 +21,7 @@ public class AuthRequest {
             message = "El formato del correo electrónico es inválido"
     )
     @Size(max = 100, message = "El email no puede superar los 100 caracteres")
+    @io.swagger.v3.oas.annotations.media.Schema(example = "alejandro.hernandez@banco-demo.com", description = "Correo institucional del cliente")
     private String email;
 
     @NotBlank(message = "La contraseña es obligatoria")
@@ -29,5 +30,6 @@ public class AuthRequest {
             regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&.#_-])[A-Za-z\\d@$!%*?&.#_-]+$",
             message = "La contraseña debe incluir al menos una mayúscula, una minúscula, un número y un carácter especial"
     )
+    @io.swagger.v3.oas.annotations.media.Schema(example = "PasswordSegura#2026", description = "Contraseña segura del cliente")
     private String password;
 }

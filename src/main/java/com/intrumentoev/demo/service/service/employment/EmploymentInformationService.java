@@ -6,6 +6,14 @@ import com.intrumentoev.demo.model.employment.EmploymentInformationResponse;
 
 public interface EmploymentInformationService {
 
+    EmploymentInformationResponse obtenerEmploymentInformationPorIdentificador(String identificador);
+
+    EmploymentInformationResponse reemplazarEmploymentInformationPorIdentificador(String identificador, com.intrumentoev.demo.model.employment.EmploymentInformationUpdateRequest request);
+
+    EmploymentInformationResponse actualizarParcialEmploymentInformationPorIdentificador(String identificador, EmploymentInformationPatchRequest request);
+
+    void eliminarEmploymentInformationPorIdentificador(String identificador);
+
     EmploymentInformationResponse obtenerEmploymentInformationPorId(Long id);
 
     EmploymentInformationResponse obtenerEmploymentInformationPorIdClient(Long idClient);
