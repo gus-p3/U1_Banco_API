@@ -2,7 +2,7 @@ package com.intrumentoev.demo.config;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
-import com.intrumentoev.demo.exception.BaseBusinessException;
+import com.intrumentoev.demo.exception.BusinessException;
 import com.intrumentoev.demo.model.error.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -24,8 +24,8 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 @Slf4j
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(BaseBusinessException.class)
-    public ResponseEntity<ErrorResponse> handleBusinessException(BaseBusinessException ex) {
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException ex) {
         log.warn("Excepción de negocio capturada [{}]: {}", ex.getErrorCode(), ex.getMessage());
 
         ErrorResponse.ErrorDetail detail = new ErrorResponse.ErrorDetail();

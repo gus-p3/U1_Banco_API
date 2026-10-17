@@ -127,7 +127,7 @@ public class DemoRequirementsAndHealthTest {
                 }
                 """;
 
-        mockMvc.perform(post("/v1/clientes/onboarding")
+        mockMvc.perform(post("/v1/clientes")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalidOnboardingJson))
                 .andExpect(status().isUnprocessableEntity())

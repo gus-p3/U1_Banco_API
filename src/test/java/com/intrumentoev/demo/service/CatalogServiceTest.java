@@ -5,6 +5,7 @@ import com.intrumentoev.demo.client.inegi.dto.InegiMunicipalityDto;
 import com.intrumentoev.demo.client.inegi.dto.InegiStateDto;
 import com.intrumentoev.demo.entity.catalogs.Municipality;
 import com.intrumentoev.demo.entity.catalogs.State;
+import com.intrumentoev.demo.exception.BusinessException;
 import com.intrumentoev.demo.mapper.catalog.CatalogMapper;
 import com.intrumentoev.demo.model.catalog.CatalogSyncResponse;
 import com.intrumentoev.demo.model.catalog.StateResponse;
@@ -115,14 +116,14 @@ class CatalogServiceTest {
     }
 
     @Test
-    @DisplayName("Obtener municipios por estado lanza CatalogNotFoundException cuando no existe el estado")
+    @DisplayName("Obtener municipios por estado lanza BusinessException cuando no existe el estado")
     void testObtenerMunicipiosPorEstadoNoExiste() {
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("catalogo:municipios:99")).thenReturn(null);
         when(stateRepository.findByCveEnt("99")).thenReturn(Optional.empty());
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> catalogService.obtenerMunicipiosPorEstado("99"))
-                .isInstanceOf(com.intrumentoev.demo.exception.CatalogNotFoundException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("99");
     }
 }

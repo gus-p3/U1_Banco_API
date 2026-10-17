@@ -2,6 +2,7 @@
 *.md
 !README.md
 !DOC_TECNICA.md
+docs/
 
 # Scripts y entornos de Python
 *.py
