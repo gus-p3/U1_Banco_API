@@ -15,8 +15,11 @@ import com.intrumentoev.demo.model.client.*;
 import com.intrumentoev.demo.model.contactDetail.ContactDetailResponse;
 import com.intrumentoev.demo.model.employment.EmploymentInformationResponse;
 import com.intrumentoev.demo.model.home.HomeResponse;
+import com.intrumentoev.demo.entity.catalogs.Municipality;
+import com.intrumentoev.demo.entity.catalogs.State;
 import com.intrumentoev.demo.repository.account.AccountRepository;
 import com.intrumentoev.demo.repository.catalogs.MunicipalityRepository;
+import com.intrumentoev.demo.repository.catalogs.StateRepository;
 import com.intrumentoev.demo.repository.client.ClientRepository;
 import com.intrumentoev.demo.repository.contactDetail.ContactDetailRepository;
 import com.intrumentoev.demo.repository.employment.EmploymentInformationRepository;
@@ -62,6 +65,8 @@ class ClientServiceTest {
     private AccountRepository accountRepository;
     @Mock
     private MunicipalityRepository municipalityRepository;
+    @Mock
+    private StateRepository stateRepository;
 
     @Mock
     private ClientMapper clientMapper;
@@ -266,4 +271,214 @@ class ClientServiceTest {
         verify(clientRepository, times(1)).save(mockClient);
         verify(accountRepository, times(1)).saveAll(anyList());
     }
+
+    @Test
+    @DisplayName("API 3 - Onboarding rechaza registro de menores de edad (INVALID_AGE)")
+    void testRegistrarOnboardingMenorDeEdad() {
+        ClientOnboardingRequest request = ClientOnboardingRequest.builder()
+                .name("Pedro")
+                .birthDate(LocalDate.now().minusYears(17))
+                .curp("ROMA090101HDFRRN01")
+                .rfc("ROMA090101ABC")
+                .build();
+
+        assertThatThrownBy(() -> clientService.registrarOnboarding(request))
+                .isInstanceOf(BusinessException.class)
+                .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.INVALID_AGE);
+    }
+
+    @Test
+    @DisplayName("API 3 - Onboarding rechaza CURP ya registrada (CURP_DUPLICATED)")
+    void testRegistrarOnboardingCurpDuplicada() {
+        ClientOnboardingRequest request = ClientOnboardingRequest.builder()
+                .birthDate(LocalDate.of(1995, 5, 20))
+                .curp("ROMA950520HDFRRN01")
+                .rfc("ROMA950520ABC")
+                .build();
+
+        when(clientRepository.existsByCurp("ROMA950520HDFRRN01")).thenReturn(true);
+
+        assertThatThrownBy(() -> clientService.registrarOnboarding(request))
+                .isInstanceOf(BusinessException.class)
+                .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.CURP_DUPLICATED);
+    }
+
+    @Test
+    @DisplayName("API 3 - Onboarding rechaza RFC ya registrado (RFC_DUPLICATED)")
+    void testRegistrarOnboardingRfcDuplicado() {
+        ClientOnboardingRequest request = ClientOnboardingRequest.builder()
+                .birthDate(LocalDate.of(1995, 5, 20))
+                .curp("ROMA950520HDFRRN01")
+                .rfc("ROMA950520ABC")
+                .build();
+
+        when(clientRepository.existsByCurp("ROMA950520HDFRRN01")).thenReturn(false);
+        when(clientRepository.existsByRfc("ROMA950520ABC")).thenReturn(true);
+
+        assertThatThrownBy(() -> clientService.registrarOnboarding(request))
+                .isInstanceOf(BusinessException.class)
+                .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.RFC_DUPLICATED);
+    }
+
+    @Test
+    @DisplayName("API 3 - Onboarding rechaza Email ya registrado (EMAIL_DUPLICATED)")
+    void testRegistrarOnboardingEmailDuplicado() {
+        ClientOnboardingRequest request = ClientOnboardingRequest.builder()
+                .birthDate(LocalDate.of(1995, 5, 20))
+                .curp("ROMA950520HDFRRN01")
+                .rfc("ROMA950520ABC")
+                .email("duplicado@correo.com")
+                .build();
+
+        when(clientRepository.existsByCurp(anyString())).thenReturn(false);
+        when(clientRepository.existsByRfc(anyString())).thenReturn(false);
+        when(contactDetailRepository.existsByEmail("duplicado@correo.com")).thenReturn(true);
+
+        assertThatThrownBy(() -> clientService.registrarOnboarding(request))
+                .isInstanceOf(BusinessException.class)
+                .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.EMAIL_DUPLICATED);
+    }
+
+    @Test
+    @DisplayName("API 3 - Onboarding rechaza Teléfono ya registrado (PHONE_DUPLICATED)")
+    void testRegistrarOnboardingTelefonoDuplicado() {
+        ClientOnboardingRequest request = ClientOnboardingRequest.builder()
+                .birthDate(LocalDate.of(1995, 5, 20))
+                .curp("ROMA950520HDFRRN01")
+                .rfc("ROMA950520ABC")
+                .email("nuevo@correo.com")
+                .mobilePhone("5511223344")
+                .build();
+
+        when(clientRepository.existsByCurp(anyString())).thenReturn(false);
+        when(clientRepository.existsByRfc(anyString())).thenReturn(false);
+        when(contactDetailRepository.existsByEmail("nuevo@correo.com")).thenReturn(false);
+        when(contactDetailRepository.existsByMobilePhone("5511223344")).thenReturn(true);
+
+        assertThatThrownBy(() -> clientService.registrarOnboarding(request))
+                .isInstanceOf(BusinessException.class)
+                .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.PHONE_DUPLICATED);
+    }
+
+    @Test
+    @DisplayName("API 3 - Onboarding rechaza Municipio no encontrado en catálogo (CATALOG_NOT_FOUND)")
+    void testRegistrarOnboardingMunicipioNoEncontrado() {
+        ClientOnboardingRequest request = ClientOnboardingRequest.builder()
+                .birthDate(LocalDate.of(1995, 5, 20))
+                .curp("ROMA950520HDFRRN01")
+                .rfc("ROMA950520ABC")
+                .email("nuevo@correo.com")
+                .mobilePhone("5511223344")
+                .idMunicipality(9999)
+                .build();
+
+        when(clientRepository.existsByCurp(anyString())).thenReturn(false);
+        when(clientRepository.existsByRfc(anyString())).thenReturn(false);
+        when(contactDetailRepository.existsByEmail(anyString())).thenReturn(false);
+        when(contactDetailRepository.existsByMobilePhone(anyString())).thenReturn(false);
+        when(municipalityRepository.findById(9999)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> clientService.registrarOnboarding(request))
+                .isInstanceOf(BusinessException.class)
+                .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.CATALOG_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("API 3 - Onboarding rechaza inconsistencia entre claveEntidad y Municipio (STATE_MISMATCH)")
+    void testRegistrarOnboardingEstadoIncoherente() {
+        ClientOnboardingRequest request = ClientOnboardingRequest.builder()
+                .birthDate(LocalDate.of(1995, 5, 20))
+                .curp("ROMA950520HDFRRN01")
+                .rfc("ROMA950520ABC")
+                .email("nuevo@correo.com")
+                .mobilePhone("5511223344")
+                .idMunicipality(14)
+                .claveEntidad("02") // Clave enviada: 02 (Baja California)
+                .build();
+
+        Municipality mun = new Municipality();
+        mun.setIdMunicipality(14);
+        mun.setIdState((short) 9); // Pertenece a CDMX
+
+        State cdmx = new State();
+        cdmx.setIdState((short) 9);
+        cdmx.setCveEnt("09");
+        cdmx.setName("Ciudad de México");
+
+        when(clientRepository.existsByCurp(anyString())).thenReturn(false);
+        when(clientRepository.existsByRfc(anyString())).thenReturn(false);
+        when(contactDetailRepository.existsByEmail(anyString())).thenReturn(false);
+        when(contactDetailRepository.existsByMobilePhone(anyString())).thenReturn(false);
+        when(municipalityRepository.findById(14)).thenReturn(Optional.of(mun));
+        when(stateRepository.findById((short) 9)).thenReturn(Optional.of(cdmx));
+
+        assertThatThrownBy(() -> clientService.registrarOnboarding(request))
+                .isInstanceOf(BusinessException.class)
+                .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.STATE_MISMATCH);
+    }
+
+    @Test
+    @DisplayName("API 2 - PATCH lanza CLIENT_NOT_FOUND si el cliente no existe")
+    void testActualizarParcialClienteNoExiste() {
+        ClientUnifiedPatchRequest request = ClientUnifiedPatchRequest.builder()
+                .identificador("INEXISTENTE123456")
+                .build();
+
+        when(clientRepository.findByCurp("INEXISTENTE123456")).thenReturn(Optional.empty());
+        when(clientRepository.findByRfc("INEXISTENTE123456")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> clientService.actualizarParcialUnificado(request))
+                .isInstanceOf(BusinessException.class)
+                .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.CLIENT_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("API 2 - PATCH lanza CATALOG_NOT_FOUND si el nuevo idMunicipality no existe")
+    void testActualizarParcialMunicipioNoExiste() {
+        ClientUnifiedPatchRequest request = ClientUnifiedPatchRequest.builder()
+                .identificador("ROMA900101HDFRRN01")
+                .idMunicipality(99999)
+                .build();
+
+        when(clientRepository.findByCurp("ROMA900101HDFRRN01")).thenReturn(Optional.of(mockClient));
+        when(contactDetailRepository.findByIdClient(1L)).thenReturn(Optional.of(new ContactDetail()));
+        when(homeRepository.findByIdClient(1L)).thenReturn(Optional.of(new Home()));
+        when(municipalityRepository.findById(99999)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> clientService.actualizarParcialUnificado(request))
+                .isInstanceOf(BusinessException.class)
+                .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.CATALOG_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("API 4 - DELETE lanza CLIENT_NOT_FOUND si el identificador no existe")
+    void testDesactivarClienteNoExiste() {
+        ClientDeactivateRequest request = ClientDeactivateRequest.builder()
+                .identificador("NOEXISTE")
+                .build();
+
+        when(clientRepository.findByCurp("NOEXISTE")).thenReturn(Optional.empty());
+        when(clientRepository.findByRfc("NOEXISTE")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> clientService.desactivarClienteLogicamente(request))
+                .isInstanceOf(BusinessException.class)
+                .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.CLIENT_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("API 4 - DELETE lanza CLIENT_INACTIVE si el cliente ya está inactivo")
+    void testDesactivarClienteYaInactivo() {
+        mockClient.setIsActive(false);
+
+        ClientDeactivateRequest request = ClientDeactivateRequest.builder()
+                .identificador("ROMA900101HDFRRN01")
+                .build();
+
+        when(clientRepository.findByCurp("ROMA900101HDFRRN01")).thenReturn(Optional.of(mockClient));
+
+        assertThatThrownBy(() -> clientService.desactivarClienteLogicamente(request))
+                .isInstanceOf(BusinessException.class)
+                .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.CLIENT_INACTIVE);
+    }
 }
+
