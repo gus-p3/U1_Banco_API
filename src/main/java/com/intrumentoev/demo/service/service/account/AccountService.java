@@ -1,18 +1,12 @@
 package com.intrumentoev.demo.service.service.account;
 
 import com.intrumentoev.demo.model.account.AccountBalanceResponse;
-import com.intrumentoev.demo.model.account.AccountRequest;
 import com.intrumentoev.demo.model.account.AccountResponse;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 public interface AccountService {
-
-    /**
-     * Crea una cuenta bancaria asociada a un cliente activo con saldo inicial.
-     */
-    AccountResponse crearCuenta(AccountRequest request);
 
     /**
      * Crea una cuenta bancaria interna con idClient y saldo inicial.

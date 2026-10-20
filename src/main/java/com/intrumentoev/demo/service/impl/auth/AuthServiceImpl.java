@@ -1,7 +1,8 @@
 package com.intrumentoev.demo.service.impl.auth;
 
 import com.intrumentoev.demo.entity.auth.Auth;
-import com.intrumentoev.demo.exception.*;
+import com.intrumentoev.demo.exception.BusinessException;
+import com.intrumentoev.demo.exception.ErrorCode;
 import com.intrumentoev.demo.mapper.auth.AuthMapper;
 import com.intrumentoev.demo.model.auth.*;
 import com.intrumentoev.demo.repository.auth.AuthRepository;
@@ -41,13 +42,13 @@ public class AuthServiceImpl implements AuthService {
         log.info("Intento de login tradicional con email: {}", email);
 
         Auth auth = authRepository.findByEmail(email)
-                .orElseThrow(() -> new InvalidCredentialsException("Credenciales de acceso inválidas"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Credenciales de acceso inválidas", "email"));
 
         validarEstadoYBloqueo(auth);
 
         if (!passwordEncoder.matches(request.getPassword(), auth.getPasswordHash())) {
             manejarIntentoFallido(auth);
-            throw new InvalidCredentialsException("Credenciales de acceso inválidas");
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
 
         return generarSesionExitosa(auth);
@@ -60,23 +61,23 @@ public class AuthServiceImpl implements AuthService {
         log.info("Intento de login biométrico [{}] para email: {}", request.getBiometricType(), email);
 
         Auth auth = authRepository.findByEmail(email)
-                .orElseThrow(() -> new InvalidCredentialsException("Cliente no encontrado para autenticación biométrica"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Cliente no encontrado para autenticación biométrica", "email"));
 
         validarEstadoYBloqueo(auth);
 
         if (auth.getBiometricTemplate() == null || auth.getBiometricTemplate().length == 0) {
-            throw new BiometricAuthenticationException("El cliente no cuenta con datos biométricos registrados. Inicie sesión con contraseña.");
+            throw new BusinessException(ErrorCode.BIOMETRIC_AUTH_FAILED, "El cliente no cuenta con datos biométricos registrados. Inicie sesión con contraseña.", "biometrics");
         }
 
         if (auth.getBiometricType() == null || !auth.getBiometricType().equalsIgnoreCase(request.getBiometricType())) {
-            throw new BiometricAuthenticationException("El tipo de biometría suministrado no coincide con el método registrado (" + auth.getBiometricType() + ")");
+            throw new BusinessException(ErrorCode.BIOMETRIC_AUTH_FAILED, "El tipo de biometría suministrado no coincide con el método registrado (" + auth.getBiometricType() + ")", "biometricType");
         }
 
         byte[] inputTemplate;
         try {
             inputTemplate = Base64.getDecoder().decode(request.getBiometricData());
         } catch (IllegalArgumentException e) {
-            throw new BiometricAuthenticationException("El formato de la plantilla biométrica Base64 es inválido");
+            throw new BusinessException(ErrorCode.BIOMETRIC_AUTH_FAILED, "El formato de la plantilla biométrica Base64 es inválido", "biometricData");
         }
 
         // Descifrado de la plantilla biométrica almacenada cifrada con AES-256-GCM
@@ -85,7 +86,7 @@ public class AuthServiceImpl implements AuthService {
         // Comparación segura en tiempo constante para evitar ataques de canal lateral
         if (!java.security.MessageDigest.isEqual(decryptedStoredTemplate, inputTemplate)) {
             manejarIntentoFallido(auth);
-            throw new BiometricAuthenticationException("La huella o rostro proporcionado no coincide con el registro biométrico del cliente");
+            throw new BusinessException(ErrorCode.BIOMETRIC_AUTH_FAILED, "La huella o rostro proporcionado no coincide con el registro biométrico del cliente", "biometricData");
         }
 
         log.info("Autenticación biométrica exitosa para cliente ID: {}", auth.getIdClient());
@@ -99,11 +100,11 @@ public class AuthServiceImpl implements AuthService {
         log.info("Creando credenciales de acceso automáticas para cliente ID: {} y email: {}", idClient, emailNormalizado);
 
         if (authRepository.existsByEmail(emailNormalizado)) {
-            throw new EmailDuplicatedException(emailNormalizado);
+            throw new BusinessException(ErrorCode.EMAIL_DUPLICATED, emailNormalizado);
         }
 
         if (authRepository.existsByIdClient(idClient)) {
-            throw new BusinessValidationException("El cliente ya cuenta con credenciales de acceso activas", "idClient");
+            throw new BusinessException(ErrorCode.BUSINESS_VALIDATION, "El cliente ya cuenta con credenciales de acceso activas", "idClient");
         }
 
         String passwordHash = passwordEncoder.encode(password);
@@ -118,7 +119,7 @@ public class AuthServiceImpl implements AuthService {
                 template = aesEncryptionService.encryptBytes(rawTemplate);
                 biometricRegisteredAt = OffsetDateTime.now();
             } catch (IllegalArgumentException e) {
-                throw new BusinessValidationException("El formato Base64 de la biometría es inválido", "biometricData");
+                throw new BusinessException(ErrorCode.BUSINESS_VALIDATION, "El formato Base64 de la biometría es inválido", "biometricData");
             }
         }
 
@@ -144,17 +145,17 @@ public class AuthServiceImpl implements AuthService {
         log.info("Registrando biometría [{}] para cliente ID: {}", request.getBiometricType(), request.getIdClient());
 
         Auth auth = authRepository.findByIdClient(request.getIdClient())
-                .orElseThrow(() -> new ClientNotFoundException(request.getIdClient()));
+                .orElseThrow(() -> new BusinessException(ErrorCode.CLIENT_NOT_FOUND, String.valueOf(request.getIdClient())));
 
         if (!Boolean.TRUE.equals(auth.getIsActive())) {
-            throw new ClientInactiveException("No se puede registrar biometría en una cuenta inactiva");
+            throw new BusinessException(ErrorCode.CLIENT_INACTIVE, "No se puede registrar biometría en una cuenta inactiva");
         }
 
         byte[] rawTemplate;
         try {
             rawTemplate = Base64.getDecoder().decode(request.getBiometricData());
         } catch (IllegalArgumentException e) {
-            throw new BusinessValidationException("El formato Base64 del dato biométrico es inválido", "biometricData");
+            throw new BusinessException(ErrorCode.BUSINESS_VALIDATION, "El formato Base64 del dato biométrico es inválido", "biometricData");
         }
 
         // Cifrado simétrico AES-256-GCM de la plantilla biométrica
@@ -177,14 +178,14 @@ public class AuthServiceImpl implements AuthService {
         log.info("Solicitud de renovación de token de acceso mediante refresh token");
 
         Auth auth = authRepository.findByRefreshToken(refreshToken)
-                .orElseThrow(() -> new TokenExpiredOrInvalidException("Refresh token inválido o no reconocido"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.TOKEN_EXPIRED_OR_INVALID, "Refresh token inválido o no reconocido", "refreshToken"));
 
         if (!Boolean.TRUE.equals(auth.getIsActive())) {
-            throw new ClientInactiveException("La cuenta del cliente se encuentra inactiva");
+            throw new BusinessException(ErrorCode.CLIENT_INACTIVE, "La cuenta del cliente se encuentra inactiva");
         }
 
         if (auth.getRefreshTokenExpiresAt() == null || auth.getRefreshTokenExpiresAt().isBefore(OffsetDateTime.now())) {
-            throw new TokenExpiredOrInvalidException("El refresh token ha expirado. Debe autenticarse nuevamente.");
+            throw new BusinessException(ErrorCode.TOKEN_EXPIRED_OR_INVALID, "El refresh token ha expirado. Debe autenticarse nuevamente.", "refreshToken");
         }
 
         // Rotación de tokens por seguridad tipo Mercado Pago
@@ -226,11 +227,11 @@ public class AuthServiceImpl implements AuthService {
 
     private void validarEstadoYBloqueo(Auth auth) {
         if (!Boolean.TRUE.equals(auth.getIsActive())) {
-            throw new ClientInactiveException("La cuenta de acceso se encuentra inactiva");
+            throw new BusinessException(ErrorCode.CLIENT_INACTIVE, "La cuenta de acceso se encuentra inactiva");
         }
 
         if (auth.getFailedAttempts() != null && auth.getFailedAttempts() >= MAX_FAILED_ATTEMPTS) {
-            throw new AccountLockedException("La cuenta se encuentra bloqueada por exceso de intentos fallidos (" + auth.getFailedAttempts() + "). Contacte a soporte del banco.");
+            throw new BusinessException(ErrorCode.ACCOUNT_LOCKED, "La cuenta se encuentra bloqueada por exceso de intentos fallidos (" + auth.getFailedAttempts() + "). Contacte a soporte del banco.", "auth");
         }
     }
 

@@ -88,8 +88,10 @@ public class ServerSessionInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        // Creación y registro de cliente / cuenta (Onboarding)
+        // Creación y registro de cliente / cuenta (Onboarding público)
         if ("POST".equalsIgnoreCase(method) && (
+                cleanPath.equals("/v1/clientes") ||
+                cleanPath.endsWith("/v1/clientes") ||
                 cleanPath.equals("/v1/clientes/onboarding") ||
                 cleanPath.endsWith("/v1/clientes/onboarding") ||
                 cleanPath.equals("/v1/cuentas") ||

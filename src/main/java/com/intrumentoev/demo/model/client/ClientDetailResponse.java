@@ -27,5 +27,4 @@ public class ClientDetailResponse {
     private AccountResponse primaryAccount;
     private List<AccountResponse> accounts;
     private AuthResponse auth;
-    private ClientModuleCatalogsResponse catalogs;
 }
