@@ -2,8 +2,8 @@ package com.intrumentoev.demo.service;
 
 import com.intrumentoev.demo.entity.account.Account;
 import com.intrumentoev.demo.entity.client.Client;
-import com.intrumentoev.demo.exception.BusinessValidationException;
-import com.intrumentoev.demo.exception.ClientInactiveException;
+import com.intrumentoev.demo.exception.BusinessException;
+import com.intrumentoev.demo.exception.ErrorCode;
 import com.intrumentoev.demo.mapper.account.AccountMapper;
 import com.intrumentoev.demo.model.account.AccountBalanceResponse;
 import com.intrumentoev.demo.model.account.AccountResponse;
@@ -113,8 +113,8 @@ class AccountServiceTest {
         when(clientRepository.findById(2L)).thenReturn(Optional.of(inactiveClient));
 
         assertThatThrownBy(() -> accountService.crearCuenta(2L, new BigDecimal("500.00")))
-                .isInstanceOf(ClientInactiveException.class)
-                .hasMessageContaining("cliente inactivo");
+                .isInstanceOf(BusinessException.class)
+                .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.CLIENT_INACTIVE);
     }
 
     @Test
@@ -123,8 +123,8 @@ class AccountServiceTest {
         when(clientRepository.findById(1L)).thenReturn(Optional.of(activeClient));
 
         assertThatThrownBy(() -> accountService.crearCuenta(1L, new BigDecimal("-100.00")))
-                .isInstanceOf(BusinessValidationException.class)
-                .hasMessageContaining("saldo inicial no puede ser negativo");
+                .isInstanceOf(BusinessException.class)
+                .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.BUSINESS_VALIDATION);
     }
 
     @Test
@@ -216,24 +216,24 @@ class AccountServiceTest {
     }
 
     @Test
-    @DisplayName("Consultar cuentas por cliente lanza ClientNotFoundException (404) si el cliente no existe")
+    @DisplayName("Consultar cuentas por cliente lanza BusinessException (404) si el cliente no existe")
     void testObtenerCuentasPorClienteNoExiste() {
         when(clientRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> accountService.obtenerCuentasPorCliente(999L))
-                .isInstanceOf(com.intrumentoev.demo.exception.ClientNotFoundException.class)
-                .hasMessageContaining("999");
+                .isInstanceOf(BusinessException.class)
+                .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.CLIENT_NOT_FOUND);
     }
 
     @Test
-    @DisplayName("Consultar cuentas por cliente lanza AccessDeniedException (403) si el usuario intenta consultar cuentas ajenas")
+    @DisplayName("Consultar cuentas por cliente lanza BusinessException (403) si el usuario intenta consultar cuentas ajenas")
     void testObtenerCuentasPorClienteAccesoDenegado() {
         when(serverSessionManager.isUserLoggedIn()).thenReturn(true);
         when(serverSessionManager.getActiveClientId()).thenReturn(1L);
         when(serverSessionManager.isAdmin()).thenReturn(false);
 
         assertThatThrownBy(() -> accountService.obtenerCuentasPorCliente(2L))
-                .isInstanceOf(com.intrumentoev.demo.exception.AccessDeniedException.class)
-                .hasMessageContaining("No tiene autorización");
+                .isInstanceOf(BusinessException.class)
+                .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.ACCESS_DENIED);
     }
 }

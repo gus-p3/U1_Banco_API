@@ -97,7 +97,7 @@ public class DemoRequirementsAndHealthTest {
     }
 
     @Test
-    @DisplayName("5. Onboarding con claveEntidad inconsistente debe rechazar con 400")
+    @DisplayName("5. Onboarding con claveEntidad inconsistente debe rechazar con 422 Unprocessable Entity")
     void testClaveEntidadValidationMismatch() throws Exception {
         // Enviar idMunicipality existente pero con claveEntidad incorrecta
         String invalidOnboardingJson = """
@@ -127,7 +127,7 @@ public class DemoRequirementsAndHealthTest {
                 }
                 """;
 
-        mockMvc.perform(post("/v1/clientes/onboarding")
+        mockMvc.perform(post("/v1/clientes")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalidOnboardingJson))
                 .andExpect(status().isUnprocessableEntity())

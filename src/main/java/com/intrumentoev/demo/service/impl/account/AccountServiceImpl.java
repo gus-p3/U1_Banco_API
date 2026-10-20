@@ -2,13 +2,10 @@ package com.intrumentoev.demo.service.impl.account;
 
 import com.intrumentoev.demo.entity.account.Account;
 import com.intrumentoev.demo.entity.client.Client;
-import com.intrumentoev.demo.exception.AccountNotFoundException;
-import com.intrumentoev.demo.exception.BusinessValidationException;
-import com.intrumentoev.demo.exception.ClientInactiveException;
-import com.intrumentoev.demo.exception.ClientNotFoundException;
+import com.intrumentoev.demo.exception.BusinessException;
+import com.intrumentoev.demo.exception.ErrorCode;
 import com.intrumentoev.demo.mapper.account.AccountMapper;
 import com.intrumentoev.demo.model.account.AccountBalanceResponse;
-import com.intrumentoev.demo.model.account.AccountRequest;
 import com.intrumentoev.demo.model.account.AccountResponse;
 import com.intrumentoev.demo.repository.account.AccountRepository;
 import com.intrumentoev.demo.repository.client.ClientRepository;
@@ -40,23 +37,16 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     @Transactional
-    public AccountResponse crearCuenta(AccountRequest request) {
-        BigDecimal balance = request.getInitialBalance() != null ? request.getInitialBalance() : defaultInitialBalance;
-        return crearCuenta(request.getIdClient(), balance);
-    }
-
-    @Override
-    @Transactional
     public AccountResponse crearCuenta(Long idClient, BigDecimal saldoInicial) {
         log.info("Creando cuenta bancaria para cliente ID: {} con saldo inicial: {}", idClient, saldoInicial);
 
         // 1. Validar existencia del cliente
         Client client = clientRepository.findById(idClient)
-                .orElseThrow(() -> new ClientNotFoundException(idClient));
+                .orElseThrow(() -> new BusinessException(ErrorCode.CLIENT_NOT_FOUND, String.valueOf(idClient)));
 
         // 2. Regla de negocio: Solo los clientes activos podrán tener cuentas activas
         if (!Boolean.TRUE.equals(client.getIsActive())) {
-            throw new ClientInactiveException("No es posible crear cuentas bancarias para un cliente inactivo con ID: " + idClient);
+            throw new BusinessException(ErrorCode.CLIENT_INACTIVE, "No es posible crear cuentas bancarias para un cliente inactivo con ID: " + idClient);
         }
 
         // 3. Regla de negocio: Saldo inicial no negativo
@@ -64,7 +54,7 @@ public class AccountServiceImpl implements AccountService {
             saldoInicial = defaultInitialBalance;
         }
         if (saldoInicial.compareTo(BigDecimal.ZERO) < 0) {
-            throw new BusinessValidationException("El saldo inicial no puede ser negativo", "balance");
+            throw new BusinessException(ErrorCode.BUSINESS_VALIDATION, "El saldo inicial no puede ser negativo", "balance");
         }
 
         // 4. Generar número de cuenta único de 10 dígitos
@@ -100,7 +90,7 @@ public class AccountServiceImpl implements AccountService {
     public AccountResponse obtenerCuentaPorNumero(String accountNumber) {
         log.info("Consultando cuenta bancaria con número: {}", accountNumber);
         Account account = accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new AccountNotFoundException(accountNumber));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND, accountNumber));
         return accountMapper.toResponse(account);
     }
 
@@ -109,7 +99,7 @@ public class AccountServiceImpl implements AccountService {
     public AccountBalanceResponse obtenerSaldoPorNumeroCuenta(String accountNumber) {
         log.info("Consultando saldo de cuenta bancaria con número: {}", accountNumber);
         Account account = accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new AccountNotFoundException(accountNumber));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND, accountNumber));
         return accountMapper.toBalanceResponse(account);
     }
 
@@ -132,16 +122,13 @@ public class AccountServiceImpl implements AccountService {
             if (activeClientId != null && !activeClientId.equals(idClient) && !serverSessionManager.isAdmin()) {
                 log.warn("ACCESO DENEGADO: Cliente autenticado ID {} intentó acceder a cuentas del cliente ID {}",
                         activeClientId, idClient);
-                throw new com.intrumentoev.demo.exception.AccessDeniedException(
-                        "No tiene autorización para consultar la información ni cuentas del cliente solicitado",
-                        "idClient"
-                );
+                throw new BusinessException(ErrorCode.ACCESS_DENIED, "No tiene autorización para consultar la información ni cuentas del cliente solicitado", "idClient");
             }
         }
 
         // 2. Validar existencia del cliente (404 si no existe)
         Client client = clientRepository.findById(idClient)
-                .orElseThrow(() -> new ClientNotFoundException(idClient));
+                .orElseThrow(() -> new BusinessException(ErrorCode.CLIENT_NOT_FOUND, String.valueOf(idClient)));
 
         List<Account> cuentas = accountRepository.findByIdClient(idClient);
         return accountMapper.toResponseList(cuentas);
@@ -163,7 +150,7 @@ public class AccountServiceImpl implements AccountService {
     public List<com.intrumentoev.demo.model.account.AccountBalanceMovementResponse> obtenerMovimientosPorNumeroCuenta(String accountNumber) {
         log.info("Consultando movimientos de la tabla de saldos para la cuenta número: {}", accountNumber);
         Account account = accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new AccountNotFoundException(accountNumber));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND, accountNumber));
 
         List<com.intrumentoev.demo.entity.account.AccountBalance> balances =
                 accountBalanceRepository.findByIdAccountOrderByCreatedAtDesc(account.getIdAccount());

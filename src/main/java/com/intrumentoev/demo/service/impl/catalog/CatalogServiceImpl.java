@@ -5,7 +5,8 @@ import com.intrumentoev.demo.client.inegi.dto.InegiMunicipalityDto;
 import com.intrumentoev.demo.client.inegi.dto.InegiStateDto;
 import com.intrumentoev.demo.entity.catalogs.Municipality;
 import com.intrumentoev.demo.entity.catalogs.State;
-import com.intrumentoev.demo.exception.BusinessValidationException;
+import com.intrumentoev.demo.exception.BusinessException;
+import com.intrumentoev.demo.exception.ErrorCode;
 import com.intrumentoev.demo.mapper.catalog.CatalogMapper;
 import com.intrumentoev.demo.model.catalog.CatalogSyncResponse;
 import com.intrumentoev.demo.model.catalog.GenderResponse;
@@ -105,7 +106,7 @@ public class CatalogServiceImpl implements CatalogService {
 
         // 2. Buscar estado en PostgreSQL
         State state = stateRepository.findByCveEnt(cveEnt)
-                .orElseThrow(() -> new com.intrumentoev.demo.exception.CatalogNotFoundException("Estado con cve_ent", cveEnt));
+                .orElseThrow(() -> new BusinessException(ErrorCode.CATALOG_NOT_FOUND, "Estado con cve_ent: " + cveEnt, "cveEnt"));
 
         List<Municipality> municipiosDb = municipalityRepository.findByIdStateAndIsActiveTrueOrderByNameAsc(state.getIdState());
 

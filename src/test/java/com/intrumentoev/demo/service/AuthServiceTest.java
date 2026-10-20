@@ -112,7 +112,7 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("Login con contraseña incorrecta incrementa failedAttempts y lanza InvalidCredentialsException")
+    @DisplayName("Login con contraseña incorrecta incrementa failedAttempts y lanza BusinessException")
     void testLoginPasswordIncorrecto() {
         AuthRequest request = new AuthRequest("cliente@banco.com", "WrongPassword123!");
 
@@ -120,14 +120,15 @@ class AuthServiceTest {
         when(passwordEncoder.matches("WrongPassword123!", encodedPassword)).thenReturn(false);
 
         assertThatThrownBy(() -> authService.login(request))
-                .isInstanceOf(InvalidCredentialsException.class);
+                .isInstanceOf(BusinessException.class)
+                .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.INVALID_CREDENTIALS);
 
         assertThat(mockAuth.getFailedAttempts()).isEqualTo(1);
         verify(authRepository).save(mockAuth);
     }
 
     @Test
-    @DisplayName("Login falla con AccountLockedException cuando failedAttempts >= 5")
+    @DisplayName("Login falla con cuenta bloqueada cuando failedAttempts >= 5")
     void testLoginCuentaBloqueada() {
         mockAuth.setFailedAttempts(5);
         AuthRequest request = new AuthRequest("cliente@banco.com", rawPassword);
@@ -135,7 +136,8 @@ class AuthServiceTest {
         when(authRepository.findByEmail("cliente@banco.com")).thenReturn(Optional.of(mockAuth));
 
         assertThatThrownBy(() -> authService.login(request))
-                .isInstanceOf(AccountLockedException.class);
+                .isInstanceOf(BusinessException.class)
+                .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.ACCOUNT_LOCKED);
     }
 
     @Test
@@ -171,7 +173,7 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("Login biométrico con template no coincidente lanza BiometricAuthenticationException")
+    @DisplayName("Login biométrico con template no coincidente lanza BusinessException")
     void testLoginBiometricoNoCoincide() {
         String invalidBiometric = Base64.getEncoder().encodeToString("otra-huella".getBytes(StandardCharsets.UTF_8));
         BiometricLoginRequest request = new BiometricLoginRequest("cliente@banco.com", "HUELLA", invalidBiometric, "device-1");
@@ -180,7 +182,8 @@ class AuthServiceTest {
         when(aesEncryptionService.decryptBytes(mockBiometricBytes)).thenReturn(mockBiometricBytes);
 
         assertThatThrownBy(() -> authService.loginBiometrico(request))
-                .isInstanceOf(BiometricAuthenticationException.class);
+                .isInstanceOf(BusinessException.class)
+                .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.BIOMETRIC_AUTH_FAILED);
 
         assertThat(mockAuth.getFailedAttempts()).isEqualTo(1);
     }
@@ -226,7 +229,7 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("Refrescar token expirado lanza TokenExpiredOrInvalidException")
+    @DisplayName("Refrescar token expirado lanza BusinessException")
     void testRefrescarTokenExpirado() {
         mockAuth.setRefreshTokenExpiresAt(OffsetDateTime.now().minusDays(1));
         RefreshTokenRequest request = new RefreshTokenRequest("expired-token");
@@ -234,6 +237,7 @@ class AuthServiceTest {
         when(authRepository.findByRefreshToken("expired-token")).thenReturn(Optional.of(mockAuth));
 
         assertThatThrownBy(() -> authService.refrescarToken(request))
-                .isInstanceOf(TokenExpiredOrInvalidException.class);
+                .isInstanceOf(BusinessException.class)
+                .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.TOKEN_EXPIRED_OR_INVALID);
     }
 }
