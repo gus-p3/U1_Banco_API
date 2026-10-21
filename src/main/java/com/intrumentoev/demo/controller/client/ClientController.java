@@ -19,10 +19,10 @@ import java.util.List;
 /**
  * Controlador REST para la administración de clientes y usuarios bancarios.
  * Implementa estrictamente las 4 APIs obligatorias:
- * 1. GET    - Consulta y búsqueda unificada con ordenamiento (cuerpo DTO, sin PathVariable ni RequestParam)
- * 2. PATCH  - Actualización integral y granular (cuerpo DTO con identificador CURP/RFC)
- * 3. POST   - Creación integral (Onboarding bancario)
- * 4. DELETE - Baja lógica (cuerpo DTO con identificador CURP/RFC)
+ * 1. POST /buscar - Consulta y búsqueda unificada con ordenamiento (cuerpo DTO, sin PathVariable ni RequestParam)
+ * 2. PATCH        - Actualización integral y granular (cuerpo DTO con identificador CURP/RFC)
+ * 3. POST         - Creación integral (Onboarding bancario)
+ * 4. DELETE       - Baja lógica (cuerpo DTO con identificador CURP/RFC)
  */
 @Tag(name = "Clientes", description = "Administración integral de usuarios y clientes bancarios")
 @RestController
@@ -34,7 +34,7 @@ public class ClientController {
     private final ClientService clientService;
 
     // =========================================================================
-    // 1. GET: Consulta y Búsqueda Unificada con Ordenamiento Dinámico
+    // 1. POST: Consulta y Búsqueda Unificada con Ordenamiento Dinámico
     // =========================================================================
     @Operation(
             summary = "Consulta unificada de clientes",
@@ -45,7 +45,8 @@ public class ClientController {
             @ApiResponse(responseCode = "400", description = "Parámetros o filtros de consulta inválidos"),
             @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     })
-    @GetMapping(
+    @PostMapping(
+            value = "/buscar",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )

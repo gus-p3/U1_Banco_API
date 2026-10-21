@@ -49,7 +49,7 @@ class ClientControllerTest {
     }
 
     @Test
-    @DisplayName("GET /v1/clientes - Consulta unificada responde 200 OK")
+    @DisplayName("POST /v1/clientes/buscar - Consulta unificada responde 200 OK")
     void testConsultarClientesExitoso() throws Exception {
         ClientUnifiedQueryRequest query = ClientUnifiedQueryRequest.builder()
                 .curp("ROMA900101HDFRRN01")
@@ -62,7 +62,7 @@ class ClientControllerTest {
 
         when(clientService.consultarClientes(any())).thenReturn(List.of(clientResp));
 
-        mockMvc.perform(get("/v1/clientes")
+        mockMvc.perform(post("/v1/clientes/buscar")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(query)))
                 .andExpect(status().isOk())
