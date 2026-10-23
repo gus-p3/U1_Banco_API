@@ -2,7 +2,9 @@
 *.md
 !README.md
 !DOC_TECNICA.md
-docs/
+docs/*
+!docs/Banco_API_Postman_Collection.json
+
 
 # Scripts y entornos de Python
 *.py
@@ -12,7 +14,6 @@ __pycache__/
 
 # Documentos ofimáticos y reportes
 *.docx
-!Plan_de_Pruebas_API_Bancaria.docx
 *.doc
 *.pdf
 *.xlsx
