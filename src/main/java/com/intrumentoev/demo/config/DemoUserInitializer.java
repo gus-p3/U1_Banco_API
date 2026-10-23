@@ -93,83 +93,79 @@ public class DemoUserInitializer implements CommandLineRunner {
             });
 
             // 1. Cliente
-            Client client = clientRepository.findByCurp(DEMO_CURP).orElseGet(() -> {
-                Client c = new Client();
-                c.setName("Alejandro");
-                c.setLastName("Hernández");
-                c.setSecondLastName("Gómez");
-                c.setBirthDate(LocalDate.of(1990, 5, 15));
-                c.setCurp(DEMO_CURP);
-                c.setRfc(DEMO_RFC);
-                c.setIdGender(idGender);
-                c.setIdNationality(idNationality);
-                c.setIdMaritalStatus(idMaritalStatus);
-                c.setIsActive(true);
-                return clientRepository.save(c);
-            });
+            Client client = clientRepository.findByCurp(DEMO_CURP)
+                    .or(() -> clientRepository.findByRfc(DEMO_RFC))
+                    .orElseGet(Client::new);
+            client.setName("Alejandro");
+            client.setLastName("Hernández");
+            client.setSecondLastName("Gómez");
+            client.setBirthDate(LocalDate.of(1990, 5, 15));
+            client.setCurp(DEMO_CURP);
+            client.setRfc(DEMO_RFC);
+            client.setIdGender(idGender);
+            client.setIdNationality(idNationality);
+            client.setIdMaritalStatus(idMaritalStatus);
+            client.setIsActive(true);
+            client = clientRepository.save(client);
 
             Long clientId = client.getIdClient();
 
-            // 2. Contacto
-            if (contactDetailRepository.findByIdClient(clientId).isEmpty()) {
-                ContactDetail cd = new ContactDetail();
-                cd.setIdClient(clientId);
-                cd.setEmail(DEMO_EMAIL);
-                cd.setMobilePhone("5512345678");
-                contactDetailRepository.save(cd);
-            }
+            // 2. Contacto (Reutilizar si ya existe por ID de cliente, email o teléfono para evitar errores de unicidad)
+            ContactDetail cd = contactDetailRepository.findByIdClient(clientId)
+                    .or(() -> contactDetailRepository.findByEmail(DEMO_EMAIL))
+                    .or(() -> contactDetailRepository.findByMobilePhone("5512345678"))
+                    .orElseGet(ContactDetail::new);
+            cd.setIdClient(clientId);
+            cd.setEmail(DEMO_EMAIL);
+            cd.setMobilePhone("5512345678");
+            contactDetailRepository.save(cd);
 
             // 3. Domicilio
-            if (homeRepository.findByIdClient(clientId).isEmpty()) {
-                Home home = Home.builder()
-                        .idClient(clientId)
-                        .street("Av. Paseo de la Reforma")
-                        .exteriorNumber("222")
-                        .interiorNumber("Piso 8")
-                        .neighborhood("Juárez")
-                        .idMunicipality(idMunicipality)
-                        .postalCode("06600")
-                        .country("México")
-                        .build();
-                homeRepository.save(home);
-            }
+            Home home = homeRepository.findByIdClient(clientId)
+                    .orElseGet(() -> Home.builder().idClient(clientId).build());
+            home.setIdClient(clientId);
+            home.setStreet("Av. Paseo de la Reforma");
+            home.setExteriorNumber("222");
+            home.setInteriorNumber("Piso 8");
+            home.setNeighborhood("Juárez");
+            home.setIdMunicipality(idMunicipality);
+            home.setPostalCode("06600");
+            home.setCountry("México");
+            homeRepository.save(home);
 
             // 4. Laboral
-            if (employmentRepository.findByIdClient(clientId).isEmpty()) {
-                EmploymentInformation emp = EmploymentInformation.builder()
-                        .idClient(clientId)
-                        .occupation("Ingeniero de Software")
-                        .company("Banco Demo S.A.")
-                        .monthlyIncome(BigDecimal.valueOf(45000.00))
-                        .build();
-                employmentRepository.save(emp);
-            }
+            EmploymentInformation emp = employmentRepository.findByIdClient(clientId)
+                    .orElseGet(() -> EmploymentInformation.builder().idClient(clientId).build());
+            emp.setIdClient(clientId);
+            emp.setOccupation("Ingeniero de Software");
+            emp.setCompany("Banco Demo S.A.");
+            emp.setMonthlyIncome(BigDecimal.valueOf(45000.00));
+            employmentRepository.save(emp);
 
             // 5. Cuenta Bancaria
-            if (accountRepository.findByIdClient(clientId).isEmpty()) {
-                Account acc = Account.builder()
-                        .idClient(clientId)
-                        .accountNumber("9876543210")
-                        .balance(BigDecimal.valueOf(25000.00))
-                        .status("ACTIVA")
-                        .build();
-                accountRepository.save(acc);
-            }
+            Account acc = accountRepository.findByIdClient(clientId).stream().findFirst()
+                    .or(() -> accountRepository.findByAccountNumber("9876543210"))
+                    .orElseGet(() -> Account.builder().idClient(clientId).build());
+            acc.setIdClient(clientId);
+            acc.setAccountNumber("9876543210");
+            acc.setBalance(BigDecimal.valueOf(25000.00));
+            acc.setStatus("ACTIVA");
+            accountRepository.save(acc);
 
             // 6. Credenciales Auth
+            Auth auth = authRepository.findByEmail(DEMO_EMAIL)
+                    .or(() -> authRepository.findByIdClient(clientId))
+                    .orElseGet(() -> Auth.builder().idClient(clientId).email(DEMO_EMAIL).build());
             byte[] rawBiometric = Base64.getDecoder().decode(DEMO_BIOMETRIC_DATA);
             byte[] encryptedBiometric = aesEncryptionService.encryptBytes(rawBiometric);
-
-            Auth auth = Auth.builder()
-                    .idClient(clientId)
-                    .email(DEMO_EMAIL)
-                    .passwordHash(passwordEncoder.encode(DEMO_PASSWORD))
-                    .biometricType(DEMO_BIOMETRIC_TYPE)
-                    .biometricTemplate(encryptedBiometric)
-                    .biometricRegisteredAt(OffsetDateTime.now())
-                    .isActive(true)
-                    .failedAttempts(0)
-                    .build();
+            auth.setIdClient(clientId);
+            auth.setEmail(DEMO_EMAIL);
+            auth.setPasswordHash(passwordEncoder.encode(DEMO_PASSWORD));
+            auth.setBiometricType(DEMO_BIOMETRIC_TYPE);
+            auth.setBiometricTemplate(encryptedBiometric);
+            auth.setBiometricRegisteredAt(OffsetDateTime.now());
+            auth.setIsActive(true);
+            auth.setFailedAttempts(0);
             authRepository.save(auth);
 
             log.info("Usuario demo Alejandro Hernández inicializado con éxito.");
