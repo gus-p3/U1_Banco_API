@@ -1,4 +1,6 @@
 package com.intrumentoev.demo.model.gestopago.pago;
 
-public class TipoPago {
+public enum TipoPago {
+    RECARGA,
+    SERVICIO
 }

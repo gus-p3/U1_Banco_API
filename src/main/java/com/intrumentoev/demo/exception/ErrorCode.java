@@ -28,13 +28,23 @@ public enum ErrorCode {
     INVALID_AGE("INVALID_AGE", HttpStatus.UNPROCESSABLE_ENTITY, "El cliente debe ser mayor de edad (al menos 18 años). Edad actual: %s años", "birthDate"),
     STATE_MISMATCH("STATE_MISMATCH", HttpStatus.UNPROCESSABLE_ENTITY, "La clave de entidad '%s' no coincide con la entidad federativa del municipio seleccionado ('%s' - %s)", "claveEntidad"),
     BUSINESS_VALIDATION("BUSINESS_VALIDATION", HttpStatus.UNPROCESSABLE_ENTITY, "%s", "rule"),
+    INSUFFICIENT_FUNDS("INSUFFICIENT_FUNDS", HttpStatus.UNPROCESSABLE_ENTITY, "Saldo insuficiente para realizar el pago", "monto"),
+    PAYMENT_ACCOUNT_INACTIVE("PAYMENT_ACCOUNT_INACTIVE", HttpStatus.UNPROCESSABLE_ENTITY, "La cuenta no se encuentra activa para realizar pagos", "numCuenta"),
+    PAYMENT_PRODUCT_MISMATCH("PAYMENT_PRODUCT_MISMATCH", HttpStatus.UNPROCESSABLE_ENTITY, "%s", "idProducto"),
+
+    // --- 400 Bad Request (pagos) ---
+    INVALID_PAYMENT_REQUEST("INVALID_PAYMENT_REQUEST", HttpStatus.BAD_REQUEST, "%s", "requestBody"),
 
     // --- 401 & 403 & 423 Seguridad y Autenticación ---
     INVALID_CREDENTIALS("INVALID_CREDENTIALS", HttpStatus.UNAUTHORIZED, "Credenciales de acceso inválidas", "password"),
     BIOMETRIC_AUTH_FAILED("BIOMETRIC_AUTH_FAILED", HttpStatus.UNAUTHORIZED, "%s", "biometrics"),
     TOKEN_EXPIRED_OR_INVALID("TOKEN_EXPIRED_OR_INVALID", HttpStatus.UNAUTHORIZED, "El token de sesión ha expirado o es inválido", "token"),
     ACCOUNT_LOCKED("ACCOUNT_LOCKED", HttpStatus.LOCKED, "La cuenta se encuentra bloqueada por exceso de intentos fallidos", "auth"),
-    ACCESS_DENIED("ACCESS_DENIED", HttpStatus.FORBIDDEN, "Acceso no autorizado al recurso solicitado", "security");
+    ACCESS_DENIED("ACCESS_DENIED", HttpStatus.FORBIDDEN, "Acceso no autorizado al recurso solicitado", "security"),
+    TOKEN_MISSING("TOKEN_MISSING", HttpStatus.UNAUTHORIZED, "Se requiere el encabezado Authorization: Bearer <token>", "Authorization"),
+    SESSION_INACTIVE("SESSION_INACTIVE", HttpStatus.UNAUTHORIZED, "La sesión en el servidor no está activa. Inicie sesión nuevamente", "session"),
+    STRONG_AUTH_REQUIRED("STRONG_AUTH_REQUIRED", HttpStatus.FORBIDDEN, "Para realizar pagos debe iniciar sesión con huella digital", "authMethod"),
+    PAYMENT_FORBIDDEN("PAYMENT_FORBIDDEN", HttpStatus.FORBIDDEN, "No es posible operar con la cuenta indicada", "numCuenta");
 
     private final String code;
     private final HttpStatus httpStatus;

@@ -39,3 +39,20 @@ server.session.inactivity-limit-seconds=300
 # Expiración de Access Token JWT (5 minutos = 300 segundos)
 jwt.access-token-expiration-seconds=300
 
+
+# GestoPago
+gestopago.auth.url=https://gestopago.portalventas.net
+gestopago.auth.id-distribuidor=
+gestopago.auth.codigo-dispositivo=
+gestopago.auth.password=
+gestopago.auth.token-max-age-hours=23
+gestopago.crypto.secret-key=${GESTOPAGO_SECRET_KEY:}
+gestopago.crypto.iv=${GESTOPAGO_IV:}
+gestopago.tx.unidad=086
+gestopago.tx.api-key=${GESTOPAGO_API_KEY:}
+gestopago.tx.connect-timeout-ms=5000
+gestopago.tx.read-timeout-ms=65000
+gestopago.tx.espera-confirmacion-segundos=62
+gestopago.tx.vigencia-confirmacion-horas=24
+gestopago.tx.codigos-producto-inexistente=
+gestopago.tx.codigos-no-aplicada=70

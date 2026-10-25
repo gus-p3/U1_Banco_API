@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "banco-api-collection-v2-2026",
     "name": "Banco API - Colección Oficial Completa (2026)",
-    "description": "Colección profesional y exhaustiva de pruebas para Banco API.\nCubre el 100% de endpoints y pruebas unitarias/funcionales:\n- Salud y disponibilidad del servidor\n- Autenticación tradicional, biométrica (huella/facial), renovación de tokens y timeout por inactividad\n- Catálogos personales y geográficos (INEGI)\n- Onboarding Bancario integral con datos frescos (Valeria Castro y Emilio Salgado) y pruebas de validación/duplicidad\n- Búsqueda y consulta unificada por POST /v1/clientes/buscar con filtros dinámicos y ordenamiento\n- Súper PATCH modular (/v1/clientes) para actualizar contacto, domicilio, laboral y datos personales\n- Baja lógica (/v1/clientes) con desactivación de cuentas asociadas y validación de reglas de negocio.",
+    "description": "Colección profesional y exhaustiva de pruebas para Banco API.\nCubre el 100% de endpoints y pruebas unitarias/funcionales:\n- Salud y disponibilidad del servidor\n- Autenticación tradicional, biométrica (huella/facial), renovación de tokens y timeout por inactividad\n- Catálogos personales y geográficos (INEGI)\n- Onboarding Bancario integral con datos frescos (Valeria Castro y Emilio Salgado) y pruebas de validación/duplicidad\n- Búsqueda y consulta unificada por POST /v1/clientes/buscar con filtros dinámicos y ordenamiento\n- Súper PATCH modular (/v1/clientes) para actualizar contacto, domicilio, laboral y datos personales\n- Baja lógica (/v1/clientes) con desactivación de cuentas asociadas y validación de reglas de negocio\n- Pagos GestoPago (POST /v1/pagos): recarga y servicio, validaciones de seguridad (Bearer, huella, propiedad de la cuenta), saldo, catálogo y estados APLICADO / RECHAZADO / POR_CONFIRMAR con pruebas automáticas\n- Pagos GestoPago (POST /v1/pagos): recarga y servicio, validaciones de seguridad (Bearer, huella, propiedad de la cuenta), saldo, catálogo y estados APLICADO / RECHAZADO / POR_CONFIRMAR con pruebas automáticas\n- Pagos GestoPago (POST /v1/pagos): recarga y servicio, validaciones de seguridad (Bearer, huella, propiedad de la cuenta), saldo, catálogo y estados APLICADO / RECHAZADO / POR_CONFIRMAR con pruebas automáticas.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -69,6 +69,76 @@
     {
       "key": "emilioRfc",
       "value": "SARE921030TW2",
+      "type": "string"
+    },
+    {
+      "key": "pagoCuenta",
+      "value": "9876543210",
+      "type": "string"
+    },
+    {
+      "key": "pagoTelefono",
+      "value": "5512345678",
+      "type": "string"
+    },
+    {
+      "key": "pagoReferencia",
+      "value": "40425475190118187271",
+      "type": "string"
+    },
+    {
+      "key": "pagoMontoServicio",
+      "value": "10.00",
+      "type": "string"
+    },
+    {
+      "key": "pagoIdServicioRecarga",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pagoIdProductoRecarga",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pagoPrecioRecarga",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pagoIdServicioServicio",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pagoIdProductoServicio",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "passwordToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "huellaToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "lastUpc",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "saldoAntes",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pagoDescontado",
+      "value": "0",
       "type": "string"
     }
   ],
@@ -2413,6 +2483,1054 @@
                 "v1",
                 "clientes"
               ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07. Pagos GestoPago (POST /v1/pagos)",
+      "description": "Pago de recargas y servicios con saldo de la cuenta vía GestoPago (sendTx/confirmTx).\nRequiere Authorization: Bearer <JWT> de un login biométrico de HUELLA (authMethod = BIOMETRIC_HUELLA); el login con contraseña, facial o un token refrescado devuelve 403.\nEjecute la carpeta completa en orden (Runner): 07.1-07.4 preparan tokens, catálogo y saldo; 07.5-07.17 validan errores sin crear pagos; 07.18-07.19 hacen pagos reales contra el ambiente de pruebas de GestoPago; 07.20 verifica el saldo.\ncodigo: 1 = aplicado (CODIGO 01); 0 = rechazado, en proceso (POR_CONFIRMAR) o producto no disponible.",
+      "item": [
+        {
+          "name": "07.1 Login con contraseña (token que NO puede pagar)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Login con contraseña exitoso (HTTP 200)\", function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set(\"passwordToken\", pm.response.json().token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{demoEmail}}\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "07.2 Login Biométrico HUELLA (único token que puede pagar)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Login biométrico exitoso (HTTP 200)\", function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.collectionVariables.set(\"huellaToken\", json.token);",
+                  "pm.collectionVariables.set(\"authToken\", json.token);",
+                  "pm.collectionVariables.set(\"refreshToken\", json.refreshToken);",
+                  "// El JWT debe llevar el claim authMethod = BIOMETRIC_HUELLA",
+                  "var payload = JSON.parse(atob(json.token.split(\".\")[1].replace(/-/g, \"+\").replace(/_/g, \"/\")));",
+                  "pm.test(\"El JWT trae authMethod = BIOMETRIC_HUELLA\", function () { pm.expect(payload.authMethod).to.eql(\"BIOMETRIC_HUELLA\"); });",
+                  "pm.test(\"El JWT trae idClient\", function () { pm.expect(payload.idClient).to.be.a(\"number\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/login-biometrico",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "login-biometrico"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{demoEmail}}\",\n  \"biometricType\": \"HUELLA\",\n  \"biometricData\": \"dGhpcy1pcy1hLXZhbGlkLWJpb21ldHJpYy1zaWduYXR1cmUtZGF0YQ==\"\n}"
+            },
+            "description": "Debe ejecutarse justo antes de los pagos: el access token dura 5 minutos y la sesión del servidor expira a los 300 s de inactividad."
+          }
+        },
+        {
+          "name": "07.3 Catálogo: elegir una recarga (tipoFront 1) y un servicio (tipoFront 2)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Catálogo de GestoPago disponible (HTTP 200)\", function () { pm.response.to.have.status(200); });",
+                  "var productos = pm.response.json();",
+                  "var recarga = productos.find(function (p) { return p.tipoFront === 1 && parseFloat(p.precio) > 0; });",
+                  "var servicio = productos.find(function (p) { return p.tipoFront === 2 && [10, 11].indexOf(p.idCatTipoServicio) === -1; })",
+                  "            || productos.find(function (p) { return p.tipoFront === 2; });",
+                  "pm.test(\"Hay una recarga con precio fijo en el catálogo\", function () { pm.expect(recarga, \"sin recargas tipoFront 1\").to.exist; });",
+                  "pm.test(\"Hay un producto de servicio en el catálogo\", function () { pm.expect(servicio, \"sin servicios tipoFront 2\").to.exist; });",
+                  "if (recarga) {",
+                  "    pm.collectionVariables.set(\"pagoIdServicioRecarga\", recarga.idServicio);",
+                  "    pm.collectionVariables.set(\"pagoIdProductoRecarga\", recarga.idProducto);",
+                  "    pm.collectionVariables.set(\"pagoPrecioRecarga\", recarga.precio);",
+                  "}",
+                  "if (servicio) {",
+                  "    pm.collectionVariables.set(\"pagoIdServicioServicio\", servicio.idServicio);",
+                  "    pm.collectionVariables.set(\"pagoIdProductoServicio\", servicio.idProducto);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/productos/redis",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "productos",
+                "redis"
+              ]
+            },
+            "description": "Usa los IDs de GestoPago (idServicio/idProducto), no el campo Id local de la tabla producto."
+          }
+        },
+        {
+          "name": "07.4 Saldo antes de pagar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "function saldoDeCuenta(json, numCuenta) {",
+                  "    var cliente = Array.isArray(json) ? json[0] : json;",
+                  "    if (!cliente) { return null; }",
+                  "    var cuentas = (cliente.accounts || []).concat(cliente.primaryAccount ? [cliente.primaryAccount] : []);",
+                  "    var cuenta = cuentas.find(function (c) { return c.accountNumber === numCuenta; });",
+                  "    return cuenta ? parseFloat(cuenta.balance) : null;",
+                  "}",
+                  "",
+                  "pm.test(\"Consulta del cliente demo con sus cuentas (HTTP 200)\", function () { pm.response.to.have.status(200); });",
+                  "var saldo = saldoDeCuenta(pm.response.json(), pm.collectionVariables.get(\"pagoCuenta\"));",
+                  "pm.test(\"Se obtuvo el saldo de la cuenta\", function () { pm.expect(saldo, \"cuenta no encontrada en la respuesta\").to.be.a(\"number\"); });",
+                  "if (saldo !== null) { pm.collectionVariables.set(\"saldoAntes\", saldo.toFixed(2)); }",
+                  "pm.collectionVariables.set(\"pagoDescontado\", \"0\");"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/clientes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "clientes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identificador\": \"{{demoCurp}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "07.5 Error 401 - Sin encabezado Authorization",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 401\", function () { pm.response.to.have.status(401); });",
+                  "var json = pm.response.json();",
+                  "pm.test(\"error.code = TOKEN_MISSING\", function () { pm.expect(json.error.code).to.eql(\"TOKEN_MISSING\"); });",
+                  "pm.test(\"No se creó ningún pago (sin upc)\", function () { pm.expect(json.upc).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "pagos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numCuenta\": \"{{pagoCuenta}}\",\n  \"idServicio\": {{pagoIdServicioRecarga}},\n  \"idProducto\": {{pagoIdProductoRecarga}},\n  \"tipoPago\": \"RECARGA\",\n  \"telefono\": \"{{pagoTelefono}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "07.6 Error 401 - JWT inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 401\", function () { pm.response.to.have.status(401); });",
+                  "var json = pm.response.json();",
+                  "pm.test(\"error.code = TOKEN_EXPIRED_OR_INVALID\", function () { pm.expect(json.error.code).to.eql(\"TOKEN_EXPIRED_OR_INVALID\"); });",
+                  "pm.test(\"No se creó ningún pago (sin upc)\", function () { pm.expect(json.upc).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer esto.no.es-un-jwt"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "pagos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numCuenta\": \"{{pagoCuenta}}\",\n  \"idServicio\": {{pagoIdServicioRecarga}},\n  \"idProducto\": {{pagoIdProductoRecarga}},\n  \"tipoPago\": \"RECARGA\",\n  \"telefono\": \"{{pagoTelefono}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "07.7 Error 403 - Token de contraseña no puede pagar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () { pm.response.to.have.status(403); });",
+                  "var json = pm.response.json();",
+                  "pm.test(\"error.code = STRONG_AUTH_REQUIRED\", function () { pm.expect(json.error.code).to.eql(\"STRONG_AUTH_REQUIRED\"); });",
+                  "pm.test(\"No se creó ningún pago (sin upc)\", function () { pm.expect(json.upc).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{passwordToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "pagos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numCuenta\": \"{{pagoCuenta}}\",\n  \"idServicio\": {{pagoIdServicioRecarga}},\n  \"idProducto\": {{pagoIdProductoRecarga}},\n  \"tipoPago\": \"RECARGA\",\n  \"telefono\": \"{{pagoTelefono}}\"\n}"
+            },
+            "description": "Solo un token emitido por login biométrico de HUELLA permite pagar."
+          }
+        },
+        {
+          "name": "07.8 Error 403 - Cuenta inexistente (mensaje genérico)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () { pm.response.to.have.status(403); });",
+                  "var json = pm.response.json();",
+                  "pm.test(\"error.code = PAYMENT_FORBIDDEN\", function () { pm.expect(json.error.code).to.eql(\"PAYMENT_FORBIDDEN\"); });",
+                  "pm.test(\"No se creó ningún pago (sin upc)\", function () { pm.expect(json.upc).to.be.undefined; });",
+                  "",
+                  "pm.test(\"El mensaje no revela si la cuenta existe\", function () {",
+                  "    pm.expect(pm.response.json().error.message).to.eql(\"No es posible operar con la cuenta indicada\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{huellaToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "pagos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numCuenta\": \"0000000001\",\n  \"idServicio\": {{pagoIdServicioRecarga}},\n  \"idProducto\": {{pagoIdProductoRecarga}},\n  \"tipoPago\": \"RECARGA\",\n  \"telefono\": \"{{pagoTelefono}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "07.9 Error 400 - Telefono y referencia juntos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 400\", function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test(\"error.code = INVALID_PAYMENT_REQUEST\", function () { pm.expect(json.error.code).to.eql(\"INVALID_PAYMENT_REQUEST\"); });",
+                  "pm.test(\"No se creó ningún pago (sin upc)\", function () { pm.expect(json.upc).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{huellaToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "pagos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numCuenta\": \"{{pagoCuenta}}\",\n  \"idServicio\": {{pagoIdServicioRecarga}},\n  \"idProducto\": {{pagoIdProductoRecarga}},\n  \"tipoPago\": \"RECARGA\",\n  \"telefono\": \"{{pagoTelefono}}\",\n  \"referencia\": \"{{pagoReferencia}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "07.10 Error 400 - Ni telefono ni referencia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 400\", function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test(\"error.code = INVALID_PAYMENT_REQUEST\", function () { pm.expect(json.error.code).to.eql(\"INVALID_PAYMENT_REQUEST\"); });",
+                  "pm.test(\"No se creó ningún pago (sin upc)\", function () { pm.expect(json.upc).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{huellaToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "pagos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numCuenta\": \"{{pagoCuenta}}\",\n  \"idServicio\": {{pagoIdServicioRecarga}},\n  \"idProducto\": {{pagoIdProductoRecarga}},\n  \"tipoPago\": \"RECARGA\"\n}"
+            }
+          }
+        },
+        {
+          "name": "07.11 Error 400 - SERVICIO sin monto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 400\", function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test(\"error.code = INVALID_PAYMENT_REQUEST\", function () { pm.expect(json.error.code).to.eql(\"INVALID_PAYMENT_REQUEST\"); });",
+                  "pm.test(\"No se creó ningún pago (sin upc)\", function () { pm.expect(json.upc).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{huellaToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "pagos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numCuenta\": \"{{pagoCuenta}}\",\n  \"idServicio\": {{pagoIdServicioServicio}},\n  \"idProducto\": {{pagoIdProductoServicio}},\n  \"tipoPago\": \"SERVICIO\",\n  \"referencia\": \"{{pagoReferencia}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "07.12 Error 400 - tipoPago inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 400\", function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test(\"error.code = INVALID_PAYMENT_REQUEST\", function () { pm.expect(json.error.code).to.eql(\"INVALID_PAYMENT_REQUEST\"); });",
+                  "pm.test(\"No se creó ningún pago (sin upc)\", function () { pm.expect(json.upc).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{huellaToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "pagos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numCuenta\": \"{{pagoCuenta}}\",\n  \"idServicio\": {{pagoIdServicioRecarga}},\n  \"idProducto\": {{pagoIdProductoRecarga}},\n  \"tipoPago\": \"OTRO\",\n  \"telefono\": \"{{pagoTelefono}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "07.13 Error 400 - El idClient en el body no se acepta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 400: el cliente sale solo del JWT\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"El campo idClient no está permitido\", function () {",
+                  "    pm.expect(pm.response.json().error.target).to.eql(\"idClient\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{huellaToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "pagos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idClient\": 999,\n  \"numCuenta\": \"{{pagoCuenta}}\",\n  \"idServicio\": {{pagoIdServicioRecarga}},\n  \"idProducto\": {{pagoIdProductoRecarga}},\n  \"tipoPago\": \"RECARGA\",\n  \"telefono\": \"{{pagoTelefono}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "07.14 Error 422 - Saldo insuficiente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 422\", function () { pm.response.to.have.status(422); });",
+                  "var json = pm.response.json();",
+                  "pm.test(\"error.code = INSUFFICIENT_FUNDS\", function () { pm.expect(json.error.code).to.eql(\"INSUFFICIENT_FUNDS\"); });",
+                  "pm.test(\"No se creó ningún pago (sin upc)\", function () { pm.expect(json.upc).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{huellaToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "pagos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numCuenta\": \"{{pagoCuenta}}\",\n  \"idServicio\": {{pagoIdServicioServicio}},\n  \"idProducto\": {{pagoIdProductoServicio}},\n  \"tipoPago\": \"SERVICIO\",\n  \"referencia\": \"{{pagoReferencia}}\",\n  \"monto\": 99999999.00\n}"
+            }
+          }
+        },
+        {
+          "name": "07.15 Error 422 - RECARGA con un producto de servicio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 422\", function () { pm.response.to.have.status(422); });",
+                  "var json = pm.response.json();",
+                  "pm.test(\"error.code = PAYMENT_PRODUCT_MISMATCH\", function () { pm.expect(json.error.code).to.eql(\"PAYMENT_PRODUCT_MISMATCH\"); });",
+                  "pm.test(\"No se creó ningún pago (sin upc)\", function () { pm.expect(json.upc).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{huellaToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "pagos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numCuenta\": \"{{pagoCuenta}}\",\n  \"idServicio\": {{pagoIdServicioServicio}},\n  \"idProducto\": {{pagoIdProductoServicio}},\n  \"tipoPago\": \"RECARGA\",\n  \"telefono\": \"{{pagoTelefono}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "07.16 Error 422 - RECARGA con monto distinto al precio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 422\", function () { pm.response.to.have.status(422); });",
+                  "var json = pm.response.json();",
+                  "pm.test(\"error.code = PAYMENT_PRODUCT_MISMATCH\", function () { pm.expect(json.error.code).to.eql(\"PAYMENT_PRODUCT_MISMATCH\"); });",
+                  "pm.test(\"No se creó ningún pago (sin upc)\", function () { pm.expect(json.upc).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{huellaToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "pagos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numCuenta\": \"{{pagoCuenta}}\",\n  \"idServicio\": {{pagoIdServicioRecarga}},\n  \"idProducto\": {{pagoIdProductoRecarga}},\n  \"tipoPago\": \"RECARGA\",\n  \"telefono\": \"{{pagoTelefono}}\",\n  \"monto\": 1234.56\n}"
+            }
+          }
+        },
+        {
+          "name": "07.17 Producto fuera del catálogo (200, codigo 0)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test(\"codigo 0\", function () { pm.expect(json.codigo).to.eql(0); });",
+                  "pm.test(\"Mensaje de producto no disponible\", function () {",
+                  "    pm.expect(json.mensaje).to.eql(\"No se pudo realizar el pago: producto o servicio no disponible\");",
+                  "});",
+                  "pm.test(\"No se registró pago (sin estado ni upc) y el catálogo se refresca en segundo plano\", function () {",
+                  "    pm.expect(json.estado).to.be.undefined;",
+                  "    pm.expect(json.upc).to.be.undefined;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{huellaToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "pagos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numCuenta\": \"{{pagoCuenta}}\",\n  \"idServicio\": 987654,\n  \"idProducto\": 987654,\n  \"tipoPago\": \"RECARGA\",\n  \"telefono\": \"{{pagoTelefono}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "07.18 Pago de RECARGA (usa el precio del producto)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200 con el resultado del pago\", function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test(\"codigo es 1 (aplicado) o 0 (rechazado / en proceso)\", function () { pm.expect([0, 1]).to.include(json.codigo); });",
+                  "pm.test(\"estado es APLICADO, RECHAZADO o POR_CONFIRMAR (si falla: producto no disponible en el catálogo)\", function () {",
+                  "    pm.expect([\"APLICADO\", \"RECHAZADO\", \"POR_CONFIRMAR\"]).to.include(json.estado);",
+                  "});",
+                  "pm.test(\"upc alfanumérico de 3 a 15 caracteres\", function () { pm.expect(json.upc).to.match(/^[A-Za-z0-9]{3,15}$/); });",
+                  "pm.test(\"codigo 1 solo con estado APLICADO, CODIGO 01 y número de autorización\", function () {",
+                  "    if (json.codigo === 1) {",
+                  "        pm.expect(json.estado).to.eql(\"APLICADO\");",
+                  "        pm.expect(json.codigoGestoPago).to.match(/^(01|06)$/);",
+                  "        pm.expect(json.numAutorizacion).to.be.a(\"string\").and.not.empty;",
+                  "    } else {",
+                  "        pm.expect(json.estado).to.not.eql(\"APLICADO\");",
+                  "    }",
+                  "});",
+                  "pm.test(\"POR_CONFIRMAR responde 'Pago en proceso de confirmación'\", function () {",
+                  "    if (json.estado === \"POR_CONFIRMAR\") { pm.expect(json.mensaje).to.eql(\"Pago en proceso de confirmación\"); }",
+                  "});",
+                  "pm.test(\"RECHAZADO trae el TEXTO de GestoPago en mensaje\", function () {",
+                  "    if (json.estado === \"RECHAZADO\") { pm.expect(json.mensaje).to.be.a(\"string\").and.not.empty; }",
+                  "});",
+                  "pm.collectionVariables.set(\"lastUpc\", json.upc);",
+                  "if (json.estado === \"APLICADO\" || json.estado === \"POR_CONFIRMAR\") {",
+                  "    // el saldo queda descontado (en POR_CONFIRMAR hasta que confirmTx resuelva)",
+                  "    var acumulado = parseFloat(pm.collectionVariables.get(\"pagoDescontado\") || \"0\");",
+                  "    pm.collectionVariables.set(\"pagoDescontado\", (acumulado + parseFloat(pm.collectionVariables.get(\"pagoPrecioRecarga\"))).toFixed(2));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{huellaToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "pagos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numCuenta\": \"{{pagoCuenta}}\",\n  \"idServicio\": {{pagoIdServicioRecarga}},\n  \"idProducto\": {{pagoIdProductoRecarga}},\n  \"tipoPago\": \"RECARGA\",\n  \"telefono\": \"{{pagoTelefono}}\"\n}"
+            },
+            "description": "Llama a sendTx de GestoPago (ambiente de pruebas). El monto sale del precio del producto. Si el sistema devuelve POR_CONFIRMAR, el job confirmTx lo resuelve en ~1 minuto."
+          }
+        },
+        {
+          "name": "07.19 Pago de SERVICIO (referencia + monto)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200 con el resultado del pago\", function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test(\"codigo es 1 (aplicado) o 0 (rechazado / en proceso)\", function () { pm.expect([0, 1]).to.include(json.codigo); });",
+                  "pm.test(\"estado es APLICADO, RECHAZADO o POR_CONFIRMAR (si falla: producto no disponible en el catálogo)\", function () {",
+                  "    pm.expect([\"APLICADO\", \"RECHAZADO\", \"POR_CONFIRMAR\"]).to.include(json.estado);",
+                  "});",
+                  "pm.test(\"upc alfanumérico de 3 a 15 caracteres\", function () { pm.expect(json.upc).to.match(/^[A-Za-z0-9]{3,15}$/); });",
+                  "pm.test(\"codigo 1 solo con estado APLICADO, CODIGO 01 y número de autorización\", function () {",
+                  "    if (json.codigo === 1) {",
+                  "        pm.expect(json.estado).to.eql(\"APLICADO\");",
+                  "        pm.expect(json.codigoGestoPago).to.match(/^(01|06)$/);",
+                  "        pm.expect(json.numAutorizacion).to.be.a(\"string\").and.not.empty;",
+                  "    } else {",
+                  "        pm.expect(json.estado).to.not.eql(\"APLICADO\");",
+                  "    }",
+                  "});",
+                  "pm.test(\"POR_CONFIRMAR responde 'Pago en proceso de confirmación'\", function () {",
+                  "    if (json.estado === \"POR_CONFIRMAR\") { pm.expect(json.mensaje).to.eql(\"Pago en proceso de confirmación\"); }",
+                  "});",
+                  "pm.test(\"RECHAZADO trae el TEXTO de GestoPago en mensaje\", function () {",
+                  "    if (json.estado === \"RECHAZADO\") { pm.expect(json.mensaje).to.be.a(\"string\").and.not.empty; }",
+                  "});",
+                  "pm.collectionVariables.set(\"lastUpc\", json.upc);",
+                  "if (json.estado === \"APLICADO\" || json.estado === \"POR_CONFIRMAR\") {",
+                  "    // el saldo queda descontado (en POR_CONFIRMAR hasta que confirmTx resuelva)",
+                  "    var acumulado = parseFloat(pm.collectionVariables.get(\"pagoDescontado\") || \"0\");",
+                  "    pm.collectionVariables.set(\"pagoDescontado\", (acumulado + parseFloat(pm.collectionVariables.get(\"pagoMontoServicio\"))).toFixed(2));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{huellaToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "pagos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numCuenta\": \"{{pagoCuenta}}\",\n  \"idServicio\": {{pagoIdServicioServicio}},\n  \"idProducto\": {{pagoIdProductoServicio}},\n  \"tipoPago\": \"SERVICIO\",\n  \"referencia\": \"{{pagoReferencia}}\",\n  \"monto\": {{pagoMontoServicio}}\n}"
+            },
+            "description": "Llama a sendTx de GestoPago (ambiente de pruebas)."
+          }
+        },
+        {
+          "name": "07.20 Verificar saldo: solo se descontó el monto (la comisión la absorbe el banco)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "function saldoDeCuenta(json, numCuenta) {",
+                  "    var cliente = Array.isArray(json) ? json[0] : json;",
+                  "    if (!cliente) { return null; }",
+                  "    var cuentas = (cliente.accounts || []).concat(cliente.primaryAccount ? [cliente.primaryAccount] : []);",
+                  "    var cuenta = cuentas.find(function (c) { return c.accountNumber === numCuenta; });",
+                  "    return cuenta ? parseFloat(cuenta.balance) : null;",
+                  "}",
+                  "",
+                  "pm.test(\"Consulta del cliente demo con sus cuentas (HTTP 200)\", function () { pm.response.to.have.status(200); });",
+                  "var saldo = saldoDeCuenta(pm.response.json(), pm.collectionVariables.get(\"pagoCuenta\"));",
+                  "var antes = parseFloat(pm.collectionVariables.get(\"saldoAntes\"));",
+                  "var descontado = parseFloat(pm.collectionVariables.get(\"pagoDescontado\"));",
+                  "pm.test(\"Saldo final = saldo inicial - pagos aplicados o por confirmar\", function () {",
+                  "    pm.expect(saldo).to.be.a(\"number\");",
+                  "    pm.expect(saldo).to.be.closeTo(antes - descontado, 0.01);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/clientes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "clientes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identificador\": \"{{demoCurp}}\"\n}"
             }
           }
         }

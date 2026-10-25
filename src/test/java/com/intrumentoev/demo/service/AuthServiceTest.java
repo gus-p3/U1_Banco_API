@@ -82,7 +82,7 @@ class AuthServiceTest {
 
         when(authRepository.findByEmail("cliente@banco.com")).thenReturn(Optional.of(mockAuth));
         when(passwordEncoder.matches(rawPassword, encodedPassword)).thenReturn(true);
-        when(jwtTokenService.generateAccessToken(anyLong(), anyLong(), anyString())).thenReturn("mock-access-jwt");
+        when(jwtTokenService.generateAccessToken(anyLong(), anyLong(), anyString(), eq(AuthMethod.PASSWORD))).thenReturn("mock-access-jwt");
         when(jwtTokenService.generateRefreshToken()).thenReturn("mock-new-refresh-token");
         when(jwtTokenService.getRefreshTokenExpirationDays()).thenReturn(7L);
         when(jwtTokenService.getAccessTokenExpirationSeconds()).thenReturn(3600L);
@@ -152,7 +152,7 @@ class AuthServiceTest {
 
         when(authRepository.findByEmail("cliente@banco.com")).thenReturn(Optional.of(mockAuth));
         when(aesEncryptionService.decryptBytes(mockBiometricBytes)).thenReturn(mockBiometricBytes);
-        when(jwtTokenService.generateAccessToken(anyLong(), anyLong(), anyString())).thenReturn("mock-bio-jwt");
+        when(jwtTokenService.generateAccessToken(anyLong(), anyLong(), anyString(), eq(AuthMethod.BIOMETRIC_HUELLA))).thenReturn("mock-bio-jwt");
         when(jwtTokenService.generateRefreshToken()).thenReturn("mock-bio-refresh-token");
         when(jwtTokenService.getRefreshTokenExpirationDays()).thenReturn(7L);
         when(jwtTokenService.getAccessTokenExpirationSeconds()).thenReturn(3600L);
@@ -213,7 +213,7 @@ class AuthServiceTest {
         RefreshTokenRequest request = new RefreshTokenRequest("valid-refresh-token");
 
         when(authRepository.findByRefreshToken("valid-refresh-token")).thenReturn(Optional.of(mockAuth));
-        when(jwtTokenService.generateAccessToken(anyLong(), anyLong(), anyString())).thenReturn("new-jwt");
+        when(jwtTokenService.generateAccessToken(anyLong(), anyLong(), anyString(), eq(AuthMethod.REFRESH))).thenReturn("new-jwt");
         when(jwtTokenService.generateRefreshToken()).thenReturn("rotated-refresh-token");
         when(jwtTokenService.getRefreshTokenExpirationDays()).thenReturn(7L);
         when(jwtTokenService.getAccessTokenExpirationSeconds()).thenReturn(3600L);
