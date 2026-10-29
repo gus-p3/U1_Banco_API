@@ -1,5 +1,7 @@
 package com.intrumentoev.demo.service.impl.gestopago;
 
+import com.intrumentoev.demo.service.service.gestopago.GestoPagoTokenService;
+
 import com.intrumentoev.demo.client.gestopago.GestoPagoProductClient;
 import com.intrumentoev.demo.entity.gestopago.GestoPagoToken;
 import com.intrumentoev.demo.entity.gestopago.Producto;
@@ -29,7 +31,7 @@ public class ProductoServiceImpl implements ProductoService {
     private final ProductoRepository productoRepository;
     private final ProductoMapper productoMapper;
     private final GestoPagoProductClient gestoPagoProductClient;
-    private final GestoPagoTokenRepository tokenRepository;
+    private final GestoPagoTokenService tokenService;
     private final TransformProduct transformProduct;
 
     @Value("${gestopago.auth.id-distribuidor:83}")
@@ -43,11 +45,11 @@ public class ProductoServiceImpl implements ProductoService {
     @Transactional
     public void sincronizarProductosDesdeGestoPago() {
         log.info("Obteniendo token activo para consumir getProductList.do");
-        GestoPagoToken tokenEntity = tokenRepository
-                .findByIdDistribuidorAndCodigoDispositivo(idDistribuidor, codigoDispositivo)
-                .orElseThrow(() -> new RuntimeException("No se encontró token activo de GestoPago. Ejecute o espere la autenticación inicial."));
-
-        String bearerHeader = "Bearer " + tokenEntity.getToken();
+        String token = tokenService.obtenerTokenVigente();
+        if (token == null || token.isBlank()) {
+            throw new IllegalStateException("No se encontró token activo de GestoPago. Configure GESTOPAGO_BEARER_TOKEN con el token vigente.");
+        }
+        String bearerHeader = "Bearer " + token;
         log.info("Llamando a la API XML getProductList.do de GestoPago...");
         String xmlResponse = gestoPagoProductClient.getProductListXml(bearerHeader);
 
@@ -129,11 +131,11 @@ public class ProductoServiceImpl implements ProductoService {
     @Override
     public List<ProductoResponse> obtenerProductosXML() {
         log.info("Obteniendo token activo para consumir getProductList.do");
-        GestoPagoToken tokenEntity = tokenRepository
-                .findByIdDistribuidorAndCodigoDispositivo(idDistribuidor, codigoDispositivo)
-                .orElseThrow(() -> new RuntimeException("No se encontró token activo de GestoPago. Ejecute o espere la autenticación inicial."));
-
-        String bearerHeader = "Bearer " + tokenEntity.getToken();
+        String token = tokenService.obtenerTokenVigente();
+        if (token == null || token.isBlank()) {
+            throw new IllegalStateException("No se encontró token activo de GestoPago. Configure GESTOPAGO_BEARER_TOKEN con el token vigente.");
+        }
+        String bearerHeader = "Bearer " + token;
         log.info("Llamando a la API XML getProductList.do de GestoPago...");
         String xmlResponse = gestoPagoProductClient.getProductListXml(bearerHeader);
 

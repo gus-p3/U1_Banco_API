@@ -1,5 +1,7 @@
 package com.intrumentoev.demo.service.impl.gestopago;
 
+import com.intrumentoev.demo.service.service.gestopago.GestoPagoTokenService;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intrumentoev.demo.client.gestopago.GestoPagoAuthClient;
@@ -33,7 +35,7 @@ public class ProductServiceRedisImpl implements ProductoServiceRedis {
 
     private final GestoPagoProductClient gestoPagoProductClient;
     private final GestoPagoAuthClient gestoPagoAuth;
-    private final GestoPagoTokenRepository tokenRepository;
+    private final GestoPagoTokenService tokenService;
     private final TransformProduct transformProduct;
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
@@ -126,13 +128,10 @@ public class ProductServiceRedisImpl implements ProductoServiceRedis {
     }
 
     private String consultarApiGestoPagoXml() {
-        String token = tokenRepository
-                .findByIdDistribuidorAndCodigoDispositivo(idDistribuidor, codigoDispositivo)
-                .map(GestoPagoToken::getToken)
-                .orElseGet(() -> {
-                    GestoPagoAuthResponse auth = gestoPagoAuth.authenticate(idDistribuidor, codigoDispositivo, password);
-                    return auth.getToken();
-                });
+        String token = tokenService.obtenerTokenVigente();
+        if (token == null || token.isBlank()) {
+            throw new IllegalStateException("No se encontró token activo de GestoPago. Configure GESTOPAGO_BEARER_TOKEN con el token vigente.");
+        }
 
         String bearerHeader = "Bearer " + token;
         return gestoPagoProductClient.getProductListXml(bearerHeader);

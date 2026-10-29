@@ -93,14 +93,14 @@ public class GestoPagoTokenServiceImpl implements GestoPagoTokenService {
 
     private boolean estaVencido(GestoPagoToken token) {
         LocalDateTime ultima = token.getFechaActualizacion() != null ? token.getFechaActualizacion() : token.getFechaCreacion();
-        return ultima == null || Duration.between(ultima, LocalDateTime.now()).toHours() >= tokenMaxAgeHours;
+        return token.getToken() == null || token.getToken().isBlank() || ultima == null || Duration.between(ultima, LocalDateTime.now()).toHours() >= tokenMaxAgeHours;
     }
 
     private String solicitarYGuardarToken() {
         log.info("Solicitando token GestoPago para distribuidor={}", idDistribuidor);
         GestoPagoAuthResponse response = gestoPagoAuthClient.authenticate(idDistribuidor, codigoDispositivo, password);
 
-        if (response == null || response.getToken() == null) {
+        if (response == null || response.getToken() == null || response.getToken().isBlank()) {
             throw new IllegalStateException("La respuesta de GestoPago no contiene token");
         }
 
