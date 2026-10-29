@@ -51,7 +51,7 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
 
-        return generarSesionExitosa(auth);
+        return generarSesionExitosa(auth, AuthMethod.PASSWORD);
     }
 
     @Override
@@ -90,7 +90,10 @@ public class AuthServiceImpl implements AuthService {
         }
 
         log.info("Autenticación biométrica exitosa para cliente ID: {}", auth.getIdClient());
-        return generarSesionExitosa(auth);
+        AuthMethod metodo = "HUELLA".equalsIgnoreCase(request.getBiometricType())
+                ? AuthMethod.BIOMETRIC_HUELLA
+                : AuthMethod.BIOMETRIC_FACIAL;
+        return generarSesionExitosa(auth, metodo);
     }
 
     @Override
@@ -189,7 +192,8 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // Rotación de tokens por seguridad tipo Mercado Pago
-        String nuevoAccessToken = jwtTokenService.generateAccessToken(auth.getIdClient(), auth.getIdLogin(), auth.getEmail());
+        String nuevoAccessToken = jwtTokenService.generateAccessToken(
+                auth.getIdClient(), auth.getIdLogin(), auth.getEmail(), AuthMethod.REFRESH);
         String nuevoRefreshToken = jwtTokenService.generateRefreshToken();
 
         auth.setRefreshToken(nuevoRefreshToken);
@@ -242,11 +246,12 @@ public class AuthServiceImpl implements AuthService {
         log.warn("Intento fallido #{} de autenticación para email: {}", intentos, auth.getEmail());
     }
 
-    private AuthResponse generarSesionExitosa(Auth auth) {
+    private AuthResponse generarSesionExitosa(Auth auth, AuthMethod authMethod) {
         auth.setFailedAttempts(0);
         auth.setLastLoginAt(OffsetDateTime.now());
 
-        String accessToken = jwtTokenService.generateAccessToken(auth.getIdClient(), auth.getIdLogin(), auth.getEmail());
+        String accessToken = jwtTokenService.generateAccessToken(
+                auth.getIdClient(), auth.getIdLogin(), auth.getEmail(), authMethod);
         String refreshToken = jwtTokenService.generateRefreshToken();
 
         auth.setRefreshToken(refreshToken);

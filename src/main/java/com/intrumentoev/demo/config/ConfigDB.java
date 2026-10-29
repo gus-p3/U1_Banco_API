@@ -42,25 +42,37 @@ public class ConfigDB {
             String username = env.getProperty("spring.datasource.username");
             String password = env.getProperty("spring.datasource.password");
 
-            // Soporte automático para DATABASE_URL de Railway / Heroku (postgresql:// o postgres://)
+            // Soporte automático para DATABASE_URL o SPRING_DATASOURCE_URL de Railway / Heroku (postgresql:// o postgres://)
             String rawDatabaseUrl = env.getProperty("DATABASE_URL");
-            if ((jdbcUrl == null || jdbcUrl.contains("localhost:5432")) && rawDatabaseUrl != null && !rawDatabaseUrl.isBlank()) {
+            String candidateUrl = (rawDatabaseUrl != null && !rawDatabaseUrl.isBlank()) ? rawDatabaseUrl : jdbcUrl;
+            if (candidateUrl != null && (candidateUrl.startsWith("postgres://") || candidateUrl.startsWith("postgresql://"))) {
                 try {
-                    if (rawDatabaseUrl.startsWith("postgres://") || rawDatabaseUrl.startsWith("postgresql://")) {
-                        java.net.URI dbUri = new java.net.URI(rawDatabaseUrl);
-                        String userInfo = dbUri.getUserInfo();
-                        if (userInfo != null && userInfo.contains(":")) {
-                            String[] parts = userInfo.split(":", 2);
-                            username = parts[0];
-                            password = parts[1];
-                        }
-                        int port = dbUri.getPort() != -1 ? dbUri.getPort() : 5432;
-                        String path = dbUri.getPath();
-                        jdbcUrl = "jdbc:postgresql://" + dbUri.getHost() + ":" + port + path;
-                        log.info("ConfigDB: Detectada DATABASE_URL de Railway. URL JDBC configurada: jdbc:postgresql://{}:{}{}", dbUri.getHost(), port, path);
+                    java.net.URI dbUri = new java.net.URI(candidateUrl);
+                    String userInfo = dbUri.getUserInfo();
+                    if (userInfo != null && userInfo.contains(":")) {
+                        String[] parts = userInfo.split(":", 2);
+                        username = parts[0];
+                        password = parts[1];
                     }
+                    int port = dbUri.getPort() != -1 ? dbUri.getPort() : 5432;
+                    String path = dbUri.getPath();
+                    jdbcUrl = "jdbc:postgresql://" + dbUri.getHost() + ":" + port + path;
+                    log.info("ConfigDB: URL de Railway procesada exitosamente para host: {}", dbUri.getHost());
                 } catch (Exception ex) {
-                    log.warn("No se pudo parsear DATABASE_URL ({}), manteniendo configuración: {}", rawDatabaseUrl, ex.getMessage());
+                    log.warn("No se pudo parsear URL ({}), manteniendo configuración: {}", candidateUrl, ex.getMessage());
+                }
+            }
+
+            if (password == null || "linux".equals(password)) {
+                String pgPassword = env.getProperty("PGPASSWORD");
+                if (pgPassword != null && !pgPassword.isBlank()) {
+                    password = pgPassword;
+                }
+            }
+            if (username == null || "postgres".equals(username)) {
+                String pgUser = env.getProperty("PGUSER");
+                if (pgUser != null && !pgUser.isBlank()) {
+                    username = pgUser;
                 }
             }
 

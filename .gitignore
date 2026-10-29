@@ -1,9 +1,19 @@
+# Variables de entorno y credenciales
+.env
+*.env
+.env.*
+clean_data.sql
+
+# Documentos y colecciones
+docs/
+*.json
+*.postman_collection.json
+
 # Markdown files (conservar README.md y DOC_TECNICA.md)
 *.md
 !README.md
 !DOC_TECNICA.md
-docs/*
-!docs/Banco_API_Postman_Collection.json
+!BITACORA_PRUEBAS_PAGOS.md
 
 
 # Scripts y entornos de Python
