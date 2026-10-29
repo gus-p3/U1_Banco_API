@@ -35,6 +35,9 @@ public class GestoPagoTokenServiceImpl implements GestoPagoTokenService {
     @Value("${gestopago.auth.token-max-age-hours:23}")
     private long tokenMaxAgeHours;
 
+    @Value("${gestopago.auth.bearer-token:}")
+    private String staticBearerToken;
+
     public GestoPagoTokenServiceImpl(GestoPagoAuthClient gestoPagoAuthClient,
                                      GestoPagoTokenRepository tokenRepository,
                                      GestoPagoTokenMapper tokenMapper) {
@@ -50,6 +53,9 @@ public class GestoPagoTokenServiceImpl implements GestoPagoTokenService {
     @Override
     @Scheduled(fixedRateString = "${gestopago.auth.refresh-rate-ms:3600000}", initialDelay = 0)
     public synchronized void renovarToken() {
+        if (staticBearerToken != null && !staticBearerToken.isBlank()) {
+            return;
+        }
         Optional<GestoPagoToken> actual = obtenerTokenActivo(idDistribuidor, codigoDispositivo);
         if (actual.isPresent() && !estaVencido(actual.get())) {
             log.debug("Token GestoPago vigente, no se renueva");
@@ -64,6 +70,9 @@ public class GestoPagoTokenServiceImpl implements GestoPagoTokenService {
 
     @Override
     public synchronized String obtenerTokenVigente() {
+        if (staticBearerToken != null && !staticBearerToken.isBlank()) {
+            return staticBearerToken;
+        }
         Optional<GestoPagoToken> actual = obtenerTokenActivo(idDistribuidor, codigoDispositivo);
         if (actual.isPresent() && !estaVencido(actual.get())) {
             return actual.get().getToken();
