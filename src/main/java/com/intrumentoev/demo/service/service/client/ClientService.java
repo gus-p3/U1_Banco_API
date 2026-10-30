@@ -17,7 +17,8 @@ public interface ClientService {
     /**
      * API 1: Consulta dinámica combinando filtros y ordenamiento dinámico vía Request DTO.
      */
-    List<ClientResponse> consultarClientes(ClientUnifiedQueryRequest request);
+    List<ClientResponse> consultarClientes(ClientUnifiedQueryRequest request, List<String> includes);
+    default List<ClientResponse> consultarClientes(ClientUnifiedQueryRequest request) { return consultarClientes(request, null); }
 
     /**
      * API 2: Súper PATCH para actualización parcial y modular de datos personales, contacto, domicilio y laboral.
