@@ -60,7 +60,7 @@ class ClientControllerTest {
                 .name("Juan")
                 .build();
 
-        when(clientService.consultarClientes(any())).thenReturn(List.of(clientResp));
+        when(clientService.consultarClientes(any(), any())).thenReturn(List.of(clientResp));
 
         mockMvc.perform(post("/v1/clientes/buscar")
                         .contentType(MediaType.APPLICATION_JSON)

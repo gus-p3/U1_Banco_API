@@ -13,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -51,8 +52,9 @@ public class ClientController {
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<List<ClientResponse>> consultarClientes(
-            @Valid @RequestBody(required = false) ClientUnifiedQueryRequest request) {
-        List<ClientResponse> clientes = clientService.consultarClientes(request);
+            @Valid @RequestBody(required = false) ClientUnifiedQueryRequest request,
+            @RequestParam(name = "includes", required = false) List<String> includes) {
+        List<ClientResponse> clientes = clientService.consultarClientes(request, includes);
         return ResponseEntity.ok(clientes);
     }
 

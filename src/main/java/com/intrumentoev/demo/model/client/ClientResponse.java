@@ -1,6 +1,10 @@
 package com.intrumentoev.demo.model.client;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.intrumentoev.demo.model.account.AccountResponse;
+import com.intrumentoev.demo.model.contactDetail.ContactDetailResponse;
+import com.intrumentoev.demo.model.employment.EmploymentInformationResponse;
+import com.intrumentoev.demo.model.home.HomeResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -8,6 +12,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -35,4 +40,11 @@ public class ClientResponse {
     private OffsetDateTime deactivatedAt;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
+
+    // Relaciones dinámicas (includes)
+    private AccountResponse primaryAccount;
+    private List<AccountResponse> accounts;
+    private ContactDetailResponse contactDetail;
+    private HomeResponse home;
+    private EmploymentInformationResponse employmentInformation;
 }
