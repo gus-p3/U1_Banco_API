@@ -46,3 +46,4 @@ class AccountNumberGeneratorTest {
         assertThat(cuenta).hasSize(10);
     }
 }
+

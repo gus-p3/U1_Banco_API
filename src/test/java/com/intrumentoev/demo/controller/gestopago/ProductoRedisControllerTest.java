@@ -50,3 +50,4 @@ class ProductoRedisControllerTest {
         verify(productoServiceRedis).sincronizarCatalogo();
     }
 }
+

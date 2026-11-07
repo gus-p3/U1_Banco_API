@@ -35,3 +35,4 @@ class CatalogoRefresherTest {
         verify(productoServiceRedis).sincronizarCatalogo();
     }
 }
+

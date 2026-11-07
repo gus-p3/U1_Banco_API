@@ -94,3 +94,4 @@ class AuthControllerTest {
         verify(authService).logout("test@example.com");
     }
 }
+

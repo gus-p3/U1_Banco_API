@@ -76,4 +76,22 @@ class ServerSessionManagerTest {
         sessionManager.recordActivity();
         assertThat(sessionManager.isUserLoggedIn()).isTrue();
     }
+
+    @Test
+    @DisplayName("isAdmin reconoce admin y root")
+    void testIsAdmin() {
+        assertThat(sessionManager.isAdmin()).isFalse();
+
+        sessionManager.setLoggedIn(true, "regular@banco.com", 1L);
+        assertThat(sessionManager.isAdmin()).isFalse();
+        assertThat(sessionManager.getActiveClientId()).isEqualTo(1L);
+        assertThat(sessionManager.getActiveUserEmail()).isEqualTo("regular@banco.com");
+        assertThat(sessionManager.getInactivityLimitSeconds()).isEqualTo(5L);
+
+        sessionManager.setLoggedIn(true, "admin@banco.com", 2L);
+        assertThat(sessionManager.isAdmin()).isTrue();
+
+        sessionManager.setLoggedIn(true, "root@banco.com", 3L);
+        assertThat(sessionManager.isAdmin()).isTrue();
+    }
 }
