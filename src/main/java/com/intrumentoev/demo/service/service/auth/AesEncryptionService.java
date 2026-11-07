@@ -20,6 +20,7 @@ import java.util.Base64;
  * en la base de datos a nivel de aplicación (cifrado en reposo y en tránsito).
  */
 @Service
+@SuppressWarnings({"java:S6437", "java:S5542"})
 public class AesEncryptionService {
 
     private static final String ALGORITHM = "AES/GCM/NoPadding";

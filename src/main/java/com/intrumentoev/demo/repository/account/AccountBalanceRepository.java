@@ -9,6 +9,8 @@ import java.util.List;
 @Repository
 public interface AccountBalanceRepository extends JpaRepository<AccountBalance, Long> {
 
+    List<AccountBalance> findByIdAccountOrderByIdAccountBalanceDesc(Long idAccount);
+
     List<AccountBalance> findByIdAccountOrderByCreatedAtDesc(Long idAccount);
 
     List<AccountBalance> findByIdAccountOrderByCreatedAtAsc(Long idAccount);
