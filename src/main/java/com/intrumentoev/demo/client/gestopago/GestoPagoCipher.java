@@ -16,6 +16,7 @@ import java.util.Base64;
  * El resultado en Base64 se envía en el parámetro "signed" de sendTx/confirmTx.
  */
 @Component
+@SuppressWarnings({"java:S5542", "java:S3329"}) // Algoritmo y vector de inicialización impuestos por la API externa de GestoPago
 public class GestoPagoCipher {
 
     private static final String TRANSFORMATION = "AES/CBC/PKCS5Padding";
