@@ -85,7 +85,7 @@ class PagoGestoPagoServiceTest extends PagoIntegrationTestBase {
         assertThat(p.getComision()).isEqualByComparingTo("2.50");
         assertThat(p.getResponseRaw()).contains("<CODIGO>01</CODIGO>");
         assertThat(p.getRequestCifrado()).isNotBlank();
-        assertThat(balanceRepository.findByIdAccountOrderByIdAccountBalanceDesc(cuentaDemo().getIdAccount()).get(0).getMovementType())
+        assertThat(balanceRepository.findByIdAccountOrderByIdBalanceDesc(cuentaDemo().getIdAccount()).get(0).getMovementType())
                 .isEqualTo("PAGO_SERVICIO");
 
         // payload enviado: cifrado y descifrable; recarga sin referencia ni montoPago
