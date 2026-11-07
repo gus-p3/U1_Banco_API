@@ -102,3 +102,15 @@ tasks.named('test') {
 	useJUnitPlatform()
 	finalizedBy jacocoTestReport
 }
+sonar {
+	properties {
+		property "sonar.coverage.exclusions", [
+			"**/entity/**",
+			"**/model/**",
+			"**/config/**",
+			"**/mapper/**",
+			"**/exception/**",
+			"**/*Application.java"
+		].join(",")
+	}
+}
