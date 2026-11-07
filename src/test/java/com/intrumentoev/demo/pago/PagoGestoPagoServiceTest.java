@@ -3,6 +3,7 @@ package com.intrumentoev.demo.pago;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intrumentoev.demo.client.gestopago.GestoPagoCipher;
+import com.intrumentoev.demo.entity.account.AccountBalance;
 import com.intrumentoev.demo.entity.gestopago.PagoGestoPago;
 import com.intrumentoev.demo.exception.BusinessException;
 import com.intrumentoev.demo.exception.ErrorCode;
@@ -146,8 +147,9 @@ class PagoGestoPagoServiceTest extends PagoIntegrationTestBase {
         assertThat(r.getCodigoGestoPago()).isEqualTo("02");
         assertThat(r.getMensaje()).isEqualTo("Saldo insuficiente del distribuidor"); // TEXTO de GestoPago en mensaje
         assertThat(saldo()).isEqualByComparingTo("1000.00");
-        assertThat(balanceRepository.findByIdAccountOrderByCreatedAtDesc(cuentaDemo().getIdAccount()).get(0).getMovementType())
-                .isEqualTo("REVERSO_PAGO");
+        assertThat(balanceRepository.findByIdAccountOrderByCreatedAtDesc(cuentaDemo().getIdAccount()))
+                .extracting(AccountBalance::getMovementType)
+                .contains("REVERSO_PAGO");
     }
 
     @Test
@@ -386,8 +388,9 @@ class PagoGestoPagoServiceTest extends PagoIntegrationTestBase {
 
         assertThat(pago(r).getEstado()).isEqualTo(EstadoPago.RECHAZADO);
         assertThat(saldo()).isEqualByComparingTo("1000.00");
-        assertThat(balanceRepository.findByIdAccountOrderByCreatedAtDesc(cuentaDemo().getIdAccount()).get(0).getMovementType())
-                .isEqualTo("REVERSO_PAGO");
+        assertThat(balanceRepository.findByIdAccountOrderByCreatedAtDesc(cuentaDemo().getIdAccount()))
+                .extracting(AccountBalance::getMovementType)
+                .contains("REVERSO_PAGO");
     }
 
     @Test

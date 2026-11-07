@@ -61,9 +61,9 @@ class ServerSessionManagerTest {
         sessionManager.setLoggedIn(true, "cliente@banco.com", 1L);
         assertThat(sessionManager.isUserLoggedIn()).isTrue();
 
-        try {
-            Thread.sleep(1200); // Esperar 1.2 segundos para superar el límite
-        } catch (InterruptedException ignored) {}
+        java.util.concurrent.atomic.AtomicReference<java.time.Instant> pastTime = new java.util.concurrent.atomic.AtomicReference<>(java.time.Instant.now().minusSeconds(2));
+        org.springframework.test.util.ReflectionTestUtils.setField(sessionManager, "lastActivityTime", pastTime);
+
 
         // Al consultar tras el periodo de inactividad, debe pasar automáticamente a false
         assertThat(sessionManager.isUserLoggedIn()).isFalse();
