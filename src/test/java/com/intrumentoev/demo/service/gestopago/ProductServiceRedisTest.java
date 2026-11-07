@@ -95,4 +95,21 @@ class ProductServiceRedisTest {
         List<ProductoResponse> res = productServiceRedis.getProductsRedis();
         assertThat(res).hasSize(1);
     }
+
+    @Test
+    @DisplayName("Obtener catálogo directamente de caché Redis")
+    void testGetProductsRedis_FromCache() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("catalogo:productos:gestopago")).thenReturn("cached-data");
+
+        ProductoResponse resp = new ProductoResponse();
+        resp.setId(2);
+        when(objectMapper.convertValue(any(), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(List.of(resp));
+        when(productoMapper.filtrarYOrdenarPorTipoFront(any())).thenReturn(List.of(resp));
+
+        List<ProductoResponse> res = productServiceRedis.getProductsRedis();
+        assertThat(res).hasSize(1);
+        verify(productoRepository, never()).findAll();
+    }
 }
