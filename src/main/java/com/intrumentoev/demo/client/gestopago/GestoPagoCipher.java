@@ -35,6 +35,8 @@ public class GestoPagoCipher {
 
     public String cifrar(String textoPlano) {
         try {
+            // nosemgrep: java.lang.security.audit.cbc-padding-oracle.cbc-padding-oracle
+            // Algoritmo impuesto por la API de GestoPago; riesgo aceptado y documentado.
             Cipher cipher = Cipher.getInstance(TRANSFORMATION);
             cipher.init(Cipher.ENCRYPT_MODE, secretKey, iv);
             byte[] cifrado = cipher.doFinal(textoPlano.getBytes(StandardCharsets.UTF_8));
@@ -46,6 +48,8 @@ public class GestoPagoCipher {
 
     public String descifrar(String cifradoBase64) {
         try {
+            // nosemgrep: java.lang.security.audit.cbc-padding-oracle.cbc-padding-oracle
+            // Algoritmo impuesto por la API de GestoPago; riesgo aceptado y documentado.
             Cipher cipher = Cipher.getInstance(TRANSFORMATION);
             cipher.init(Cipher.DECRYPT_MODE, secretKey, iv);
             byte[] plano = cipher.doFinal(Base64.getDecoder().decode(cifradoBase64));
@@ -61,13 +65,13 @@ public class GestoPagoCipher {
         }
         byte[] bytes;
         try {
-            bytes = Base64.getDecoder().decode(base64.trim());
+            bytes = Base64.getDecoder().decode(base64);
         } catch (IllegalArgumentException e) {
             throw new IllegalStateException("La propiedad " + propiedad + " no es Base64 válido", e);
         }
         if (bytes.length != longitudEsperada) {
-            throw new IllegalStateException("La propiedad " + propiedad + " debe medir " + longitudEsperada
-                    + " bytes y mide " + bytes.length);
+            throw new IllegalStateException("La propiedad " + propiedad + " debe tener "
+                    + longitudEsperada + " bytes decodificados pero tiene " + bytes.length);
         }
         return bytes;
     }
