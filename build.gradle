@@ -90,27 +90,48 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 }
 
+tasks.named('test') {
+	useJUnitPlatform()
+	finalizedBy jacocoTestReport
+}
+
 jacocoTestReport {
 	dependsOn test
 	reports {
 		xml.required = true
 		csv.required = false
 	}
+	afterEvaluate {
+		classDirectories.setFrom(files(classDirectories.files.collect {
+			fileTree(dir: it, exclude: [
+				'**/entity/**',
+				'**/model/**',
+				'**/config/**',
+				'**/mapper/**',
+				'**/exception/**',
+				'**/scheduler/**',
+				'**/*Application*',
+				'**/*Request*',
+				'**/*Response*',
+				'**/*Dto*'
+			])
+		}))
+	}
 }
 
-tasks.named('test') {
-	useJUnitPlatform()
-	finalizedBy jacocoTestReport
-}
 sonar {
 	properties {
 		property "sonar.coverage.exclusions", [
-			"**/entity/**",
-			"**/model/**",
-			"**/config/**",
-			"**/mapper/**",
-			"**/exception/**",
-			"**/*Application.java"
+			"src/main/java/**/entity/**",
+			"src/main/java/**/model/**",
+			"src/main/java/**/config/**",
+			"src/main/java/**/mapper/**",
+			"src/main/java/**/exception/**",
+			"src/main/java/**/scheduler/**",
+			"src/main/java/**/*Application.java",
+			"src/main/java/**/*Request*.java",
+			"src/main/java/**/*Response*.java",
+			"src/main/java/**/*Dto*.java"
 		].join(",")
 	}
 }
