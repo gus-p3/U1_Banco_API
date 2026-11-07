@@ -6,7 +6,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'dev',
+                git branch: 'fix/semgrep-security-hardening',
                     credentialsId: 'github-credentials',
                     url: 'https://github.com/gus-p3/U1_Banco_API.git'
             }
