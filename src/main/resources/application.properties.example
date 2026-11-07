@@ -36,8 +36,9 @@ springdoc.swagger-ui.display-request-duration=true
 # Control de Sesión en el Servidor (5 minutos = 300 segundos de inactividad)
 server.session.inactivity-limit-seconds=300
 
-# Expiración de Access Token JWT (5 minutos = 300 segundos)
+# Configuración y Secreto JWT (Firmado HMAC-SHA256, mínimo 256 bits / 32 bytes)
 jwt.access-token-expiration-seconds=300
+jwt.secret=${JWT_SECRET:REEMPLAZAR_CON_CLAVE_ALEATORIA_DE_MINIMO_64_HEX_O_BASE64}
 
 
 # GestoPago

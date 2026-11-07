@@ -21,7 +21,7 @@ public class JwtTokenService {
     public static final String CLAIM_ID_CLIENT = "idClient";
     public static final String CLAIM_AUTH_METHOD = "authMethod";
 
-    @Value("${jwt.secret:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}")
+    @Value("${jwt.secret}")
     private String jwtSecret;
 
     @Value("${jwt.access-token-expiration-seconds:3600}")
