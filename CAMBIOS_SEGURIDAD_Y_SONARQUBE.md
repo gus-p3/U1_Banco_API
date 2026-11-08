@@ -359,3 +359,4 @@ El resultado debe arrojar:
 * Cobertura: **>81%**
 * Quality Gate: **PASSED**
 * Security Rating: **A (0)**
+
