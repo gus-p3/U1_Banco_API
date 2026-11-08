@@ -32,3 +32,4 @@ class PasswordEncoderTest {
         assertFalse(encoder.matches("pass", "10000:not_base64:invalid"));
     }
 }
+

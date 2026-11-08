@@ -75,3 +75,4 @@ class CatalogControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
 }
+
