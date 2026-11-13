@@ -32,6 +32,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
 	// Documentación y APIs
@@ -85,9 +86,28 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testImplementation 'com.h2database:h2:2.2.220'
+	testImplementation 'org.springframework.security:spring-security-test'
 
 	// Servidor web embebido (Tomcat) para mantener la app activa escuchando HTTP
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+}
+
+// Código sin lógica de negocio propia (generado, DTOs, entidades, configuración) excluido de la cobertura
+def coverageExclusions = [
+	'**/*MapperImpl.class',        // generado por MapStruct
+	'**/model/**',                 // DTOs de request/response
+	'**/entity/**',                // entidades JPA (Lombok)
+	'**/DemoApplication.class',
+	'**/config/ConfigDB.class',
+	'**/config/FlywayConfig.class',
+	'**/config/RedisConfig.class',
+	'**/config/OpenApiConfig.class',
+	'**/config/JacksonConfig.class',
+	'**/config/DemoUserInitializer.class'
+]
+
+jacoco {
+	toolVersion = '0.8.12'
 }
 
 jacocoTestReport {
@@ -95,10 +115,46 @@ jacocoTestReport {
 	reports {
 		xml.required = true
 		csv.required = false
+		html.required = true
+	}
+	afterEvaluate {
+		classDirectories.setFrom(files(classDirectories.files.collect {
+			fileTree(dir: it, exclude: coverageExclusions)
+		}))
+	}
+}
+
+jacocoTestCoverageVerification {
+	dependsOn test
+	afterEvaluate {
+		classDirectories.setFrom(files(classDirectories.files.collect {
+			fileTree(dir: it, exclude: coverageExclusions)
+		}))
+	}
+	violationRules {
+		rule {
+			limit {
+				counter = 'LINE'
+				minimum = 0.80
+			}
+		}
+	}
+}
+
+sonar {
+	properties {
+		property 'sonar.projectKey', 'Api_Gesto_Pago'
+		property 'sonar.coverage.jacoco.xmlReportPaths', 'build/reports/jacoco/test/jacocoTestReport.xml'
+		property 'sonar.coverage.exclusions',
+				coverageExclusions.collect { it.replace('.class', '.java') }.join(',')
 	}
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
 	finalizedBy jacocoTestReport
+}
+
+tasks.named('check') {
+	dependsOn jacocoTestCoverageVerification
 }

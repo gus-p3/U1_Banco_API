@@ -1,9 +1,7 @@
 package com.intrumentoev.demo.pago;
 
 import com.intrumentoev.demo.service.service.auth.JwtTokenService;
-import com.intrumentoev.demo.service.service.auth.ServerSessionManager;
 import com.intrumentoev.demo.model.auth.AuthMethod;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,19 +30,12 @@ class PagoControllerTest extends PagoIntegrationTestBase {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private JwtTokenService jwtTokenService;
-    @Autowired private ServerSessionManager sessionManager;
 
     private Long idCliente;
 
     @BeforeEach
-    void abrirSesion() {
+    void cargarCliente() {
         idCliente = cuentaDemo().getIdClient();
-        sessionManager.setLoggedIn(true, "alejandro.hernandez@banco-demo.com", idCliente);
-    }
-
-    @AfterEach
-    void cerrarSesion() {
-        sessionManager.setLoggedIn(false, null, null);
     }
 
     private String bearer(AuthMethod metodo) {
@@ -71,14 +62,6 @@ class PagoControllerTest extends PagoIntegrationTestBase {
         mockMvc.perform(pagar("Bearer abc.def.ghi", RECARGA_JSON))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error.code", is("TOKEN_EXPIRED_OR_INVALID")));
-    }
-
-    @Test
-    @DisplayName("Sesión del servidor inactiva → 401 aunque el JWT sea válido")
-    void sesionInactiva() throws Exception {
-        sessionManager.setLoggedIn(false, null, null);
-        mockMvc.perform(pagar(bearer(AuthMethod.BIOMETRIC_HUELLA), RECARGA_JSON))
-                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -109,9 +92,8 @@ class PagoControllerTest extends PagoIntegrationTestBase {
                 .andExpect(jsonPath("$.error.code", is("PAYMENT_FORBIDDEN")))
                 .andReturn().getResponse().getContentAsString();
 
-        // token válido de HUELLA pero de otro cliente (la sesión también es de ese otro cliente)
+        // token válido de HUELLA pero de otro cliente 
         Long otro = idCliente + 999;
-        sessionManager.setLoggedIn(true, "otro@banco.com", otro);
         String tokenOtro = "Bearer " + jwtTokenService.generateAccessToken(otro, 2L, "otro@banco.com", AuthMethod.BIOMETRIC_HUELLA);
         String mensajeAjena = mockMvc.perform(pagar(tokenOtro, RECARGA_JSON))
                 .andExpect(status().isForbidden())

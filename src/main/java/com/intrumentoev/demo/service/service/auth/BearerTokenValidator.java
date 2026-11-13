@@ -4,6 +4,7 @@ import com.intrumentoev.demo.exception.BusinessException;
 import com.intrumentoev.demo.exception.ErrorCode;
 import com.intrumentoev.demo.model.auth.AuthMethod;
 import com.intrumentoev.demo.model.auth.AuthenticatedClient;
+import com.intrumentoev.demo.model.auth.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
@@ -11,8 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * Valida el header Authorization: Bearer <JWT> de la petición actual para operaciones
- * sensibles (pagos). No depende solo del booleano global del ServerSessionManager.
+ * Valida el header Authorization: Bearer y lo convierte en un {@link AuthenticatedClient}.
+ * Es completamente stateless: todo lo necesario viaja firmado en el token.
  */
 @Component
 @RequiredArgsConstructor
@@ -22,50 +23,64 @@ public class BearerTokenValidator {
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final JwtTokenService jwtTokenService;
-    private final ServerSessionManager serverSessionManager;
 
+    /**
+     * Operaciones de pago: solo se acepta un token emitido por login con huella.
+     */
     public AuthenticatedClient validarParaPago(String authorizationHeader) {
-        // a) El header debe venir en esta petición
-        String token = extraerToken(authorizationHeader);
+        AuthenticatedClient cliente = validarCliente(authorizationHeader);
+        if (cliente.getAuthMethod() != AuthMethod.BIOMETRIC_HUELLA) {
+            log.warn("Pago rechazado para cliente {}: authMethod={}", cliente.getIdClient(), cliente.getAuthMethod());
+            throw new BusinessException(ErrorCode.STRONG_AUTH_REQUIRED);
+        }
+        return cliente;
+    }
 
-        // a) Firma y expiración
+    /**
+     * Valida firma y expiración del Bearer sin exigir un método de autenticación específico.
+     */
+    public AuthenticatedClient validarCliente(String authorizationHeader) {
+        String token = extraerToken(authorizationHeader);
         Claims claims;
         try {
             claims = jwtTokenService.extractClaims(token);
         } catch (JwtException | IllegalArgumentException e) {
-            log.warn("JWT rechazado para pago: {}", e.getClass().getSimpleName());
+            log.warn("JWT rechazado: {}", e.getClass().getSimpleName());
             throw new BusinessException(ErrorCode.TOKEN_EXPIRED_OR_INVALID);
         }
+        return desdeClaims(claims);
+    }
 
+    private AuthenticatedClient desdeClaims(Claims claims) {
         Long idClient = leerLong(claims, JwtTokenService.CLAIM_ID_CLIENT);
         if (idClient == null) {
             throw new BusinessException(ErrorCode.TOKEN_EXPIRED_OR_INVALID);
         }
-
-        // a) La sesión del servidor debe seguir activa
-        if (!serverSessionManager.isUserLoggedIn()) {
-            throw new BusinessException(ErrorCode.SESSION_INACTIVE);
-        }
-
-        // b) Solo se paga con un token emitido por login con huella
-        String authMethod = claims.get(JwtTokenService.CLAIM_AUTH_METHOD, String.class);
-        if (!AuthMethod.BIOMETRIC_HUELLA.name().equals(authMethod)) {
-            log.warn("Pago rechazado para cliente {}: authMethod={}", idClient, authMethod);
-            throw new BusinessException(ErrorCode.STRONG_AUTH_REQUIRED);
-        }
-
-        // c) El cliente del token debe ser el mismo que tiene la sesión del servidor
-        if (!idClient.equals(serverSessionManager.getActiveClientId())) {
-            log.warn("Pago rechazado: idClient del token ({}) no coincide con la sesión activa", idClient);
-            throw new BusinessException(ErrorCode.PAYMENT_FORBIDDEN);
-        }
-
         return AuthenticatedClient.builder()
                 .idClient(idClient)
-                .idLogin(leerLong(claims, "idLogin"))
+                .idLogin(leerLong(claims, JwtTokenService.CLAIM_ID_LOGIN))
                 .email(claims.getSubject())
-                .authMethod(AuthMethod.BIOMETRIC_HUELLA)
+                .authMethod(leerAuthMethod(claims))
+                .role(leerRole(claims))
                 .build();
+    }
+
+    private AuthMethod leerAuthMethod(Claims claims) {
+        String value = claims.get(JwtTokenService.CLAIM_AUTH_METHOD, String.class);
+        try {
+            return value == null ? AuthMethod.PASSWORD : AuthMethod.valueOf(value);
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(ErrorCode.TOKEN_EXPIRED_OR_INVALID);
+        }
+    }
+
+    private Role leerRole(Claims claims) {
+        String value = claims.get(JwtTokenService.CLAIM_ROLE, String.class);
+        try {
+            return value == null ? Role.CLIENT : Role.valueOf(value);
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(ErrorCode.TOKEN_EXPIRED_OR_INVALID);
+        }
     }
 
     private String extraerToken(String authorizationHeader) {

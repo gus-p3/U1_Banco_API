@@ -95,39 +95,52 @@ public class ClientServiceImpl implements ClientService {
         List<ClientResponse> responses = clientMapper.toResponseList(clientes);
         responses.forEach(clientDto -> {
             enrichClientWithCatalogs(clientDto);
-            if (includes != null && !includes.isEmpty()) {
-                boolean incAccounts = includes.stream().anyMatch(i -> i.equalsIgnoreCase("accounts") || i.equalsIgnoreCase("cuentas"));
-                boolean incHome = includes.stream().anyMatch(i -> i.equalsIgnoreCase("home") || i.equalsIgnoreCase("domicilio"));
-                boolean incContact = includes.stream().anyMatch(i -> i.equalsIgnoreCase("contact") || i.equalsIgnoreCase("contacto"));
-                boolean incEmployment = includes.stream().anyMatch(i -> i.equalsIgnoreCase("employment") || i.equalsIgnoreCase("laboral"));
-
-                if (incAccounts) {
-                    var cuentasDto = accountMapper.toResponseList(accountRepository.findByIdClient(clientDto.getIdClient()));
-                    clientDto.setAccounts(cuentasDto);
-                    clientDto.setPrimaryAccount(cuentasDto.isEmpty() ? null : cuentasDto.get(0));
-                }
-                if (incHome) {
-                    homeRepository.findByIdClient(clientDto.getIdClient()).ifPresent(home -> {
-                        var homeDto = homeMapper.toResponse(home);
-                        enrichHomeWithCatalogs(homeDto);
-                        clientDto.setHome(homeDto);
-                    });
-                }
-                if (incContact) {
-                    contactDetailRepository.findByIdClient(clientDto.getIdClient()).ifPresent(contact -> {
-                        clientDto.setContactDetail(contactDetailMapper.toResponse(contact));
-                    });
-                }
-                if (incEmployment) {
-                    employmentRepository.findByIdClient(clientDto.getIdClient()).ifPresent(emp -> {
-                        clientDto.setEmploymentInformation(employmentMapper.toResponse(emp));
-                    });
-                }
-            }
+            aplicarIncludes(clientDto, includes);
         });
         return responses;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ClientResponse obtenerClientePorId(Long idClient, List<String> includes) {
+        Client client = clientRepository.findById(idClient)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CLIENT_NOT_FOUND, String.valueOf(idClient)));
+        ClientResponse dto = clientMapper.toResponse(client);
+        enrichClientWithCatalogs(dto);
+        aplicarIncludes(dto, includes);
+        return dto;
+    }
+
+    private void aplicarIncludes(ClientResponse clientDto, List<String> includes) {
+        if (includes == null || includes.isEmpty()) {
+            return;
+        }
+        boolean incAccounts = includes.stream().anyMatch(i -> i.equalsIgnoreCase("accounts") || i.equalsIgnoreCase("cuentas"));
+        boolean incHome = includes.stream().anyMatch(i -> i.equalsIgnoreCase("home") || i.equalsIgnoreCase("domicilio"));
+        boolean incContact = includes.stream().anyMatch(i -> i.equalsIgnoreCase("contact") || i.equalsIgnoreCase("contacto"));
+        boolean incEmployment = includes.stream().anyMatch(i -> i.equalsIgnoreCase("employment") || i.equalsIgnoreCase("laboral"));
+
+        if (incAccounts) {
+            var cuentasDto = accountMapper.toResponseList(accountRepository.findByIdClient(clientDto.getIdClient()));
+            clientDto.setAccounts(cuentasDto);
+            clientDto.setPrimaryAccount(cuentasDto.isEmpty() ? null : cuentasDto.get(0));
+        }
+        if (incHome) {
+            homeRepository.findByIdClient(clientDto.getIdClient()).ifPresent(home -> {
+                var homeDto = homeMapper.toResponse(home);
+                enrichHomeWithCatalogs(homeDto);
+                clientDto.setHome(homeDto);
+            });
+        }
+        if (incContact) {
+            contactDetailRepository.findByIdClient(clientDto.getIdClient())
+                    .ifPresent(contact -> clientDto.setContactDetail(contactDetailMapper.toResponse(contact)));
+        }
+        if (incEmployment) {
+            employmentRepository.findByIdClient(clientDto.getIdClient())
+                    .ifPresent(emp -> clientDto.setEmploymentInformation(employmentMapper.toResponse(emp)));
+        }
+    }
     // =========================================================================
     // 2. PATCH: Actualización Unificada y Modular (Súper PATCH)
     // =========================================================================

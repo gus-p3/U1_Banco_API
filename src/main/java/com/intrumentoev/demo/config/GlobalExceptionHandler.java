@@ -210,6 +210,22 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(response);
     }
 
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFound(
+            org.springframework.web.servlet.resource.NoResourceFoundException ex) {
+        log.warn("Ruta no encontrada: {}", ex.getResourcePath());
+
+        ErrorResponse.ErrorDetail detail = new ErrorResponse.ErrorDetail();
+        detail.setCode("NOT_FOUND");
+        detail.setTarget("path");
+        detail.setMessage("El recurso solicitado no existe");
+
+        ErrorResponse response = new ErrorResponse();
+        response.setError(detail);
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
         log.warn("Argumento ilegal o inválido recibido: {}", ex.getMessage());

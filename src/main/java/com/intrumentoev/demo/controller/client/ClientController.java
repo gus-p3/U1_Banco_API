@@ -33,6 +33,7 @@ import java.util.List;
 public class ClientController {
 
     private final ClientService clientService;
+    private final com.intrumentoev.demo.service.service.auth.BearerTokenValidator bearerTokenValidator;
 
     // =========================================================================
     // 1. POST: Consulta y Búsqueda Unificada con Ordenamiento Dinámico
@@ -127,5 +128,17 @@ public class ClientController {
             @Valid @RequestBody ClientDeactivateRequest request) {
         clientService.desactivarClienteLogicamente(request);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+            summary = "Obtener el cliente autenticado",
+            description = "Devuelve el cliente dueño del JWT (Authorization: Bearer). Admite ?includes=accounts,home,contact,employment."
+    )
+    @GetMapping(value = "/me", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ClientResponse> obtenerClienteActual(
+            @RequestHeader(value = org.springframework.http.HttpHeaders.AUTHORIZATION, required = false) String authorization,
+            @RequestParam(name = "includes", required = false) List<String> includes) {
+        var cliente = bearerTokenValidator.validarCliente(authorization);
+        return ResponseEntity.ok(clientService.obtenerClientePorId(cliente.getIdClient(), includes));
     }
 }
