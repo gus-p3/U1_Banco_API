@@ -10,7 +10,6 @@ import com.intrumentoev.demo.service.service.auth.AesEncryptionService;
 import com.intrumentoev.demo.service.service.auth.AuthService;
 import com.intrumentoev.demo.service.service.auth.JwtTokenService;
 import com.intrumentoev.demo.service.service.auth.PasswordEncoder;
-import com.intrumentoev.demo.service.service.auth.ServerSessionManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,7 +32,6 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenService jwtTokenService;
     private final AesEncryptionService aesEncryptionService;
-    private final ServerSessionManager serverSessionManager;
 
     @Override
     @Transactional
@@ -193,15 +191,12 @@ public class AuthServiceImpl implements AuthService {
 
         // Rotación de tokens por seguridad tipo Mercado Pago
         String nuevoAccessToken = jwtTokenService.generateAccessToken(
-                auth.getIdClient(), auth.getIdLogin(), auth.getEmail(), AuthMethod.REFRESH);
+                auth.getIdClient(), auth.getIdLogin(), auth.getEmail(), AuthMethod.REFRESH, auth.getRole());
         String nuevoRefreshToken = jwtTokenService.generateRefreshToken();
 
         auth.setRefreshToken(nuevoRefreshToken);
         auth.setRefreshTokenExpiresAt(OffsetDateTime.now().plusDays(jwtTokenService.getRefreshTokenExpirationDays()));
         authRepository.save(auth);
-
-        // Mantener sesión activa en servidor
-        serverSessionManager.setLoggedIn(true, auth.getEmail(), auth.getIdClient());
 
         log.info("Tokens rotados y renovados exitosamente para cliente ID: {}", auth.getIdClient());
         return authMapper.toResponse(auth, nuevoAccessToken, nuevoRefreshToken, jwtTokenService.getAccessTokenExpirationSeconds());
@@ -218,9 +213,6 @@ public class AuthServiceImpl implements AuthService {
             auth.setRefreshTokenExpiresAt(null);
             authRepository.save(auth);
         });
-
-        // Servidor: Cambiar booleano a false
-        serverSessionManager.setLoggedIn(false, null, null);
     }
 
     @Override
@@ -251,16 +243,13 @@ public class AuthServiceImpl implements AuthService {
         auth.setLastLoginAt(OffsetDateTime.now());
 
         String accessToken = jwtTokenService.generateAccessToken(
-                auth.getIdClient(), auth.getIdLogin(), auth.getEmail(), authMethod);
+                auth.getIdClient(), auth.getIdLogin(), auth.getEmail(), authMethod, auth.getRole());
         String refreshToken = jwtTokenService.generateRefreshToken();
 
         auth.setRefreshToken(refreshToken);
         auth.setRefreshTokenExpiresAt(OffsetDateTime.now().plusDays(jwtTokenService.getRefreshTokenExpirationDays()));
 
         authRepository.save(auth);
-
-        // SERVIDOR: Activar booleano en el servidor (login = true) y reiniciar contador de inactividad
-        serverSessionManager.setLoggedIn(true, auth.getEmail(), auth.getIdClient());
 
         return authMapper.toResponse(auth, accessToken, refreshToken, jwtTokenService.getAccessTokenExpirationSeconds());
     }

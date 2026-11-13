@@ -1,6 +1,7 @@
 package com.intrumentoev.demo.service.service.auth;
 
 import com.intrumentoev.demo.model.auth.AuthMethod;
+import com.intrumentoev.demo.model.auth.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -20,6 +21,8 @@ import java.util.UUID;
 public class JwtTokenService {
     public static final String CLAIM_ID_CLIENT = "idClient";
     public static final String CLAIM_AUTH_METHOD = "authMethod";
+    public static final String CLAIM_ROLE = "role";
+    public static final String CLAIM_ID_LOGIN = "idLogin";
 
     @Value("${jwt.secret}")
     private String jwtSecret;
@@ -36,14 +39,18 @@ public class JwtTokenService {
     }
 
     public String generateAccessToken(Long idClient, Long idLogin, String email, AuthMethod authMethod) {
+        return generateAccessToken(idClient, idLogin, email, authMethod, Role.CLIENT);
+    }
+
+    public String generateAccessToken(Long idClient, Long idLogin, String email, AuthMethod authMethod, Role role) {
         Instant now = Instant.now();
         Instant expiry = now.plus(accessTokenExpirationSeconds, ChronoUnit.SECONDS);
 
         return Jwts.builder()
                 .setSubject(email)
                 .claim(CLAIM_ID_CLIENT, idClient)
-                .claim("idLogin", idLogin)
-                .claim("role", "CLIENT")
+                .claim(CLAIM_ID_LOGIN, idLogin)
+                .claim(CLAIM_ROLE, (role == null ? Role.CLIENT : role).name())
                 .claim(CLAIM_AUTH_METHOD, Objects.requireNonNull(authMethod, "authMethod es obligatorio").name())
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(expiry))

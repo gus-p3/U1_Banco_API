@@ -34,7 +34,7 @@ springdoc.swagger-ui.tags-sorter=alpha
 springdoc.swagger-ui.display-request-duration=true
 
 # Control de Sesión en el Servidor (5 minutos = 300 segundos de inactividad)
-server.session.inactivity-limit-seconds=300
+security.bootstrap-admin-email=${SECURITY_BOOTSTRAP_ADMIN_EMAIL:}
 
 # Configuración y Secreto JWT (Firmado HMAC-SHA256, mínimo 256 bits / 32 bytes)
 jwt.access-token-expiration-seconds=300
@@ -57,3 +57,6 @@ gestopago.tx.espera-confirmacion-segundos=62
 gestopago.tx.vigencia-confirmacion-horas=24
 gestopago.tx.codigos-producto-inexistente=
 gestopago.tx.codigos-no-aplicada=70
+
+# CORS
+cors.allowed-origins=${CORS_ALLOWED_ORIGINS:http://localhost:8081,http://localhost:19006,http://localhost:3000}
