@@ -43,11 +43,7 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Credenciales de acceso inválidas", "email"));
 
         validarEstadoYBloqueo(auth);
-
-        if (!passwordEncoder.matches(request.getPassword(), auth.getPasswordHash())) {
-            manejarIntentoFallido(auth);
-            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
-        }
+        validarPassword(auth, request.getPassword());
 
         return generarSesionExitosa(auth, AuthMethod.PASSWORD);
     }
@@ -62,36 +58,91 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Cliente no encontrado para autenticación biométrica", "email"));
 
         validarEstadoYBloqueo(auth);
-
-        if (auth.getBiometricTemplate() == null || auth.getBiometricTemplate().length == 0) {
-            throw new BusinessException(ErrorCode.BIOMETRIC_AUTH_FAILED, "El cliente no cuenta con datos biométricos registrados. Inicie sesión con contraseña.", "biometrics");
-        }
-
-        if (auth.getBiometricType() == null || !auth.getBiometricType().equalsIgnoreCase(request.getBiometricType())) {
-            throw new BusinessException(ErrorCode.BIOMETRIC_AUTH_FAILED, "El tipo de biometría suministrado no coincide con el método registrado (" + auth.getBiometricType() + ")", "biometricType");
-        }
-
-        byte[] inputTemplate;
-        try {
-            inputTemplate = Base64.getDecoder().decode(request.getBiometricData());
-        } catch (IllegalArgumentException e) {
-            throw new BusinessException(ErrorCode.BIOMETRIC_AUTH_FAILED, "El formato de la plantilla biométrica Base64 es inválido", "biometricData");
-        }
-
-        // Descifrado de la plantilla biométrica almacenada cifrada con AES-256-GCM
-        byte[] decryptedStoredTemplate = aesEncryptionService.decryptBytes(auth.getBiometricTemplate());
-
-        // Comparación segura en tiempo constante para evitar ataques de canal lateral
-        if (!java.security.MessageDigest.isEqual(decryptedStoredTemplate, inputTemplate)) {
-            manejarIntentoFallido(auth);
-            throw new BusinessException(ErrorCode.BIOMETRIC_AUTH_FAILED, "La huella o rostro proporcionado no coincide con el registro biométrico del cliente", "biometricData");
-        }
+        validarPlantillaBiometrica(auth, request.getBiometricType(), request.getBiometricData());
 
         log.info("Autenticación biométrica exitosa para cliente ID: {}", auth.getIdClient());
         AuthMethod metodo = "HUELLA".equalsIgnoreCase(request.getBiometricType())
                 ? AuthMethod.BIOMETRIC_HUELLA
                 : AuthMethod.BIOMETRIC_FACIAL;
         return generarSesionExitosa(auth, metodo);
+    }
+
+    @Override
+    @Transactional
+    public OperationConfirmResponse confirmarOperacion(AuthenticatedClient usuario, OperationConfirmRequest request) {
+        if (usuario == null || usuario.getIdClient() == null) {
+            throw new BusinessException(ErrorCode.TOKEN_MISSING);
+        }
+        Auth auth = authRepository.findByIdClient(usuario.getIdClient())
+                .orElseThrow(() -> new BusinessException(ErrorCode.CLIENT_NOT_FOUND, String.valueOf(usuario.getIdClient())));
+
+        validarEstadoYBloqueo(auth);
+
+        boolean tienePassword = request != null && request.getPassword() != null && !request.getPassword().isBlank();
+        boolean tieneBiometria = request != null
+                && request.getBiometricData() != null && !request.getBiometricData().isBlank();
+
+        AuthMethod metodoConfirmacion;
+        if (tienePassword) {
+            validarPassword(auth, request.getPassword());
+            metodoConfirmacion = AuthMethod.PASSWORD;
+        } else if (tieneBiometria) {
+            String tipoBio = (request.getBiometricType() != null && !request.getBiometricType().isBlank())
+                    ? request.getBiometricType()
+                    : "HUELLA";
+            validarPlantillaBiometrica(auth, tipoBio, request.getBiometricData());
+            metodoConfirmacion = "HUELLA".equalsIgnoreCase(tipoBio)
+                    ? AuthMethod.BIOMETRIC_HUELLA
+                    : AuthMethod.BIOMETRIC_FACIAL;
+        } else {
+            throw new BusinessException(
+                    ErrorCode.INVALID_CREDENTIALS,
+                    "Debe proporcionar su contraseña o huella digital para confirmar la operación",
+                    "password");
+        }
+
+        if (auth.getFailedAttempts() != null && auth.getFailedAttempts() > 0) {
+            auth.setFailedAttempts(0);
+            authRepository.save(auth);
+        }
+
+        String confirmationToken = jwtTokenService.generateConfirmationToken(
+                auth.getIdClient(), auth.getIdLogin(), auth.getEmail(), metodoConfirmacion);
+        return OperationConfirmResponse.builder()
+                .confirmationToken(confirmationToken)
+                .expiresIn(jwtTokenService.getConfirmationTokenExpirationSeconds())
+                .build();
+    }
+
+    private void validarPassword(Auth auth, String rawPassword) {
+        if (!passwordEncoder.matches(rawPassword, auth.getPasswordHash())) {
+            manejarIntentoFallido(auth);
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
+        }
+    }
+
+    private void validarPlantillaBiometrica(Auth auth, String biometricType, String biometricData) {
+        if (auth.getBiometricTemplate() == null || auth.getBiometricTemplate().length == 0) {
+            throw new BusinessException(ErrorCode.BIOMETRIC_AUTH_FAILED, "El cliente no cuenta con datos biométricos registrados. Inicie sesión con contraseña.", "biometrics");
+        }
+
+        if (auth.getBiometricType() == null || !auth.getBiometricType().equalsIgnoreCase(biometricType)) {
+            throw new BusinessException(ErrorCode.BIOMETRIC_AUTH_FAILED, "El tipo de biometría suministrado no coincide con el método registrado (" + auth.getBiometricType() + ")", "biometricType");
+        }
+
+        byte[] inputTemplate;
+        try {
+            inputTemplate = Base64.getDecoder().decode(biometricData);
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(ErrorCode.BIOMETRIC_AUTH_FAILED, "El formato de la plantilla biométrica Base64 es inválido", "biometricData");
+        }
+
+        byte[] decryptedStoredTemplate = aesEncryptionService.decryptBytes(auth.getBiometricTemplate());
+
+        if (!java.security.MessageDigest.isEqual(decryptedStoredTemplate, inputTemplate)) {
+            manejarIntentoFallido(auth);
+            throw new BusinessException(ErrorCode.BIOMETRIC_AUTH_FAILED, "La huella o rostro proporcionado no coincide con el registro biométrico del cliente", "biometricData");
+        }
     }
 
     @Override

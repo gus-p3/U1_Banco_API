@@ -16,6 +16,8 @@ import com.intrumentoev.demo.model.gestopago.ProductoResponse;
 import com.intrumentoev.demo.model.gestopago.pago.EstadoPago;
 import com.intrumentoev.demo.model.gestopago.pago.GestoPagoHttpResponse;
 import com.intrumentoev.demo.model.gestopago.pago.GestoPagoTxResult;
+import com.intrumentoev.demo.model.gestopago.pago.PagoDetalleResponse;
+import com.intrumentoev.demo.model.gestopago.pago.PagoHistorialPageResponse;
 import com.intrumentoev.demo.model.gestopago.pago.PagoRequest;
 import com.intrumentoev.demo.model.gestopago.pago.PagoResponse;
 import com.intrumentoev.demo.model.gestopago.pago.TipoPago;
@@ -26,6 +28,7 @@ import com.intrumentoev.demo.repository.gestopago.PagoGestoPagoRepository;
 import com.intrumentoev.demo.service.service.gestopago.GestoPagoTokenService;
 import com.intrumentoev.demo.service.service.gestopago.PagoGestoPagoService;
 import com.intrumentoev.demo.service.service.gestopago.ProductoServiceRedis;
+import com.intrumentoev.demo.service.service.gestopago.ReferenciaValidacionService;
 import com.intrumentoev.demo.service.service.gestopago.UpcGenerator;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
@@ -83,6 +86,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
     private final GestoPagoTxClient txClient;
     private final GestoPagoXmlParser xmlParser;
     private final GestoPagoTokenService tokenService;
+    private final ReferenciaValidacionService referenciaValidacionService;
     private final UpcGenerator upcGenerator;
     private final Validator validator;
     private final TransactionTemplate tx;
@@ -112,6 +116,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
                                     GestoPagoTxClient txClient,
                                     GestoPagoXmlParser xmlParser,
                                     GestoPagoTokenService tokenService,
+                                    ReferenciaValidacionService referenciaValidacionService,
                                     UpcGenerator upcGenerator,
                                     Validator validator,
                                     @Qualifier("sfTransactionManager") PlatformTransactionManager transactionManager) {
@@ -125,6 +130,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
         this.txClient = txClient;
         this.xmlParser = xmlParser;
         this.tokenService = tokenService;
+        this.referenciaValidacionService = referenciaValidacionService;
         this.upcGenerator = upcGenerator;
         this.validator = validator;
         this.tx = new TransactionTemplate(transactionManager);
@@ -161,6 +167,11 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
         }
         validarTipoPago(tipoPago, producto);
         BigDecimal monto = calcularMonto(tipoPago, request, producto);
+
+        if (tipoPago == TipoPago.SERVICIO && !referenciaValidacionService.esReferenciaValidada(
+                idCliente, request.getIdServicio(), request.getIdProducto(), request.getReferencia(), monto)) {
+            throw new BusinessException(ErrorCode.REFERENCE_NOT_VALIDATED);
+        }
 
         // payload (se guarda sin cifrar para poder repetir confirmTx idéntico)
         String upc = generarUpcUnico();
@@ -539,5 +550,137 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
                     .build();
             default -> base.codigo(0).mensaje(MSG_EN_PROCESO).build();
         };
+    }
+
+    @Override
+    public PagoDetalleResponse consultarPagoCliente(AuthenticatedClient cliente, String idOrUpc) {
+        if (idOrUpc == null || idOrUpc.isBlank()) {
+            throw new BusinessException(ErrorCode.PAYMENT_NOT_FOUND, "");
+        }
+        String trimmed = idOrUpc.trim();
+        PagoGestoPago pago = null;
+        if (trimmed.matches("^\\d+$")) {
+            try {
+                Long id = Long.valueOf(trimmed);
+                pago = pagoRepository.findById(id).orElse(null);
+            } catch (NumberFormatException ignored) {
+                // Cae a búsqueda por UPC
+            }
+        }
+        if (pago == null) {
+            pago = pagoRepository.findByUpc(trimmed)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND, trimmed));
+        }
+        if (!cliente.getIdClient().equals(pago.getIdCliente())) {
+            throw new BusinessException(ErrorCode.PAYMENT_FORBIDDEN);
+        }
+        return aDetalleRespuesta(pago, false);
+    }
+
+    @Override
+    public PagoHistorialPageResponse listarPagosCliente(AuthenticatedClient cliente,
+                                                        EstadoPago estado,
+                                                        OffsetDateTime desde,
+                                                        OffsetDateTime hasta,
+                                                        int page,
+                                                        int size) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(100, Math.max(1, size));
+        Long idCliente = cliente.getIdClient();
+
+        org.springframework.data.jpa.domain.Specification<PagoGestoPago> spec = (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("idCliente"), idCliente));
+            if (estado != null) {
+                predicates.add(cb.equal(root.get("estado"), estado));
+            }
+            if (desde != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("fechaEnvio"), desde));
+            }
+            if (hasta != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("fechaEnvio"), hasta));
+            }
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+
+        var pageable = org.springframework.data.domain.PageRequest.of(
+                safePage,
+                safeSize,
+                org.springframework.data.domain.Sort.by(
+                        org.springframework.data.domain.Sort.Order.desc("fechaEnvio"),
+                        org.springframework.data.domain.Sort.Order.desc("id")));
+
+        var pageResult = pagoRepository.findAll(spec, pageable);
+        List<PagoDetalleResponse> items = pageResult.getContent().stream()
+                .map(p -> aDetalleRespuesta(p, true))
+                .collect(Collectors.toList());
+
+        return PagoHistorialPageResponse.builder()
+                .content(items)
+                .page(pageResult.getNumber())
+                .size(pageResult.getSize())
+                .totalElements(pageResult.getTotalElements())
+                .totalPages(pageResult.getTotalPages())
+                .last(pageResult.isLast())
+                .build();
+    }
+
+    protected PagoDetalleResponse aDetalleRespuesta(PagoGestoPago pago, boolean enmascararDestino) {
+        ProductoResponse prod = buscarProducto(pago.getIdServicio(), pago.getIdProducto());
+        String nombreServicio = prod != null && prod.getServicio() != null
+                ? prod.getServicio()
+                : "Servicio #" + pago.getIdServicio();
+        String nombreProducto = prod != null && prod.getProducto() != null
+                ? prod.getProducto()
+                : "Producto #" + pago.getIdProducto();
+        String categoria = prod != null ? prod.getCategoria() : null;
+
+        String rawDestino = pago.getTipoPago() == TipoPago.RECARGA ? pago.getTelefono() : pago.getReferencia();
+        String destinoMasked = enmascararReferencia(rawDestino);
+
+        int codigo = pago.getEstado() == EstadoPago.APLICADO ? 1 : 0;
+        String mensaje = switch (pago.getEstado()) {
+            case APLICADO -> pago.getTextoRespuesta() != null ? pago.getTextoRespuesta() : "Pago aplicado exitosamente";
+            case RECHAZADO -> pago.getTextoRespuesta() != null ? pago.getTextoRespuesta() : "El pago no fue aplicado";
+            default -> MSG_EN_PROCESO;
+        };
+
+        return PagoDetalleResponse.builder()
+                .id(pago.getId())
+                .codigo(codigo)
+                .mensaje(mensaje)
+                .estado(pago.getEstado())
+                .tipoPago(pago.getTipoPago())
+                .numCuenta(pago.getNumCuenta())
+                .idServicio(pago.getIdServicio())
+                .idProducto(pago.getIdProducto())
+                .nombreServicio(nombreServicio)
+                .nombreProducto(nombreProducto)
+                .categoria(categoria)
+                .telefono(enmascararDestino ? enmascararReferencia(pago.getTelefono()) : pago.getTelefono())
+                .referencia(enmascararDestino ? enmascararReferencia(pago.getReferencia()) : pago.getReferencia())
+                .destinoEnmascarado(destinoMasked)
+                .monto(pago.getMonto())
+                .comision(pago.getComision())
+                .codigoGestoPago(pago.getCodigoRespuesta())
+                .numAutorizacion(pago.getNumAutorizacion())
+                .idTx(pago.getIdTx())
+                .upc(pago.getUpc())
+                .fechaEnvio(pago.getFechaEnvio())
+                .fechaCreacion(pago.getFechaCreacion() != null ? pago.getFechaCreacion() : pago.getFechaEnvio())
+                .fechaActualizacion(pago.getFechaActualizacion())
+                .build();
+    }
+
+    public static String enmascararReferencia(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return null;
+        }
+        String clean = valor.trim();
+        if (clean.length() <= 4) {
+            return "****" + clean;
+        }
+        int visible = 4;
+        return "*".repeat(Math.min(8, clean.length() - visible)) + clean.substring(clean.length() - visible);
     }
 }

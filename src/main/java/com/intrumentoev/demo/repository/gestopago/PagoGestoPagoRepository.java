@@ -4,6 +4,7 @@ import com.intrumentoev.demo.entity.gestopago.PagoGestoPago;
 import com.intrumentoev.demo.model.gestopago.pago.EstadoPago;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,7 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface PagoGestoPagoRepository extends JpaRepository<PagoGestoPago, Long> {
+public interface PagoGestoPagoRepository extends JpaRepository<PagoGestoPago, Long>, JpaSpecificationExecutor<PagoGestoPago> {
 
     Optional<PagoGestoPago> findByUpc(String upc);
 

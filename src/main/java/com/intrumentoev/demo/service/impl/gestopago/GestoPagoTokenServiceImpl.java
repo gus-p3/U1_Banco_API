@@ -6,6 +6,7 @@ import com.intrumentoev.demo.mapper.gestopago.GestoPagoTokenMapper;
 import com.intrumentoev.demo.model.gestopago.GestoPagoAuthResponse;
 import com.intrumentoev.demo.repository.gestopago.GestoPagoTokenRepository;
 import com.intrumentoev.demo.service.service.gestopago.GestoPagoTokenService;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -23,13 +24,13 @@ public class GestoPagoTokenServiceImpl implements GestoPagoTokenService {
     private final GestoPagoTokenRepository tokenRepository;
     private final GestoPagoTokenMapper tokenMapper;
 
-    @Value("${gestopago.auth.id-distribuidor}")
+    @Value("${gestopago.auth.id-distribuidor:#{null}}")
     private Integer idDistribuidor;
 
-    @Value("${gestopago.auth.codigo-dispositivo}")
+    @Value("${gestopago.auth.codigo-dispositivo:}")
     private String codigoDispositivo;
 
-    @Value("${gestopago.auth.password}")
+    @Value("${gestopago.auth.password:}")
     private String password;
 
     @Value("${gestopago.auth.token-max-age-hours:23}")
@@ -44,6 +45,25 @@ public class GestoPagoTokenServiceImpl implements GestoPagoTokenService {
         this.gestoPagoAuthClient = gestoPagoAuthClient;
         this.tokenRepository = tokenRepository;
         this.tokenMapper = tokenMapper;
+    }
+
+    @PostConstruct
+    public void validarConfiguracion() {
+        if (staticBearerToken != null && !staticBearerToken.isBlank()) {
+            return;
+        }
+        if (idDistribuidor == null) {
+            throw new IllegalStateException(
+                    "Falta configurar la propiedad obligatoria gestopago.auth.id-distribuidor (variable de entorno GESTOPAGO_ID_DISTRIBUIDOR)");
+        }
+        if (codigoDispositivo == null || codigoDispositivo.isBlank()) {
+            throw new IllegalStateException(
+                    "Falta configurar la propiedad obligatoria gestopago.auth.codigo-dispositivo (variable de entorno GESTOPAGO_CODIGO_DISPOSITIVO)");
+        }
+        if (password == null || password.isBlank()) {
+            throw new IllegalStateException(
+                    "Falta configurar la propiedad obligatoria gestopago.auth.password (variable de entorno GESTOPAGO_PASSWORD)");
+        }
     }
 
     /**

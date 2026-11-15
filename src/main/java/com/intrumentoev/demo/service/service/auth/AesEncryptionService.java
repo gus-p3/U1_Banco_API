@@ -29,11 +29,15 @@ public class AesEncryptionService {
 
     private final SecretKey secretKey;
 
-    public AesEncryptionService(@Value("${security.encryption.aes-key:B4nc0$egur0Cl13nt3$P3rs0n4$F1s1c4$2026!}") String secretSeed) {
+    public AesEncryptionService(@Value("${security.encryption.aes-key:}") String secretSeed) {
+        if (secretSeed == null || secretSeed.isBlank()) {
+            throw new IllegalStateException(
+                    "Falta configurar la propiedad obligatoria security.encryption.aes-key (variable de entorno SECURITY_ENCRYPTION_AES_KEY)");
+        }
         try {
             // Derivación de clave simétrica de 256 bits mediante SHA-256
             MessageDigest sha = MessageDigest.getInstance("SHA-256");
-            byte[] keyBytes = sha.digest(secretSeed.getBytes(StandardCharsets.UTF_8));
+            byte[] keyBytes = sha.digest(secretSeed.trim().getBytes(StandardCharsets.UTF_8));
             this.secretKey = new SecretKeySpec(keyBytes, "AES");
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("Algoritmo SHA-256 no disponible en la JVM", e);

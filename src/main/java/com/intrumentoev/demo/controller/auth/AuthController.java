@@ -151,4 +151,25 @@ public class AuthController {
         authService.logout(usuario.getEmail());
         return ResponseEntity.noContent().build();
     }
+
+    @Operation(
+            summary = "Confirmar operación sensible (reautenticación para pagos en web y móvil)",
+            description = "Recibe la contraseña del cliente autenticado (o su huella en móvil), la valida y devuelve un token de confirmación de vida corta y de un solo uso para enviar en el header X-Confirmation-Token de POST /v1/pagos."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Operación confirmada; devuelve confirmationToken"),
+            @ApiResponse(responseCode = "401", description = "Contraseña o huella inválida, o sesión expirada"),
+            @ApiResponse(responseCode = "423", description = "Cuenta bloqueada por exceso de intentos fallidos")
+    })
+    @PostMapping(
+            value = "/confirmar-operacion",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<OperationConfirmResponse> confirmarOperacion(
+            @AuthenticationPrincipal AuthenticatedClient usuario,
+            @Valid @RequestBody OperationConfirmRequest request) {
+        OperationConfirmResponse response = authService.confirmarOperacion(usuario, request);
+        return ResponseEntity.ok(response);
+    }
 }

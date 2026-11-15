@@ -601,7 +601,29 @@ sequenceDiagram
 
 ### Requisitos Previos:
 * **Java 21 (JDK 21)** instalado y configurado en el `PATH`.
-* **PostgreSQL 14+** corriendo en `localhost:5432` con base de datos `banco` (o configurar credenciales en `application.properties`).
+* **PostgreSQL 14+** corriendo en `localhost:5432` con base de datos `banco`.
+* **Redis 6+** corriendo en `localhost:6379`.
+
+### Variables de Entorno Obligatorias:
+Por políticas de seguridad, `application.properties` **no incluye contraseñas ni llaves criptográficas por defecto** (y está excluido en `.gitignore`). Si falta alguna variable obligatoria al arrancar, la aplicación detiene el arranque inmediatamente con un mensaje claro.
+
+Puedes copiar `.env.example` a `.env` o exportar las siguientes variables en tu entorno antes de iniciar:
+
+| Variable de Entorno | Obligatoria | Descripción |
+| :--- | :---: | :--- |
+| `PGPASSWORD` (o `SPRING_DATASOURCE_PASSWORD`) | ✅ Sí | Contraseña del usuario PostgreSQL (`PGUSER` / `SPRING_DATASOURCE_USERNAME`). |
+| `JWT_SECRET` | ✅ Sí | Clave secreta para firmar JWT (HMAC-SHA256, mínimo 32 bytes / 256 bits). |
+| `SECURITY_ENCRYPTION_AES_KEY` | ✅ Sí | Semilla secreta para cifrado simétrico AES-256-GCM de plantillas biométricas. |
+| `GESTOPAGO_ID_DISTRIBUIDOR` | ✅ Sí* | Identificador numérico de distribuidor asignado por GestoPago. |
+| `GESTOPAGO_CODIGO_DISPOSITIVO` | ✅ Sí* | Código de dispositivo TPV asignado por GestoPago. |
+| `GESTOPAGO_PASSWORD` | ✅ Sí* | Contraseña de autenticación del dispositivo en GestoPago. |
+| `GESTOPAGO_SECRET_KEY` | ✅ Sí | Llave AES-256 en Base64 (32 bytes decodificados) para cifrar payloads de GestoPago. |
+| `GESTOPAGO_IV` | ✅ Sí | Vector de inicialización AES-CBC en Base64 (16 bytes decodificados) de GestoPago. |
+| `GESTOPAGO_BEARER_TOKEN` | ❌ Opcional | Token Bearer estático de GestoPago (*si se define, no se requieren usuario/password de auth*). |
+| `GESTOPAGO_API_KEY` | ❌ Opcional | Header `X-API-Key` para `sendTx.do` / `confirmTx.do` en caso de aplicar. |
+| `SECURITY_BOOTSTRAP_ADMIN_EMAIL` | ❌ Opcional | Correo del usuario que se promoverá a rol `ADMIN` al iniciar (vacío por defecto = ninguno). |
+| `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` | ❌ Opcional | Conexión a Redis (por defecto `localhost:6379`). |
+| `CORS_ALLOWED_ORIGINS` | ❌ Opcional | Orígenes permitidos separados por coma para la app web. |
 
 ### 1. Ejecutar la Aplicación:
 ```powershell

@@ -16,9 +16,9 @@ import com.intrumentoev.demo.repository.gestopago.GestoPagoTokenRepository;
 import com.intrumentoev.demo.repository.gestopago.ProductoRepository;
 import com.intrumentoev.demo.service.service.gestopago.ProductoServiceRedis;
 import com.intrumentoev.demo.service.service.gestopago.TransformProduct;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,8 +30,9 @@ import java.util.List;
 @Slf4j
 public class ProductServiceRedisImpl implements ProductoServiceRedis {
 
-    // Clave unificada en Redis para almacenar y consultar el catálogo de productos
-    private static final String REDIS_CATALOGO_KEY = "catalogo:productos:gestopago";
+    // Clave versionada en Redis para almacenar y consultar el catálogo con legend y categoría
+    private static final String REDIS_CATALOGO_KEY = "catalogo:productos:gestopago:v2";
+    private static final String LEGACY_REDIS_CATALOGO_KEY = "catalogo:productos:gestopago";
 
     private final GestoPagoProductClient gestoPagoProductClient;
     private final GestoPagoAuthClient gestoPagoAuth;
@@ -42,14 +43,16 @@ public class ProductServiceRedisImpl implements ProductoServiceRedis {
     private final ProductoRepository productoRepository;
     private final ProductoMapper productoMapper;
 
-    @Value("${gestopago.auth.id-distribuidor:83}")
-    private Integer idDistribuidor;
-
-    @Value("${gestopago.auth.codigo-dispositivo:GPS83-TPV-17}")
-    private String codigoDispositivo;
-
-    @Value("${gestopago.auth.password:12345678}")
-    private String password;
+    @PostConstruct
+    public void invalidarCacheAlDesplegar() {
+        try {
+            redisTemplate.delete(LEGACY_REDIS_CATALOGO_KEY);
+            redisTemplate.delete(REDIS_CATALOGO_KEY);
+            log.info("Caché Redis de catálogo GestoPago invalidada al iniciar despliegue.");
+        } catch (Exception ex) {
+            log.warn("No se pudo invalidar caché Redis al iniciar: {}", ex.getMessage());
+        }
+    }
 
     @Override
     @Transactional
@@ -57,9 +60,14 @@ public class ProductServiceRedisImpl implements ProductoServiceRedis {
         try {
             Object cached = redisTemplate.opsForValue().get(REDIS_CATALOGO_KEY);
             if (cached != null) {
-                log.info("Productos recuperados desde cache Redis.");
                 List<ProductoResponse> enCache = objectMapper.convertValue(cached, new TypeReference<List<ProductoResponse>>() {});
-                return productoMapper.filtrarYOrdenarPorTipoFront(enCache);
+                if (enCache != null && !enCache.isEmpty()) {
+                    log.info("Productos recuperados desde cache Redis ({} registros).", enCache.size());
+                    return productoMapper.filtrarYOrdenarPorTipoFront(enCache);
+                }
+                // Una clave existente pero vacía NO es un acierto de caché: se descarta y se sigue a BD/API
+                log.warn("La clave de Redis del catálogo existe pero está vacía; se elimina y se consulta BD/API.");
+                redisTemplate.delete(REDIS_CATALOGO_KEY);
             }
         } catch (Exception ex) {
             log.warn("No fue posible consultar Redis: {}", ex.getMessage());
@@ -81,6 +89,16 @@ public class ProductServiceRedisImpl implements ProductoServiceRedis {
         List<GestoPagoProductXmlResponse.ProductoXmlItem> items = transformProduct.transformProductXML(xmlResponse);
         List<ProductoResponse> itemJSON = transformProduct.transformProductJSON(items);
         List<ProductoResponse> productos = productoMapper.filtrarYOrdenarPorTipoFront(itemJSON);
+
+        if (productos == null || productos.isEmpty()) {
+            // Nunca se cachea ni se persiste un catálogo vacío: así un fallo del proveedor no "envenena" Redis.
+            log.warn("GestoPago devolvió 0 productos utilizables; no se guarda en Redis ni en BD.");
+            if (cron) {
+                // Dentro de la transacción de sincronizarCatalogo: hace rollback y conserva el catálogo previo en BD
+                throw new IllegalStateException("GestoPago devolvió un catálogo vacío; se conserva el catálogo anterior.");
+            }
+            return List.of();
+        }
 
         if (cron) {
             try {
@@ -118,6 +136,7 @@ public class ProductServiceRedisImpl implements ProductoServiceRedis {
         log.info("Iniciando sincronizacion de catalogo...");
 
         try {
+            redisTemplate.delete(LEGACY_REDIS_CATALOGO_KEY);
             redisTemplate.delete(REDIS_CATALOGO_KEY);
         } catch (Exception ex) {
             log.warn("No se pudo limpiar Redis: {}", ex.getMessage());

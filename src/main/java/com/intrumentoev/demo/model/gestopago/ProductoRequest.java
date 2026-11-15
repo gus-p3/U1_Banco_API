@@ -41,4 +41,8 @@ public class ProductoRequest {
 
     @NotNull(message = "El campo 'showAyuda' es obligatorio")
     private Boolean showAyuda;
+
+    private String legend;
+
+    private String categoria;
 }

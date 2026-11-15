@@ -34,12 +34,6 @@ public class ProductoServiceImpl implements ProductoService {
     private final GestoPagoTokenService tokenService;
     private final TransformProduct transformProduct;
 
-    @Value("${gestopago.auth.id-distribuidor:83}")
-    private Integer idDistribuidor;
-
-    @Value("${gestopago.auth.codigo-dispositivo:GPS83-TPV-17}")
-    private String codigoDispositivo;
-
     // 1. POST /v1/productos -> Consume la API XML de GestoPago, mapea los primeros 20 productos y los guarda en BD
     @Override
     @Transactional

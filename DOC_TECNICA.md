@@ -197,6 +197,13 @@ El ciclo de vida de la base de datos se versiona a través de scripts de migraci
 * `V12__alter_contact_details_remove_email_lower.sql`: Migración de compatibilidad para emails.
 * `V13__create_login_client_table.sql`: Autenticación, contraseñas y biometría cifrada.
 * `V14__create_account_balance_table.sql`: Libro mayor inmutable para historial de saldos.
+* `V15__create_gestopago_tokens.sql`: Persistencia de tokens diarios de GestoPago.
+* `V16__create_producto_table.sql`: Catálogo local de productos y servicios de GestoPago.
+* `V17__add_created_at_to_producto.sql`: Auditoría temporal en catálogo de productos.
+* `V18__create_pago_gestopago.sql`: Bitácora transaccional de pagos y recargas (`pago_gestopago`) con UPC único, estados (`PENDIENTE`, `APLICADO`, `RECHAZADO`, `POR_CONFIRMAR`), `payload_json` y `response_raw`.
+* `V19__add_pago_movement_types.sql`: Tipos de movimiento contable `PAGO_SERVICIO` y `REVERSO_PAGO` en `account_balance`.
+* `V20__add_role_to_auth.sql`: Control de acceso basado en roles (`CLIENT`, `ADMIN`).
+* `V21__add_legend_and_categoria_to_producto.sql`: Columnas `legend` (descripción/instrucciones XML de GestoPago) y `categoria` traducida en `producto`.
 
 ---
 
@@ -288,8 +295,21 @@ Para garantizar estricto control de acceso:
 | `POST` | `/v1/auth/login` | ❌ No | Autenticación mediante email y contraseña (PBKDF2). Establece `login = true` en servidor. | `200`, `400`, `401`, `423` |
 | `POST` | `/v1/auth/login-biometrico` | ❌ No | Login mediante huella dactilar o reconocimiento facial descifrado. | `200`, `400`, `401`, `423` |
 | `POST` | `/v1/auth/biometria` | ✅ Sí | Enrolamiento o actualización de biometría del cliente. | `200`, `400`, `401`, `404` |
+| `POST` | `/v1/auth/confirmar-operacion` | ✅ Sí | Reautenticación reciente (con contraseña o huella) que emite un token de confirmación de vida corta (1–2 min), de un solo uso (`jti`) y ligado al `idClient` del JWT para autorizar pagos en Web y Android. | `200`, `400`, `401` |
 | `POST` | `/v1/auth/refresh` | ❌ No | Renovación de token de acceso JWT y rotación de Refresh Token. | `200`, `401` |
-| `POST` | `/v1/auth/logout` | ❌ No | Cierre de sesión voluntario. Invalida tokens y pasa el booleano a `false`. | `204`, `400` |
+| `POST` | `/v1/auth/logout` | ✅ Sí | Cierre de sesión voluntario. Revoca el refresh token del cliente autenticado. | `204`, `401` |
+
+---
+
+### 6.3.1. Módulo de Catálogo, Validación de Referencias, Pagos e Historial GestoPago (`/v1/productos`, `/v1/referencias`, `/v1/pagos`)
+
+| Método | Ruta | Requiere Sesión | Descripción | Códigos HTTP |
+| :--- | :--- | :---: | :--- | :--- |
+| `GET` | `/v1/productos/redis` | ✅ Sí | Obtiene el catálogo activo de productos de GestoPago (`tipoFront > 0`) desde caché Redis (`catalogo:productos:gestopago:v2`) con fallback a PostgreSQL y API XML de GestoPago, incluyendo `legend` (descripción) y `categoria` traducida (`Recargas`, `Servicios`, `Pines y Entretenimiento`, etc.). | `200`, `401` |
+| `POST` | `/v1/referencias/validar` | ✅ Sí | Valida previamente una referencia de servicio contra el catálogo activo de GestoPago y sus reglas de formato (`tipoReferencia`, `hasDigitoVerificador`). Almacena la validación en Redis con TTL corto y distingue entre referencia válida, inválida y error técnico del proveedor (`502 GESTOPAGO_PROVIDER_ERROR`). | `200`, `400`, `401`, `404`, `502` |
+| `POST` | `/v1/pagos` | ✅ Sí | Ejecuta el pago de una recarga (`RECARGA`) o servicio (`SERVICIO`) vía `sendTx.do`. Exige `Authorization: Bearer <JWT>` (de cualquier método válido) más el header `X-Confirmation-Token` de un solo uso (`403 STRONG_AUTH_REQUIRED` si falta, expiró, fue reutilizado o pertenece a otro cliente). Para `SERVICIO`, exige que la referencia haya sido validada previamente (`422 REFERENCE_NOT_VALIDATED`). | `200`, `400`, `401`, `403`, `422` |
+| `GET` | `/v1/pagos` | ✅ Sí | Historial paginado y filtrable (`estado`, `desde`, `hasta`, `page`, `size`) exclusivamente de los pagos del cliente del JWT, con `referencia` / `telefono` parcialmente enmascarados. | `200`, `400`, `401` |
+| `GET` | `/v1/pagos/{idOrUpc}` | ✅ Sí | Consulta el estado actual (`APLICADO`, `RECHAZADO`, `POR_CONFIRMAR`, `PENDIENTE`) y el detalle completo de un pago por su `id` numérico o `upc`, validando que pertenezca al cliente del JWT (`403 PAYMENT_FORBIDDEN` si es de otro cliente, `404 PAYMENT_NOT_FOUND` si no existe). | `200`, `401`, `403`, `404` |
 
 ---
 
@@ -366,22 +386,25 @@ El sistema adopta las directrices de diseño de APIs de Microsoft y la especific
 * **Caché en Memoria:** Redis 6 o superior.
 * **Gestor de Compilación:** Gradle 8.x con Wrapper integrado.
 
-### 8.2. Variables y Propiedades Principales (`application.properties`)
+### 8.2. Variables de Entorno Obligatorias y Propiedades (`application.properties`)
+Ninguna credencial ni llave criptográfica tiene valor por defecto en código o configuración; la aplicación falla al arrancar (`StartupConfigValidator` / `@PostConstruct`) con un mensaje claro si falta cualquiera de las variables obligatorias:
 ```properties
-# Base de datos
-spring.datasource.url=jdbc:postgresql://localhost:5432/banco
-spring.datasource.username=postgres
-spring.datasource.password=linux
+# Base de datos (obligatoria variable de entorno PGPASSWORD)
+spring.datasource.url=jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:banco}
+spring.datasource.username=${PGUSER:postgres}
+spring.datasource.password=${PGPASSWORD}
 
-# Reglas de negocio
-bank.account.initial-balance=1000.00
-server.session.inactivity-limit-seconds=300
-jwt.access-token-expiration-seconds=300
+# Seguridad y Criptografía (obligatorias sin valor por defecto)
+jwt.secret=${JWT_SECRET}
+security.encryption.aes-key=${SECURITY_ENCRYPTION_AES_KEY}
+security.bootstrap-admin-email=${BOOTSTRAP_ADMIN_EMAIL:}
 
-# Serialización segura
-spring.jackson.deserialization.fail-on-unknown-properties=true
-spring.jackson.mapper.allow-coercion-of-scalars=false
-spring.jackson.default-property-inclusion=non_null
+# Proveedor GestoPago (obligatorias sin valor por defecto)
+gestopago.id-distribuidor=${GESTOPAGO_ID_DISTRIBUIDOR}
+gestopago.codigo-dispositivo=${GESTOPAGO_CODIGO_DISPOSITIVO}
+gestopago.password=${GESTOPAGO_PASSWORD}
+gestopago.secret-key=${GESTOPAGO_SECRET_KEY}
+gestopago.iv=${GESTOPAGO_IV}
 ```
 
 ### 8.3. Comandos de Compilación y Ejecución

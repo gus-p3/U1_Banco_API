@@ -34,6 +34,7 @@ public interface ProductoMapper {
     // Mapeos MapStruct de items XML a ProductoResponse (DTO)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "categoria", expression = "java(traducirCategoria(xmlItem.getIdCatTipoServicio(), xmlItem.getTipoFront()))")
     ProductoResponse xmlItemToResponse(GestoPagoProductXmlResponse.ProductoXmlItem xmlItem);
 
     List<ProductoResponse> xmlItemsToResponseList(List<GestoPagoProductXmlResponse.ProductoXmlItem> xmlItems);
@@ -41,9 +42,57 @@ public interface ProductoMapper {
     // Mapeos MapStruct de items XML a Producto (Entidad JPA)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "categoria", expression = "java(traducirCategoria(xmlItem.getIdCatTipoServicio(), xmlItem.getTipoFront()))")
     Producto xmlItemToEntity(GestoPagoProductXmlResponse.ProductoXmlItem xmlItem);
 
     List<Producto> xmlItemsToEntityList(List<GestoPagoProductXmlResponse.ProductoXmlItem> xmlItems);
+
+    @AfterMapping
+    default void enrichResponse(@MappingTarget ProductoResponse target, Producto source) {
+        if (target.getCategoria() == null || target.getCategoria().isBlank()) {
+            target.setCategoria(traducirCategoria(source.getIdCatTipoServicio(), source.getTipoFront()));
+        }
+    }
+
+    @AfterMapping
+    default void enrichEntity(@MappingTarget Producto target) {
+        if (target.getCategoria() == null || target.getCategoria().isBlank()) {
+            target.setCategoria(traducirCategoria(target.getIdCatTipoServicio(), target.getTipoFront()));
+        }
+    }
+
+    default String traducirCategoria(Integer idCatTipoServicio, Integer tipoFront) {
+        if (idCatTipoServicio != null) {
+            switch (idCatTipoServicio) {
+                case 1:
+                    return "Recargas";
+                case 2:
+                    return "Servicios";
+                case 3:
+                    return "Telecomunicaciones y TV";
+                case 4:
+                    return "Agua y Gobierno";
+                case 10:
+                case 11:
+                    return "Pines y Entretenimiento";
+                default:
+                    break;
+            }
+        }
+        if (tipoFront != null) {
+            switch (tipoFront) {
+                case 1:
+                    return "Recargas";
+                case 2:
+                    return "Servicios";
+                case 4:
+                    return "Pines y Entretenimiento";
+                default:
+                    break;
+            }
+        }
+        return "Otros servicios";
+    }
 
     default List<ProductoResponse> filtrarYOrdenarPorTipoFront(List<ProductoResponse> jsonItems) {
         if (jsonItems == null || jsonItems.isEmpty()) {
@@ -61,6 +110,9 @@ public interface ProductoMapper {
                     }
                     if (p.getCreatedAt() == null) {
                         p.setCreatedAt(now);
+                    }
+                    if (p.getCategoria() == null || p.getCategoria().isBlank()) {
+                        p.setCategoria(traducirCategoria(p.getIdCatTipoServicio(), p.getTipoFront()));
                     }
                 })
                 .collect(Collectors.toList());

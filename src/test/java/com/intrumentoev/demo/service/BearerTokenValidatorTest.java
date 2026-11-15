@@ -38,11 +38,16 @@ class BearerTokenValidatorTest {
         JwtTokenService service = new JwtTokenService();
         ReflectionTestUtils.setField(service, "jwtSecret", secret);
         ReflectionTestUtils.setField(service, "accessTokenExpirationSeconds", expSeconds);
+        ReflectionTestUtils.setField(service, "confirmationTokenExpirationSeconds", expSeconds);
         return service;
     }
 
     private String bearer(AuthMethod method) {
         return "Bearer " + jwtTokenService.generateAccessToken(10L, 1L, "cliente@banco.com", method);
+    }
+
+    private String confirmToken(Long idClient, AuthMethod method) {
+        return jwtTokenService.generateConfirmationToken(idClient, 1L, "cliente@banco.com", method);
     }
 
     /** Token firmado con la clave correcta pero con claims arbitrarios. */
@@ -119,22 +124,56 @@ class BearerTokenValidatorTest {
     }
 
     @Test
-    @DisplayName("Login con contraseña, facial o refresh no permite pagar → STRONG_AUTH_REQUIRED (403)")
-    void metodoNoPermitido() {
-        assertError(() -> validator.validarParaPago(bearer(AuthMethod.PASSWORD)), ErrorCode.STRONG_AUTH_REQUIRED);
-        assertError(() -> validator.validarParaPago(bearer(AuthMethod.BIOMETRIC_FACIAL)), ErrorCode.STRONG_AUTH_REQUIRED);
+    @DisplayName("Sin X-Confirmation-Token no permite pagar con ningún método → STRONG_AUTH_REQUIRED (403)")
+    void sinConfirmacionNoPermitePagar() {
+        assertError(() -> validator.validarParaPago(bearer(AuthMethod.PASSWORD), null), ErrorCode.STRONG_AUTH_REQUIRED);
+        assertError(() -> validator.validarParaPago(bearer(AuthMethod.PASSWORD), "  "), ErrorCode.STRONG_AUTH_REQUIRED);
+        assertError(() -> validator.validarParaPago(bearer(AuthMethod.BIOMETRIC_HUELLA), null), ErrorCode.STRONG_AUTH_REQUIRED);
         assertError(() -> validator.validarParaPago(bearer(AuthMethod.REFRESH)), ErrorCode.STRONG_AUTH_REQUIRED);
     }
 
     @Test
-    @DisplayName("Huella válida → devuelve los datos del token")
-    void huellaValida() {
-        AuthenticatedClient cliente = validator.validarParaPago(bearer(AuthMethod.BIOMETRIC_HUELLA));
+    @DisplayName("Confirmación válida permite pagar tanto con token PASSWORD como BIOMETRIC_HUELLA")
+    void confirmacionValidaPermitePagar() {
+        AuthenticatedClient conPass = validator.validarParaPago(
+                bearer(AuthMethod.PASSWORD),
+                confirmToken(10L, AuthMethod.PASSWORD));
+        assertThat(conPass.getIdClient()).isEqualTo(10L);
+        assertThat(conPass.getAuthMethod()).isEqualTo(AuthMethod.PASSWORD);
 
-        assertThat(cliente.getIdClient()).isEqualTo(10L);
-        assertThat(cliente.getIdLogin()).isEqualTo(1L);
-        assertThat(cliente.getEmail()).isEqualTo("cliente@banco.com");
-        assertThat(cliente.getAuthMethod()).isEqualTo(AuthMethod.BIOMETRIC_HUELLA);
+        AuthenticatedClient conHuella = validator.validarParaPago(
+                bearer(AuthMethod.BIOMETRIC_HUELLA),
+                confirmToken(10L, AuthMethod.BIOMETRIC_HUELLA));
+        assertThat(conHuella.getIdClient()).isEqualTo(10L);
+        assertThat(conHuella.getAuthMethod()).isEqualTo(AuthMethod.BIOMETRIC_HUELLA);
+    }
+
+    @Test
+    @DisplayName("Token de confirmación expirado, mal formado, reutilizado o de otro cliente → STRONG_AUTH_REQUIRED (403)")
+    void confirmacionInvalidaExpiradaReutilizadaOAjenas() {
+        // Expirado
+        String confirmExpirado = nuevoJwtService(SECRET, -10)
+                .generateConfirmationToken(10L, 1L, "cliente@banco.com", AuthMethod.PASSWORD);
+        assertError(() -> validator.validarParaPago(bearer(AuthMethod.PASSWORD), confirmExpirado),
+                ErrorCode.STRONG_AUTH_REQUIRED);
+
+        // Mal formado o un access token común usado como confirmación
+        assertError(() -> validator.validarParaPago(bearer(AuthMethod.PASSWORD), "no-es-jwt"),
+                ErrorCode.STRONG_AUTH_REQUIRED);
+        String accessNormal = jwtTokenService.generateAccessToken(10L, 1L, "cliente@banco.com", AuthMethod.PASSWORD);
+        assertError(() -> validator.validarParaPago(bearer(AuthMethod.PASSWORD), accessNormal),
+                ErrorCode.STRONG_AUTH_REQUIRED);
+
+        // De otro cliente
+        String confirmOtroCliente = confirmToken(999L, AuthMethod.PASSWORD);
+        assertError(() -> validator.validarParaPago(bearer(AuthMethod.PASSWORD), confirmOtroCliente),
+                ErrorCode.STRONG_AUTH_REQUIRED);
+
+        // Reutilizado (de un solo uso)
+        String confirmUnico = confirmToken(10L, AuthMethod.PASSWORD);
+        assertThat(validator.validarParaPago(bearer(AuthMethod.PASSWORD), confirmUnico).getIdClient()).isEqualTo(10L);
+        assertError(() -> validator.validarParaPago(bearer(AuthMethod.PASSWORD), confirmUnico),
+                ErrorCode.STRONG_AUTH_REQUIRED);
     }
 
     @Test

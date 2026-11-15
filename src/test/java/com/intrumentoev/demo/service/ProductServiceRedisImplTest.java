@@ -70,6 +70,36 @@ class ProductServiceRedisImplTest {
     }
 
     @Test
+    @DisplayName("Una clave de Redis con lista vacía no es acierto: se elimina y se consulta la API")
+    void cacheVacioSeTrataComoFallo() {
+        when(valueOps.get(anyString())).thenReturn(List.of());
+        when(productoRepository.findAll()).thenReturn(List.of());
+        apiDevuelveProductos();
+
+        List<ProductoResponse> result = service.getProductsRedis();
+
+        assertThat(result).hasSize(1);
+        verify(redisTemplate).delete(anyString());
+        verify(productClient).getProductListXml("Bearer tok");
+        verify(valueOps).set(anyString(), any());
+    }
+
+    @Test
+    @DisplayName("Si la API devuelve 0 productos no se guarda nada en Redis ni en BD")
+    void apiVaciaNoSeCachea() {
+        when(valueOps.get(anyString())).thenReturn(null);
+        when(productoRepository.findAll()).thenReturn(List.of());
+        when(tokenService.obtenerTokenVigente()).thenReturn("tok");
+        when(productClient.getProductListXml("Bearer tok"))
+                .thenReturn("<RESPONSE><MENSAJE><CODIGO>00</CODIGO><TEXTO>ok</TEXTO></MENSAJE><PRODUCTOS></PRODUCTOS></RESPONSE>");
+
+        assertThat(service.getProductsRedis()).isEmpty();
+
+        verify(valueOps, never()).set(anyString(), any());
+        verify(productoRepository, never()).saveAll(anyList());
+    }
+
+    @Test
     @DisplayName("Sin Redis cae a PostgreSQL")
     void desdePostgres() {
         when(valueOps.get(anyString())).thenThrow(new RuntimeException("redis caído"));
@@ -109,13 +139,14 @@ class ProductServiceRedisImplTest {
     }
 
     @Test
-    @DisplayName("sincronizarCatalogo limpia Redis y BD, y repuebla ambos")
+    @DisplayName("sincronizarCatalogo limpia Redis y BD, y repuebla ambos; invalidarCacheAlDesplegar limpia claves")
     void sincronizar() {
         apiDevuelveProductos();
 
+        service.invalidarCacheAlDesplegar();
         assertThat(service.sincronizarCatalogo()).isNull();
 
-        verify(redisTemplate).delete(anyString());
+        verify(redisTemplate, atLeastOnce()).delete(anyString());
         verify(productoRepository).deleteAll();
         verify(valueOps).set(anyString(), any());
         verify(productoRepository).saveAll(anyList());

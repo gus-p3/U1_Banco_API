@@ -17,21 +17,22 @@ class TransformProductImplTest {
 
     static final String XML = "<RESPONSE><MENSAJE><CODIGO>01</CODIGO><TEXTO>OK</TEXTO></MENSAJE><PRODUCTOS>"
             + "<producto servicio=\"Telcel\" producto=\"Recarga 50\" idServicio=\"133\" idProducto=\"582\" "
-            + "idCatTipoServicio=\"1\" tipoFront=\"1\" precio=\"50.00\"/>"
+            + "idCatTipoServicio=\"1\" tipoFront=\"1\" precio=\"50.00\"><legend>Recarga de tiempo aire Telcel</legend></producto>"
             + "<producto servicio=\"CFE\" producto=\"Luz\" idServicio=\"79\" idProducto=\"209\" "
-            + "idCatTipoServicio=\"2\" tipoFront=\"0\"/>"
+            + "idCatTipoServicio=\"2\" tipoFront=\"0\"><legend>Pago de recibo CFE</legend></producto>"
             + "</PRODUCTOS></RESPONSE>";
 
     private final TransformProductImpl transform = new TransformProductImpl(new ProductoMapperImpl());
 
     @Test
-    @DisplayName("transformProductXML parsea los productos del XML")
+    @DisplayName("transformProductXML parsea los productos del XML incluyendo legend")
     void parseaXml() {
         List<ProductoXmlItem> items = transform.transformProductXML(XML);
 
         assertThat(items).hasSize(2);
         assertThat(items.get(0).getServicio()).isEqualTo("Telcel");
         assertThat(items.get(0).getIdProducto()).isEqualTo(582);
+        assertThat(items.get(0).getLegend()).isEqualTo("Recarga de tiempo aire Telcel");
     }
 
     @Test
@@ -60,13 +61,32 @@ class TransformProductImplTest {
     }
 
     @Test
-    @DisplayName("transformProductJSON numera los productos y asigna createdAt")
+    @DisplayName("transformProductJSON numera los productos, asigna createdAt, legend y categoria")
     void json() {
         List<ProductoResponse> respuestas = transform.transformProductJSON(transform.transformProductXML(XML));
 
         assertThat(respuestas).extracting(ProductoResponse::getId).containsExactly(1, 2);
         assertThat(respuestas).allSatisfy(p -> assertThat(p.getCreatedAt()).isNotNull());
+        assertThat(respuestas.get(0).getLegend()).isEqualTo("Recarga de tiempo aire Telcel");
+        assertThat(respuestas.get(0).getCategoria()).isEqualTo("Recargas");
+        assertThat(respuestas.get(1).getCategoria()).isEqualTo("Servicios");
         assertThat(transform.transformProductJSON(null)).isEmpty();
         assertThat(transform.transformProductJSON(List.of())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("traducirCategoria mapea idCatTipoServicio y tipoFront a categorías claras en español")
+    void categorias() {
+        ProductoMapperImpl mapper = new ProductoMapperImpl();
+        assertThat(mapper.traducirCategoria(1, 1)).isEqualTo("Recargas");
+        assertThat(mapper.traducirCategoria(2, 2)).isEqualTo("Servicios");
+        assertThat(mapper.traducirCategoria(3, 2)).isEqualTo("Telecomunicaciones y TV");
+        assertThat(mapper.traducirCategoria(4, 2)).isEqualTo("Agua y Gobierno");
+        assertThat(mapper.traducirCategoria(10, 4)).isEqualTo("Pines y Entretenimiento");
+        assertThat(mapper.traducirCategoria(11, 4)).isEqualTo("Pines y Entretenimiento");
+        assertThat(mapper.traducirCategoria(99, 1)).isEqualTo("Recargas");
+        assertThat(mapper.traducirCategoria(99, 2)).isEqualTo("Servicios");
+        assertThat(mapper.traducirCategoria(99, 4)).isEqualTo("Pines y Entretenimiento");
+        assertThat(mapper.traducirCategoria(null, null)).isEqualTo("Otros servicios");
     }
 }

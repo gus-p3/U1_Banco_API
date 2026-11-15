@@ -17,4 +17,6 @@ public class ProductoPatchRequest {
     private String tipoReferencia;
     private String precio;
     private Boolean showAyuda;
+    private String legend;
+    private String categoria;
 }
