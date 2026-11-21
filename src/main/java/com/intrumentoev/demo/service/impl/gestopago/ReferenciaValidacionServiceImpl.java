@@ -7,7 +7,7 @@ import com.intrumentoev.demo.model.gestopago.ProductoResponse;
 import com.intrumentoev.demo.model.gestopago.referencia.ValidarReferenciaRequest;
 import com.intrumentoev.demo.model.gestopago.referencia.ValidarReferenciaResponse;
 import com.intrumentoev.demo.service.service.gestopago.GestoPagoTokenService;
-import com.intrumentoev.demo.service.service.gestopago.ProductoServiceRedis;
+import com.intrumentoev.demo.service.service.gestopago.ProductoService;
 import com.intrumentoev.demo.service.service.gestopago.ReferenciaValidacionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +30,7 @@ public class ReferenciaValidacionServiceImpl implements ReferenciaValidacionServ
 
     private static final String REDIS_KEY_PREFIX = "validacion:referencia:";
 
-    private final ProductoServiceRedis productoServiceRedis;
+    private final ProductoService productoService;
     private final GestoPagoTokenService tokenService;
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -50,7 +50,7 @@ public class ReferenciaValidacionServiceImpl implements ReferenciaValidacionServ
             if (token == null || token.isBlank()) {
                 throw new IllegalStateException("Token de GestoPago no disponible");
             }
-            catalogo = productoServiceRedis.getProductsRedis();
+            catalogo = productoService.getProductsRedis();
             if (catalogo == null) {
                 throw new IllegalStateException("Catálogo de GestoPago no disponible");
             }

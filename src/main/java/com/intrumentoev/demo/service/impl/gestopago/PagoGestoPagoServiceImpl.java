@@ -27,7 +27,7 @@ import com.intrumentoev.demo.repository.client.ClientRepository;
 import com.intrumentoev.demo.repository.gestopago.PagoGestoPagoRepository;
 import com.intrumentoev.demo.service.service.gestopago.GestoPagoTokenService;
 import com.intrumentoev.demo.service.service.gestopago.PagoGestoPagoService;
-import com.intrumentoev.demo.service.service.gestopago.ProductoServiceRedis;
+import com.intrumentoev.demo.service.service.gestopago.ProductoService;
 import com.intrumentoev.demo.service.service.gestopago.ReferenciaValidacionService;
 import com.intrumentoev.demo.service.service.gestopago.UpcGenerator;
 import jakarta.validation.ConstraintViolation;
@@ -80,7 +80,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
     private final AccountBalanceRepository accountBalanceRepository;
     private final ClientRepository clientRepository;
     private final PagoGestoPagoRepository pagoRepository;
-    private final ProductoServiceRedis productoServiceRedis;
+    private final ProductoService productoService;
     private final CatalogoRefresher catalogoRefresher;
     private final GestoPagoCipher cipher;
     private final GestoPagoTxClient txClient;
@@ -110,7 +110,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
                                     AccountBalanceRepository accountBalanceRepository,
                                     ClientRepository clientRepository,
                                     PagoGestoPagoRepository pagoRepository,
-                                    ProductoServiceRedis productoServiceRedis,
+                                    ProductoService productoService,
                                     CatalogoRefresher catalogoRefresher,
                                     GestoPagoCipher cipher,
                                     GestoPagoTxClient txClient,
@@ -124,7 +124,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
         this.accountBalanceRepository = accountBalanceRepository;
         this.clientRepository = clientRepository;
         this.pagoRepository = pagoRepository;
-        this.productoServiceRedis = productoServiceRedis;
+        this.productoService = productoService;
         this.catalogoRefresher = catalogoRefresher;
         this.cipher = cipher;
         this.txClient = txClient;
@@ -362,7 +362,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
 
     private ProductoResponse buscarProducto(Integer idServicio, Integer idProducto) {
         try {
-            List<ProductoResponse> catalogo = productoServiceRedis.getProductsRedis();
+            List<ProductoResponse> catalogo = productoService.getProductsRedis();
             if (catalogo == null) {
                 return null;
             }

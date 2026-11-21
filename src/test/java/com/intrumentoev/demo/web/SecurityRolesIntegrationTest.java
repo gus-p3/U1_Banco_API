@@ -9,7 +9,7 @@ import com.intrumentoev.demo.repository.auth.AuthRepository;
 import com.intrumentoev.demo.service.impl.gestopago.CatalogoRefresher;
 import com.intrumentoev.demo.service.service.auth.JwtTokenService;
 import com.intrumentoev.demo.service.service.gestopago.GestoPagoTokenService;
-import com.intrumentoev.demo.service.service.gestopago.ProductoServiceRedis;
+import com.intrumentoev.demo.service.service.gestopago.ProductoService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +42,7 @@ class SecurityRolesIntegrationTest {
     @Autowired private JwtTokenService jwtTokenService;
     @Autowired private AuthRepository authRepository;
 
-    @MockitoBean private ProductoServiceRedis productoServiceRedis;
+    @MockitoBean private ProductoService productoService;
     @MockitoBean private GestoPagoTokenService tokenService;
     @MockitoBean private CatalogoRefresher catalogoRefresher;
 

@@ -286,7 +286,7 @@ class PagoControllerTest extends PagoIntegrationTestBase {
     void validacionDeReferenciasCasosBorde() throws Exception {
         String auth = bearer(AuthMethod.PASSWORD);
 
-        when(productoServiceRedis.getProductsRedis()).thenReturn(java.util.List.of(
+        when(productoService.getProductsRedis()).thenReturn(java.util.List.of(
                 com.intrumentoev.demo.model.gestopago.ProductoResponse.builder()
                         .idServicio(79).idProducto(209).producto("Luz CFE").servicio("CFE")
                         .idCatTipoServicio(2).tipoFront(2).hasDigitoVerificador(true)

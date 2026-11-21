@@ -123,7 +123,7 @@ class PagoGestoPagoServiceTest extends PagoIntegrationTestBase {
     @Test
     @DisplayName("idCatTipoServicio 10/11: telefono fijo #1111111111")
     void telefonoCatalogo10() throws Exception {
-        when(productoServiceRedis.getProductsRedis()).thenReturn(java.util.List.of(
+        when(productoService.getProductsRedis()).thenReturn(java.util.List.of(
                 com.intrumentoev.demo.model.gestopago.ProductoResponse.builder().idServicio(79).idProducto(209)
                         .idCatTipoServicio(10).tipoFront(2).precio("0").build()));
         when(txClient.sendTx(anyString(), anyString())).thenReturn(xml("01", "ok", 1L, "10", "1.00"));

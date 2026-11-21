@@ -12,7 +12,6 @@ import com.intrumentoev.demo.model.persona.PersonasRequest;
 import com.intrumentoev.demo.scheduler.ProductoCatalogScheduler;
 import com.intrumentoev.demo.service.impl.gestopago.CatalogoRefresher;
 import com.intrumentoev.demo.service.service.gestopago.ProductoService;
-import com.intrumentoev.demo.service.service.gestopago.ProductoServiceRedis;
 import com.intrumentoev.demo.service.service.persona.PersonaService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,7 +33,6 @@ import static org.mockito.Mockito.*;
 class ProductoControllersTest {
 
     @Mock private ProductoService productoService;
-    @Mock private ProductoServiceRedis productoServiceRedis;
     @Mock private PersonaService personaService;
     @InjectMocks private ProductoController productoController;
     @InjectMocks private ProductoRedisController redisController;
@@ -69,8 +67,8 @@ class ProductoControllersTest {
     @Test
     @DisplayName("ProductoRedisController consulta y sincroniza el catálogo")
     void redisController() {
-        when(productoServiceRedis.getProductsRedis()).thenReturn(List.of(producto));
-        when(productoServiceRedis.sincronizarCatalogo()).thenReturn(List.of(producto));
+        when(productoService.getProductsRedis()).thenReturn(List.of(producto));
+        when(productoService.sincronizarCatalogo()).thenReturn(List.of(producto));
 
         assertThat(redisController.getProductsRedis().getBody()).containsExactly(producto);
         assertThat(redisController.sincronizarManual().getBody()).containsExactly(producto);
@@ -96,16 +94,16 @@ class ProductoControllersTest {
     @Test
     @DisplayName("El scheduler y el refresher sincronizan el catálogo y no propagan errores")
     void jobs() {
-        ProductoCatalogScheduler scheduler = new ProductoCatalogScheduler(productoServiceRedis);
-        CatalogoRefresher refresher = new CatalogoRefresher(productoServiceRedis);
+        ProductoCatalogScheduler scheduler = new ProductoCatalogScheduler(productoService);
+        CatalogoRefresher refresher = new CatalogoRefresher(productoService);
 
         scheduler.renovarCatalogoDiario();
         refresher.refrescarEnSegundoPlano();
-        verify(productoServiceRedis, times(2)).sincronizarCatalogo();
+        verify(productoService, times(2)).sincronizarCatalogo();
 
-        when(productoServiceRedis.sincronizarCatalogo()).thenThrow(new RuntimeException("API caída"));
+        when(productoService.sincronizarCatalogo()).thenThrow(new RuntimeException("API caída"));
         scheduler.renovarCatalogoDiario();
         refresher.refrescarEnSegundoPlano();
-        verify(productoServiceRedis, times(4)).sincronizarCatalogo();
+        verify(productoService, times(4)).sincronizarCatalogo();
     }
 }
