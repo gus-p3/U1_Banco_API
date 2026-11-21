@@ -14,10 +14,13 @@ import java.util.stream.Collectors;
 @Mapper(componentModel = "spring")
 public interface ProductoMapper {
 
+    String GESTOPAGO_LOGO_URL_TEMPLATE = "https://gestopago.portalventas.net/sistema/images/gestopago/servicios/%d.png";
+
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     Producto toEntity(ProductoRequest request);
 
+    @Mapping(target = "logoUrl", expression = "java(construirLogoUrl(entity.getIdServicio()))")
     ProductoResponse toResponse(Producto entity);
 
     List<ProductoResponse> toResponseList(List<Producto> entities);
@@ -35,6 +38,7 @@ public interface ProductoMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "categoria", expression = "java(traducirCategoria(xmlItem.getIdCatTipoServicio(), xmlItem.getTipoFront()))")
+    @Mapping(target = "logoUrl", expression = "java(construirLogoUrl(xmlItem.getIdServicio()))")
     ProductoResponse xmlItemToResponse(GestoPagoProductXmlResponse.ProductoXmlItem xmlItem);
 
     List<ProductoResponse> xmlItemsToResponseList(List<GestoPagoProductXmlResponse.ProductoXmlItem> xmlItems);
@@ -52,6 +56,16 @@ public interface ProductoMapper {
         if (target.getCategoria() == null || target.getCategoria().isBlank()) {
             target.setCategoria(traducirCategoria(source.getIdCatTipoServicio(), source.getTipoFront()));
         }
+        if (target.getLogoUrl() == null || target.getLogoUrl().isBlank()) {
+            target.setLogoUrl(construirLogoUrl(source.getIdServicio()));
+        }
+    }
+
+    default String construirLogoUrl(Integer idServicio) {
+        if (idServicio == null || idServicio <= 0) {
+            return null;
+        }
+        return String.format(GESTOPAGO_LOGO_URL_TEMPLATE, idServicio);
     }
 
     @AfterMapping
@@ -113,6 +127,9 @@ public interface ProductoMapper {
                     }
                     if (p.getCategoria() == null || p.getCategoria().isBlank()) {
                         p.setCategoria(traducirCategoria(p.getIdCatTipoServicio(), p.getTipoFront()));
+                    }
+                    if (p.getLogoUrl() == null || p.getLogoUrl().isBlank()) {
+                        p.setLogoUrl(construirLogoUrl(p.getIdServicio()));
                     }
                 })
                 .collect(Collectors.toList());

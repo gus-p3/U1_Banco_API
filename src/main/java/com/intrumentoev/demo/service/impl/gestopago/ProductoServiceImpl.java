@@ -13,10 +13,11 @@ import com.intrumentoev.demo.model.gestopago.ProductoResponse;
 import com.intrumentoev.demo.repository.gestopago.GestoPagoTokenRepository;
 import com.intrumentoev.demo.repository.gestopago.ProductoRepository;
 import com.intrumentoev.demo.service.service.gestopago.ProductoService;
+import com.intrumentoev.demo.service.service.gestopago.ProductoServiceRedis;
 import com.intrumentoev.demo.service.service.gestopago.TransformProduct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +34,9 @@ public class ProductoServiceImpl implements ProductoService {
     private final GestoPagoProductClient gestoPagoProductClient;
     private final GestoPagoTokenService tokenService;
     private final TransformProduct transformProduct;
+
+    @Autowired(required = false)
+    private ProductoServiceRedis productoServiceRedis;
 
     // 1. POST /v1/productos -> Consume la API XML de GestoPago, mapea los primeros 20 productos y los guarda en BD
     @Override
@@ -71,6 +75,10 @@ public class ProductoServiceImpl implements ProductoService {
     public List<ProductoResponse> obtenerTodosLosProductos() {
         log.info("Consultando todos los productos de la BD");
         List<Producto> productos = productoRepository.findAll();
+        if ((productos == null || productos.isEmpty()) && productoServiceRedis != null) {
+            log.info("BD sin productos; consultando respaldo desde Redis");
+            return productoServiceRedis.getProductsRedis();
+        }
         return productoMapper.toResponseList(productos);
     }
 
@@ -134,6 +142,11 @@ public class ProductoServiceImpl implements ProductoService {
         String xmlResponse = gestoPagoProductClient.getProductListXml(bearerHeader);
 
         List<GestoPagoProductXmlResponse.ProductoXmlItem> items = transformProduct.transformProductXML(xmlResponse);
-        return transformProduct.transformProductJSON(items);
+        List<ProductoResponse> resultado = transformProduct.transformProductJSON(items);
+        if ((resultado == null || resultado.isEmpty()) && productoServiceRedis != null) {
+            log.info("API XML de GestoPago sin productos; consultando respaldo desde Redis");
+            return productoServiceRedis.getProductsRedis();
+        }
+        return resultado;
     }
 }

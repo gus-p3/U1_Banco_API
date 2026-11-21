@@ -46,17 +46,53 @@ public class ProductServiceRedisImpl implements ProductoServiceRedis {
     @PostConstruct
     public void invalidarCacheAlDesplegar() {
         try {
+            Object actual = redisTemplate.opsForValue().get(REDIS_CATALOGO_KEY);
+            if (actual == null) {
+                Object legacy = redisTemplate.opsForValue().get(LEGACY_REDIS_CATALOGO_KEY);
+                if (legacy != null) {
+                    List<ProductoResponse> enLegacy = objectMapper.convertValue(
+                            legacy, new TypeReference<List<ProductoResponse>>() {});
+                    if (enLegacy != null && !enLegacy.isEmpty()) {
+                        List<ProductoResponse> enriquecidos = productoMapper.filtrarYOrdenarPorTipoFront(enLegacy);
+                        redisTemplate.opsForValue().set(REDIS_CATALOGO_KEY, enriquecidos);
+                        log.info("Caché Redis migrada desde clave legacy ({} productos).", enriquecidos.size());
+                    }
+                }
+            }
             redisTemplate.delete(LEGACY_REDIS_CATALOGO_KEY);
-            redisTemplate.delete(REDIS_CATALOGO_KEY);
-            log.info("Caché Redis de catálogo GestoPago invalidada al iniciar despliegue.");
         } catch (Exception ex) {
-            log.warn("No se pudo invalidar caché Redis al iniciar: {}", ex.getMessage());
+            log.warn("No se pudo verificar caché Redis al iniciar: {}", ex.getMessage());
         }
     }
 
     @Override
     @Transactional
     public List<ProductoResponse> getProductsRedis() {
+        List<ProductoResponse> enRedis = leerDesdeRedis();
+        if (!enRedis.isEmpty()) {
+            return enRedis;
+        }
+
+        List<Producto> enPostgres = productoRepository.findAll();
+        if (enPostgres != null && !enPostgres.isEmpty()) {
+            log.info("Productos recuperados desde base de datos ({} registros).", enPostgres.size());
+            List<ProductoResponse> responses = productoMapper.toResponseList(enPostgres);
+            List<ProductoResponse> filtrados = productoMapper.filtrarYOrdenarPorTipoFront(responses);
+            try {
+                if (!filtrados.isEmpty()) {
+                    redisTemplate.opsForValue().set(REDIS_CATALOGO_KEY, filtrados);
+                }
+            } catch (Exception ex) {
+                log.warn("No fue posible repoblar Redis desde PostgreSQL: {}", ex.getMessage());
+            }
+            return filtrados;
+        }
+
+        log.info("No se encontraron productos en cache ni en base de datos. Consultando API...");
+        return consumirApiYGuardar(false);
+    }
+
+    private List<ProductoResponse> leerDesdeRedis() {
         try {
             Object cached = redisTemplate.opsForValue().get(REDIS_CATALOGO_KEY);
             if (cached != null) {
@@ -65,23 +101,23 @@ public class ProductServiceRedisImpl implements ProductoServiceRedis {
                     log.info("Productos recuperados desde cache Redis ({} registros).", enCache.size());
                     return productoMapper.filtrarYOrdenarPorTipoFront(enCache);
                 }
-                // Una clave existente pero vacía NO es un acierto de caché: se descarta y se sigue a BD/API
                 log.warn("La clave de Redis del catálogo existe pero está vacía; se elimina y se consulta BD/API.");
                 redisTemplate.delete(REDIS_CATALOGO_KEY);
+            }
+            Object legacy = redisTemplate.opsForValue().get(LEGACY_REDIS_CATALOGO_KEY);
+            if (legacy != null) {
+                List<ProductoResponse> enLegacy = objectMapper.convertValue(legacy, new TypeReference<List<ProductoResponse>>() {});
+                if (enLegacy != null && !enLegacy.isEmpty()) {
+                    List<ProductoResponse> filtrados = productoMapper.filtrarYOrdenarPorTipoFront(enLegacy);
+                    redisTemplate.opsForValue().set(REDIS_CATALOGO_KEY, filtrados);
+                    log.info("Productos recuperados desde clave legacy de Redis ({} registros).", filtrados.size());
+                    return filtrados;
+                }
             }
         } catch (Exception ex) {
             log.warn("No fue posible consultar Redis: {}", ex.getMessage());
         }
-
-        List<Producto> enPostgres = productoRepository.findAll();
-        if (enPostgres != null && !enPostgres.isEmpty()) {
-            log.info("Productos recuperados desde base de datos ({} registros).", enPostgres.size());
-            List<ProductoResponse> responses = productoMapper.toResponseList(enPostgres);
-            return productoMapper.filtrarYOrdenarPorTipoFront(responses);
-        }
-
-        log.info("No se encontraron productos en cache ni en base de datos. Consultando API...");
-        return consumirApiYGuardar(false);
+        return List.of();
     }
 
     private List<ProductoResponse> consumirApiYGuardar(boolean cron) {
@@ -91,21 +127,20 @@ public class ProductServiceRedisImpl implements ProductoServiceRedis {
         List<ProductoResponse> productos = productoMapper.filtrarYOrdenarPorTipoFront(itemJSON);
 
         if (productos == null || productos.isEmpty()) {
-            // Nunca se cachea ni se persiste un catálogo vacío: así un fallo del proveedor no "envenena" Redis.
-            log.warn("GestoPago devolvió 0 productos utilizables; no se guarda en Redis ni en BD.");
-            if (cron) {
-                // Dentro de la transacción de sincronizarCatalogo: hace rollback y conserva el catálogo previo en BD
-                throw new IllegalStateException("GestoPago devolvió un catálogo vacío; se conserva el catálogo anterior.");
-            }
-            return List.of();
+            // Si GestoPago no devuelve productos, NO se borra ni se sobrescribe Redis ni PostgreSQL y se devuelve lo que haya en Redis.
+            log.warn("GestoPago devolvió 0 productos utilizables; se conserva intacto lo existente y se usa Redis.");
+            return leerDesdeRedis();
         }
 
         if (cron) {
             try {
+                redisTemplate.delete(LEGACY_REDIS_CATALOGO_KEY);
+                redisTemplate.delete(REDIS_CATALOGO_KEY);
                 redisTemplate.opsForValue().set(REDIS_CATALOGO_KEY, productos);
             } catch (Exception ex) {
                 log.warn("Error al guardar en Redis: {}", ex.getMessage());
             }
+            productoRepository.deleteAll();
             guardarEnPostgres(items);
             return null;
         } else {
@@ -134,15 +169,6 @@ public class ProductServiceRedisImpl implements ProductoServiceRedis {
     @Transactional
     public List<ProductoResponse> sincronizarCatalogo() {
         log.info("Iniciando sincronizacion de catalogo...");
-
-        try {
-            redisTemplate.delete(LEGACY_REDIS_CATALOGO_KEY);
-            redisTemplate.delete(REDIS_CATALOGO_KEY);
-        } catch (Exception ex) {
-            log.warn("No se pudo limpiar Redis: {}", ex.getMessage());
-        }
-
-        productoRepository.deleteAll();
         return consumirApiYGuardar(true);
     }
 

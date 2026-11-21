@@ -153,6 +153,21 @@ class ProductServiceRedisImplTest {
     }
 
     @Test
+    @DisplayName("sincronizarCatalogo no borra Redis ni BD si GestoPago devuelve 0 productos")
+    void sincronizarVacioNoBorraNada() {
+        when(tokenService.obtenerTokenVigente()).thenReturn("tok");
+        when(productClient.getProductListXml("Bearer tok"))
+                .thenReturn("<RESPONSE><MENSAJE><CODIGO>05</CODIGO><TEXTO>Origen Valido</TEXTO></MENSAJE></RESPONSE>");
+
+        assertThat(service.sincronizarCatalogo()).isEmpty();
+
+        verify(redisTemplate, never()).delete(anyString());
+        verify(productoRepository, never()).deleteAll();
+        verify(valueOps, never()).set(anyString(), any());
+        verify(productoRepository, never()).saveAll(anyList());
+    }
+
+    @Test
     @DisplayName("sincronizarCatalogo tolera fallos de Redis")
     void sincronizarRedisCaido() {
         doThrow(new RuntimeException("redis")).when(redisTemplate).delete(anyString());

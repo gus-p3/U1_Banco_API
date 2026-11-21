@@ -634,6 +634,11 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
                 ? prod.getProducto()
                 : "Producto #" + pago.getIdProducto();
         String categoria = prod != null ? prod.getCategoria() : null;
+        String logoUrl = prod != null && prod.getLogoUrl() != null
+                ? prod.getLogoUrl()
+                : (pago.getIdServicio() != null && pago.getIdServicio() > 0
+                        ? "https://gestopago.portalventas.net/sistema/images/gestopago/servicios/" + pago.getIdServicio() + ".png"
+                        : null);
 
         String rawDestino = pago.getTipoPago() == TipoPago.RECARGA ? pago.getTelefono() : pago.getReferencia();
         String destinoMasked = enmascararReferencia(rawDestino);
@@ -657,6 +662,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
                 .nombreServicio(nombreServicio)
                 .nombreProducto(nombreProducto)
                 .categoria(categoria)
+                .logoUrl(logoUrl)
                 .telefono(enmascararDestino ? enmascararReferencia(pago.getTelefono()) : pago.getTelefono())
                 .referencia(enmascararDestino ? enmascararReferencia(pago.getReferencia()) : pago.getReferencia())
                 .destinoEnmascarado(destinoMasked)

@@ -69,7 +69,9 @@ class TransformProductImplTest {
         assertThat(respuestas).allSatisfy(p -> assertThat(p.getCreatedAt()).isNotNull());
         assertThat(respuestas.get(0).getLegend()).isEqualTo("Recarga de tiempo aire Telcel");
         assertThat(respuestas.get(0).getCategoria()).isEqualTo("Recargas");
+        assertThat(respuestas.get(0).getLogoUrl()).isEqualTo("https://gestopago.portalventas.net/sistema/images/gestopago/servicios/133.png");
         assertThat(respuestas.get(1).getCategoria()).isEqualTo("Servicios");
+        assertThat(respuestas.get(1).getLogoUrl()).isEqualTo("https://gestopago.portalventas.net/sistema/images/gestopago/servicios/79.png");
         assertThat(transform.transformProductJSON(null)).isEmpty();
         assertThat(transform.transformProductJSON(List.of())).isEmpty();
     }
