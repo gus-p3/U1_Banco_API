@@ -14,10 +14,12 @@ import com.intrumentoev.demo.repository.client.ClientRepository;
 import com.intrumentoev.demo.repository.contactDetail.ContactDetailRepository;
 import com.intrumentoev.demo.repository.employment.EmploymentInformationRepository;
 import com.intrumentoev.demo.repository.home.HomeRepository;
+import com.intrumentoev.demo.model.auth.Role;
 import com.intrumentoev.demo.service.service.auth.AesEncryptionService;
 import com.intrumentoev.demo.service.service.auth.PasswordEncoder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,12 +55,17 @@ public class DemoUserInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final AesEncryptionService aesEncryptionService;
 
+    /** Email del login que se promueve a ADMIN al arrancar (vacío = nadie). */
+    @Value("${security.bootstrap-admin-email:}")
+    private String bootstrapAdminEmail;
+
     @Override
     @Transactional
     public void run(String... args) {
         try {
             if (authRepository.existsByEmail(DEMO_EMAIL)) {
                 log.info("Usuario demo [{}] ya existe en la base de datos.", DEMO_EMAIL);
+                promoverAdministrador();
                 return;
             }
 
@@ -168,9 +175,23 @@ public class DemoUserInitializer implements CommandLineRunner {
             auth.setFailedAttempts(0);
             authRepository.save(auth);
 
+            promoverAdministrador();
             log.info("Usuario demo Alejandro Hernández inicializado con éxito.");
         } catch (Exception e) {
             log.error("Error al inicializar usuario demo: {}", e.getMessage(), e);
         }
+    }
+
+    private void promoverAdministrador() {
+        if (bootstrapAdminEmail == null || bootstrapAdminEmail.isBlank()) {
+            return;
+        }
+        authRepository.findByEmail(bootstrapAdminEmail.trim().toLowerCase()).ifPresent(auth -> {
+            if (auth.getRole() != Role.ADMIN) {
+                auth.setRole(Role.ADMIN);
+                authRepository.save(auth);
+                log.info("Login [{}] promovido a rol ADMIN.", auth.getEmail());
+            }
+        });
     }
 }

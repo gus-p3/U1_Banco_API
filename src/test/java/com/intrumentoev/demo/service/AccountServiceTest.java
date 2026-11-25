@@ -47,9 +47,6 @@ class AccountServiceTest {
     @Mock
     private com.intrumentoev.demo.repository.account.AccountBalanceRepository accountBalanceRepository;
 
-    @Mock
-    private com.intrumentoev.demo.service.service.auth.ServerSessionManager serverSessionManager;
-
     @InjectMocks
     private AccountServiceImpl accountService;
 
@@ -200,9 +197,6 @@ class AccountServiceTest {
     @DisplayName("Consultar cuentas por cliente exitoso para usuario autorizado")
     void testObtenerCuentasPorClienteExitoso() {
         when(clientRepository.findById(1L)).thenReturn(Optional.of(activeClient));
-        when(serverSessionManager.isUserLoggedIn()).thenReturn(true);
-        when(serverSessionManager.getActiveClientId()).thenReturn(1L);
-
         Account c = Account.builder().idAccount(10L).accountNumber("1234567890").idClient(1L).build();
         when(accountRepository.findByIdClient(1L)).thenReturn(List.of(c));
         when(accountMapper.toResponseList(List.of(c))).thenReturn(List.of(
@@ -223,17 +217,5 @@ class AccountServiceTest {
         assertThatThrownBy(() -> accountService.obtenerCuentasPorCliente(999L))
                 .isInstanceOf(BusinessException.class)
                 .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.CLIENT_NOT_FOUND);
-    }
-
-    @Test
-    @DisplayName("Consultar cuentas por cliente lanza BusinessException (403) si el usuario intenta consultar cuentas ajenas")
-    void testObtenerCuentasPorClienteAccesoDenegado() {
-        when(serverSessionManager.isUserLoggedIn()).thenReturn(true);
-        when(serverSessionManager.getActiveClientId()).thenReturn(1L);
-        when(serverSessionManager.isAdmin()).thenReturn(false);
-
-        assertThatThrownBy(() -> accountService.obtenerCuentasPorCliente(2L))
-                .isInstanceOf(BusinessException.class)
-                .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.ACCESS_DENIED);
     }
 }

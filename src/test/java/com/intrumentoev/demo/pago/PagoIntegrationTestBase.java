@@ -8,7 +8,8 @@ import com.intrumentoev.demo.repository.account.AccountRepository;
 import com.intrumentoev.demo.repository.gestopago.PagoGestoPagoRepository;
 import com.intrumentoev.demo.service.impl.gestopago.CatalogoRefresher;
 import com.intrumentoev.demo.service.service.gestopago.GestoPagoTokenService;
-import com.intrumentoev.demo.service.service.gestopago.ProductoServiceRedis;
+import com.intrumentoev.demo.service.service.gestopago.ProductoService;
+import com.intrumentoev.demo.service.service.gestopago.ReferenciaValidacionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -33,9 +34,10 @@ public abstract class PagoIntegrationTestBase {
 
     @Autowired protected AccountRepository accountRepository;
     @Autowired protected PagoGestoPagoRepository pagoRepository;
+    @Autowired protected ReferenciaValidacionService referenciaValidacionService;
 
     @MockitoBean protected GestoPagoTxClient txClient;
-    @MockitoBean protected ProductoServiceRedis productoServiceRedis;
+    @MockitoBean protected ProductoService productoService;
     @MockitoBean protected GestoPagoTokenService tokenService;
     @MockitoBean protected CatalogoRefresher catalogoRefresher;
 
@@ -45,7 +47,10 @@ public abstract class PagoIntegrationTestBase {
         establecerCuenta(new BigDecimal("1000.00"), "ACTIVA");
         when(tokenService.obtenerTokenVigente()).thenReturn("token-1");
         when(tokenService.renovarTokenForzado()).thenReturn("token-2");
-        when(productoServiceRedis.getProductsRedis()).thenReturn(catalogo());
+        when(productoService.getProductsRedis()).thenReturn(catalogo());
+        referenciaValidacionService.limpiarValidacionesLocales();
+        referenciaValidacionService.registrarValidacion(
+                cuentaDemo().getIdClient(), 79, 209, "40425475190118187271", null);
     }
 
     protected Account cuentaDemo() {

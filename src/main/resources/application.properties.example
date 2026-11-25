@@ -1,13 +1,16 @@
 # ================================
-# Copia este archivo a application.properties y rellena tus valores
+# Copia este archivo a application.properties y define las variables de entorno requeridas
+# Nunca incluyas secretos ni contraseñas por defecto en este archivo
 # ================================
 
 spring.application.name=banco
+server.port=${PORT:8080}
 
-# Base de Datos PostgreSQL
-spring.datasource.url=jdbc:postgresql://localhost:5432/banco
-spring.datasource.username=TU_USUARIO_DB
-spring.datasource.password=TU_CONTRASENA_DB
+# Base de Datos PostgreSQL (obligatorio definir SPRING_DATASOURCE_PASSWORD o PGPASSWORD)
+spring.datasource.url=${SPRING_DATASOURCE_URL:${JDBC_DATABASE_URL:jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:banco}}}
+spring.datasource.username=${SPRING_DATASOURCE_USERNAME:${PGUSER:postgres}}
+spring.datasource.password=${SPRING_DATASOURCE_PASSWORD:${PGPASSWORD:}}
+spring.datasource.driver-class-name=org.postgresql.Driver
 spring.cloud.config.enabled=false
 
 # INEGI Catálogos Geográficos API Base URL
@@ -20,11 +23,14 @@ bank.account.initial-balance=1000.00
 
 # Configuración de Timeouts para Feign Client / HTTP
 spring.cloud.openfeign.client.config.default.connect-timeout=5000
-spring.cloud.openfeign.client.config.default.read-timeout=5000
+spring.cloud.openfeign.client.config.default.read-timeout=65000
+spring.cloud.openfeign.client.config.gestoPagoProductClient.read-timeout=65000
 
 # Redis
-spring.data.redis.host=localhost
-spring.data.redis.port=6379
+spring.data.redis.url=${REDIS_URL:${REDISURL:}}
+spring.data.redis.host=${REDISHOST:${REDIS_HOST:localhost}}
+spring.data.redis.port=${REDISPORT:${REDIS_PORT:6379}}
+spring.data.redis.password=${REDISPASSWORD:${REDIS_PASSWORD:}}
 
 # Documentación Interactiva Swagger UI / OpenAPI 3
 springdoc.swagger-ui.path=/swagger-ui.html
@@ -33,26 +39,44 @@ springdoc.swagger-ui.operations-sorter=method
 springdoc.swagger-ui.tags-sorter=alpha
 springdoc.swagger-ui.display-request-duration=true
 
-# Control de Sesión en el Servidor (5 minutos = 300 segundos de inactividad)
-server.session.inactivity-limit-seconds=300
+# Correo de administrador al arrancar (vacío por defecto = ningún ADMIN automático)
+security.bootstrap-admin-email=${SECURITY_BOOTSTRAP_ADMIN_EMAIL:}
 
-# Expiración de Access Token JWT (5 minutos = 300 segundos)
+# Clave de cifrado simétrico AES-256-GCM para biometría (obligatoria)
+security.encryption.aes-key=${SECURITY_ENCRYPTION_AES_KEY:}
+
+# Configuración y Secreto JWT (Firmado HMAC-SHA256, mínimo 256 bits / 32 bytes, obligatorio)
 jwt.access-token-expiration-seconds=300
+jwt.secret=${JWT_SECRET:}
 
+# Token de confirmación de operación (reautenticación biométrica con huella antes de pagar)
+security.confirmation-token.expiration-seconds=${SECURITY_CONFIRMATION_TOKEN_EXPIRATION_SECONDS:120}
+
+# Vigencia de validación previa de referencias de servicios en Redis (en segundos)
+gestopago.referencia.validation-ttl-seconds=${GESTOPAGO_REFERENCIA_VALIDATION_TTL_SECONDS:300}
+
+# Jackson seguridad
+spring.jackson.mapper.allow-coercion-of-scalars=false
+spring.jackson.deserialization.fail-on-unknown-properties=true
+spring.jackson.default-property-inclusion=non_null
 
 # GestoPago
-gestopago.auth.url=https://gestopago.portalventas.net
-gestopago.auth.id-distribuidor=
-gestopago.auth.codigo-dispositivo=
-gestopago.auth.password=
+gestopago.auth.url=${GESTOPAGO_AUTH_URL:https://gestopago.portalventas.net}
+gestopago.auth.id-distribuidor=${GESTOPAGO_ID_DISTRIBUIDOR:}
+gestopago.auth.codigo-dispositivo=${GESTOPAGO_CODIGO_DISPOSITIVO:}
+gestopago.auth.password=${GESTOPAGO_PASSWORD:}
+gestopago.auth.bearer-token=${GESTOPAGO_BEARER_TOKEN:}
 gestopago.auth.token-max-age-hours=23
 gestopago.crypto.secret-key=${GESTOPAGO_SECRET_KEY:}
 gestopago.crypto.iv=${GESTOPAGO_IV:}
-gestopago.tx.unidad=086
+gestopago.tx.unidad=${GESTOPAGO_UNIDAD:086}
 gestopago.tx.api-key=${GESTOPAGO_API_KEY:}
 gestopago.tx.connect-timeout-ms=5000
 gestopago.tx.read-timeout-ms=65000
 gestopago.tx.espera-confirmacion-segundos=62
 gestopago.tx.vigencia-confirmacion-horas=24
 gestopago.tx.codigos-producto-inexistente=
-gestopago.tx.codigos-no-aplicada=70
+gestopago.tx.codigos-no-aplicada=70,05
+
+# CORS
+cors.allowed-origins=${CORS_ALLOWED_ORIGINS:http://localhost:8081,http://localhost:19006,http://localhost:3000}

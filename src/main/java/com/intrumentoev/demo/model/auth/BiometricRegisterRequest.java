@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,7 +19,7 @@ import lombok.NoArgsConstructor;
 public class BiometricRegisterRequest {
 
     @NotNull(message = "El ID del cliente es obligatorio")
-    @jakarta.validation.constraints.Positive(message = "El ID del cliente debe ser un número entero positivo mayor a 0")
+    @Positive(message = "El ID del cliente debe ser un número entero positivo mayor a 0")
     private Long idClient;
 
     @NotBlank(message = "El tipo biométrico es obligatorio")
@@ -25,5 +27,6 @@ public class BiometricRegisterRequest {
     private String biometricType;
 
     @NotBlank(message = "El template o carga biométrica en Base64 es obligatorio")
+    @Size(max = 4096, message = "Los datos biométricos exceden el tamaño máximo permitido")
     private String biometricData;
 }

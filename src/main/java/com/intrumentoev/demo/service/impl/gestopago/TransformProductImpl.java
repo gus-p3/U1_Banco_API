@@ -40,7 +40,10 @@ public class TransformProductImpl implements TransformProduct {
                     (GestoPagoProductXmlResponse) unmarshaller.unmarshal(new StringReader(xmlRequest));
 
             if (parsedXml.getProductos() == null || parsedXml.getProductos().isEmpty()) {
-                log.warn("La respuesta XML de GestoPago no contiene productos.");
+                var mensaje = parsedXml.getMensaje();
+                log.warn("La respuesta XML de GestoPago no contiene productos. MENSAJE: CODIGO={} TEXTO={}",
+                        mensaje == null ? "(sin MENSAJE)" : mensaje.getCodigo(),
+                        mensaje == null ? "(sin MENSAJE)" : mensaje.getTexto());
                 return Collections.emptyList();
             }
 

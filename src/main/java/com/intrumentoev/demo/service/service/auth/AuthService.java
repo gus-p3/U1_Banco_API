@@ -41,4 +41,9 @@ public interface AuthService {
      * Consulta el registro de autenticación por ID de cliente.
      */
     Optional<Auth> obtenerPorIdCliente(Long idClient);
+
+    /**
+     * Reautentica al cliente (contraseña o huella digital) y emite un token de confirmación de corta vida y un solo uso.
+     */
+    OperationConfirmResponse confirmarOperacion(AuthenticatedClient usuario, OperationConfirmRequest request);
 }

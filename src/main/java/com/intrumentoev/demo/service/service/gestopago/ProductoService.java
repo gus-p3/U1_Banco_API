@@ -8,6 +8,11 @@ import java.util.List;
 
 public interface ProductoService {
 
+    // Flujo unificado: consulta y sincronización sin borrar productos anteriores (API -> Redis -> Postgres)
+    List<ProductoResponse> getProductsRedis();
+
+    List<ProductoResponse> sincronizarCatalogo();
+
     // 1. Sincronizar/Crear productos desde API XML de GestoPago (POST /v1/productos)
     void sincronizarProductosDesdeGestoPago();
 

@@ -3,6 +3,7 @@ package com.intrumentoev.demo.pago;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intrumentoev.demo.client.gestopago.GestoPagoCipher;
+import com.intrumentoev.demo.entity.account.AccountBalance;
 import com.intrumentoev.demo.entity.gestopago.PagoGestoPago;
 import com.intrumentoev.demo.exception.BusinessException;
 import com.intrumentoev.demo.exception.ErrorCode;
@@ -122,7 +123,7 @@ class PagoGestoPagoServiceTest extends PagoIntegrationTestBase {
     @Test
     @DisplayName("idCatTipoServicio 10/11: telefono fijo #1111111111")
     void telefonoCatalogo10() throws Exception {
-        when(productoServiceRedis.getProductsRedis()).thenReturn(java.util.List.of(
+        when(productoService.getProductsRedis()).thenReturn(java.util.List.of(
                 com.intrumentoev.demo.model.gestopago.ProductoResponse.builder().idServicio(79).idProducto(209)
                         .idCatTipoServicio(10).tipoFront(2).precio("0").build()));
         when(txClient.sendTx(anyString(), anyString())).thenReturn(xml("01", "ok", 1L, "10", "1.00"));
@@ -146,8 +147,9 @@ class PagoGestoPagoServiceTest extends PagoIntegrationTestBase {
         assertThat(r.getCodigoGestoPago()).isEqualTo("02");
         assertThat(r.getMensaje()).isEqualTo("Saldo insuficiente del distribuidor"); // TEXTO de GestoPago en mensaje
         assertThat(saldo()).isEqualByComparingTo("1000.00");
-        assertThat(balanceRepository.findByIdAccountOrderByCreatedAtDesc(cuentaDemo().getIdAccount()).get(0).getMovementType())
-                .isEqualTo("REVERSO_PAGO");
+        assertThat(balanceRepository.findByIdAccountOrderByCreatedAtDesc(cuentaDemo().getIdAccount()))
+                .extracting(AccountBalance::getMovementType)
+                .contains("REVERSO_PAGO");
     }
 
     @Test
@@ -386,8 +388,9 @@ class PagoGestoPagoServiceTest extends PagoIntegrationTestBase {
 
         assertThat(pago(r).getEstado()).isEqualTo(EstadoPago.RECHAZADO);
         assertThat(saldo()).isEqualByComparingTo("1000.00");
-        assertThat(balanceRepository.findByIdAccountOrderByCreatedAtDesc(cuentaDemo().getIdAccount()).get(0).getMovementType())
-                .isEqualTo("REVERSO_PAGO");
+        assertThat(balanceRepository.findByIdAccountOrderByCreatedAtDesc(cuentaDemo().getIdAccount()))
+                .extracting(AccountBalance::getMovementType)
+                .contains("REVERSO_PAGO");
     }
 
     @Test
@@ -454,6 +457,42 @@ class PagoGestoPagoServiceTest extends PagoIntegrationTestBase {
         pagoService.confirmarPendientes();
 
         assertThat(pago(r).getEstado()).isEqualTo(EstadoPago.RECHAZADO);
+        assertThat(saldo()).isEqualByComparingTo("1000.00");
+    }
+
+    @Test
+    @DisplayName("Manejo de CODIGO 05 de GestoPago ('Origen Valido' / restricción de IP): realiza la petición real, rechaza limpiamente y devuelve el saldo")
+    void sendTxYConfirmTxCodigo05OrigenRestringido() {
+        // 1. sendTx responde CODIGO=05 TEXTO=Origen Valido -> RECHAZADO + saldo devuelto + mensaje explicativo claro
+        when(txClient.sendTx(anyString(), anyString())).thenReturn(
+                GestoPagoHttpResponse.conRespuesta(200,
+                        "<RESPONSE><MENSAJE><CODIGO>05</CODIGO><TEXTO>Origen Valido</TEXTO></MENSAJE></RESPONSE>"));
+
+        PagoResponse r = pagoService.procesarPago(cliente(), recarga());
+
+        assertThat(r.getCodigo()).isZero();
+        assertThat(r.getEstado()).isEqualTo(EstadoPago.RECHAZADO);
+        assertThat(r.getCodigoGestoPago()).isEqualTo("05");
+        assertThat(r.getMensaje()).isEqualTo("No se puede procesar el pago por el momento, intente más tarde");
+        assertThat(saldo()).isEqualByComparingTo("1000.00");
+        verify(txClient, times(1)).sendTx(eq("token-1"), anyString());
+        assertThat(balanceRepository.findByIdAccountOrderByCreatedAtDesc(cuentaDemo().getIdAccount()))
+                .extracting(AccountBalance::getMovementType)
+                .contains("REVERSO_PAGO");
+
+        // 2. Si sendTx dio timeout (82) y confirmTx responde CODIGO=05 -> también resuelve a RECHAZADO y devuelve saldo
+        when(txClient.sendTx(anyString(), anyString())).thenReturn(xml("82", "Timeout", null, "-1", null));
+        PagoResponse pend = pagoService.procesarPago(cliente(), recarga());
+        assertThat(pend.getEstado()).isEqualTo(EstadoPago.POR_CONFIRMAR);
+        assertThat(saldo()).isEqualByComparingTo("950.00");
+        envejecer(pago(pend));
+
+        when(txClient.confirmTx(anyString(), anyString())).thenReturn(
+                GestoPagoHttpResponse.conRespuesta(200,
+                        "<RESPONSE><MENSAJE><CODIGO>05</CODIGO><TEXTO>Origen Valido</TEXTO></MENSAJE></RESPONSE>"));
+        pagoService.confirmarPendientes();
+
+        assertThat(pago(pend).getEstado()).isEqualTo(EstadoPago.RECHAZADO);
         assertThat(saldo()).isEqualByComparingTo("1000.00");
     }
 

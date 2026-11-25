@@ -65,7 +65,7 @@ public class ProductoController {
     @PatchMapping("/{id:\\d+}")
     public ResponseEntity<ProductoResponse> actualizarParcialProducto(
             @PathVariable Integer id,
-            @RequestBody ProductoPatchRequest request) {
+            @Valid @RequestBody ProductoPatchRequest request) {
         return ResponseEntity.ok(productoService.actualizarParcialProducto(id, request));
     }
 

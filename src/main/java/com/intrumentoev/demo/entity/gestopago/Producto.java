@@ -45,6 +45,12 @@ public class Producto {
     @Column(name="\"showAyuda\"")
     private boolean showAyuda;
 
+    @Column(name="\"legend\"")
+    private String legend;
+
+    @Column(name="\"categoria\"")
+    private String categoria;
+
     @Column(name="\"createdAt\"")
     private java.time.LocalDateTime createdAt;
 

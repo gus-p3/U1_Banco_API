@@ -27,6 +27,9 @@ public class ProductoResponse {
     private String tipoReferencia;
     private String precio;
     private Boolean showAyuda;
+    private String legend;
+    private String categoria;
+    private String logoUrl;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;

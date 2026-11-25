@@ -10,7 +10,6 @@ import com.intrumentoev.demo.service.service.auth.AesEncryptionService;
 import com.intrumentoev.demo.service.service.auth.AuthService;
 import com.intrumentoev.demo.service.service.auth.JwtTokenService;
 import com.intrumentoev.demo.service.service.auth.PasswordEncoder;
-import com.intrumentoev.demo.service.service.auth.ServerSessionManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,7 +32,6 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenService jwtTokenService;
     private final AesEncryptionService aesEncryptionService;
-    private final ServerSessionManager serverSessionManager;
 
     @Override
     @Transactional
@@ -45,11 +43,7 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Credenciales de acceso inválidas", "email"));
 
         validarEstadoYBloqueo(auth);
-
-        if (!passwordEncoder.matches(request.getPassword(), auth.getPasswordHash())) {
-            manejarIntentoFallido(auth);
-            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
-        }
+        validarPassword(auth, request.getPassword());
 
         return generarSesionExitosa(auth, AuthMethod.PASSWORD);
     }
@@ -64,36 +58,88 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Cliente no encontrado para autenticación biométrica", "email"));
 
         validarEstadoYBloqueo(auth);
-
-        if (auth.getBiometricTemplate() == null || auth.getBiometricTemplate().length == 0) {
-            throw new BusinessException(ErrorCode.BIOMETRIC_AUTH_FAILED, "El cliente no cuenta con datos biométricos registrados. Inicie sesión con contraseña.", "biometrics");
-        }
-
-        if (auth.getBiometricType() == null || !auth.getBiometricType().equalsIgnoreCase(request.getBiometricType())) {
-            throw new BusinessException(ErrorCode.BIOMETRIC_AUTH_FAILED, "El tipo de biometría suministrado no coincide con el método registrado (" + auth.getBiometricType() + ")", "biometricType");
-        }
-
-        byte[] inputTemplate;
-        try {
-            inputTemplate = Base64.getDecoder().decode(request.getBiometricData());
-        } catch (IllegalArgumentException e) {
-            throw new BusinessException(ErrorCode.BIOMETRIC_AUTH_FAILED, "El formato de la plantilla biométrica Base64 es inválido", "biometricData");
-        }
-
-        // Descifrado de la plantilla biométrica almacenada cifrada con AES-256-GCM
-        byte[] decryptedStoredTemplate = aesEncryptionService.decryptBytes(auth.getBiometricTemplate());
-
-        // Comparación segura en tiempo constante para evitar ataques de canal lateral
-        if (!java.security.MessageDigest.isEqual(decryptedStoredTemplate, inputTemplate)) {
-            manejarIntentoFallido(auth);
-            throw new BusinessException(ErrorCode.BIOMETRIC_AUTH_FAILED, "La huella o rostro proporcionado no coincide con el registro biométrico del cliente", "biometricData");
-        }
+        validarPlantillaBiometrica(auth, request.getBiometricType(), request.getBiometricData());
 
         log.info("Autenticación biométrica exitosa para cliente ID: {}", auth.getIdClient());
         AuthMethod metodo = "HUELLA".equalsIgnoreCase(request.getBiometricType())
                 ? AuthMethod.BIOMETRIC_HUELLA
                 : AuthMethod.BIOMETRIC_FACIAL;
         return generarSesionExitosa(auth, metodo);
+    }
+
+    @Override
+    @Transactional
+    public OperationConfirmResponse confirmarOperacion(AuthenticatedClient usuario, OperationConfirmRequest request) {
+        if (usuario == null || usuario.getIdClient() == null) {
+            throw new BusinessException(ErrorCode.TOKEN_MISSING);
+        }
+        Auth auth = authRepository.findByIdClient(usuario.getIdClient())
+                .orElseThrow(() -> new BusinessException(ErrorCode.CLIENT_NOT_FOUND, String.valueOf(usuario.getIdClient())));
+
+        validarEstadoYBloqueo(auth);
+
+        boolean tienePassword = request != null && request.getPassword() != null && !request.getPassword().isBlank();
+        boolean tieneBiometria = request != null
+                && request.getBiometricData() != null && !request.getBiometricData().isBlank();
+
+        if (tienePassword || !tieneBiometria) {
+            log.warn("Confirmación de pago rechazada para cliente {}: se intentó usar contraseña o sin huella digital", usuario.getIdClient());
+            throw new BusinessException(ErrorCode.STRONG_AUTH_REQUIRED);
+        }
+
+        String tipoBio = (request.getBiometricType() != null && !request.getBiometricType().isBlank())
+                ? request.getBiometricType().trim()
+                : "HUELLA";
+        if (!"HUELLA".equalsIgnoreCase(tipoBio)) {
+            log.warn("Confirmación de pago rechazada para cliente {}: tipo biométrico no permitido ({})", usuario.getIdClient(), tipoBio);
+            throw new BusinessException(ErrorCode.STRONG_AUTH_REQUIRED);
+        }
+
+        validarPlantillaBiometrica(auth, "HUELLA", request.getBiometricData());
+        AuthMethod metodoConfirmacion = AuthMethod.BIOMETRIC_HUELLA;
+
+        if (auth.getFailedAttempts() != null && auth.getFailedAttempts() > 0) {
+            auth.setFailedAttempts(0);
+            authRepository.save(auth);
+        }
+
+        String confirmationToken = jwtTokenService.generateConfirmationToken(
+                auth.getIdClient(), auth.getIdLogin(), auth.getEmail(), metodoConfirmacion);
+        return OperationConfirmResponse.builder()
+                .confirmationToken(confirmationToken)
+                .expiresIn(jwtTokenService.getConfirmationTokenExpirationSeconds())
+                .build();
+    }
+
+    private void validarPassword(Auth auth, String rawPassword) {
+        if (!passwordEncoder.matches(rawPassword, auth.getPasswordHash())) {
+            manejarIntentoFallido(auth);
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
+        }
+    }
+
+    private void validarPlantillaBiometrica(Auth auth, String biometricType, String biometricData) {
+        if (auth.getBiometricTemplate() == null || auth.getBiometricTemplate().length == 0) {
+            throw new BusinessException(ErrorCode.BIOMETRIC_AUTH_FAILED, "El cliente no cuenta con datos biométricos registrados. Inicie sesión con contraseña.", "biometrics");
+        }
+
+        if (auth.getBiometricType() == null || !auth.getBiometricType().equalsIgnoreCase(biometricType)) {
+            throw new BusinessException(ErrorCode.BIOMETRIC_AUTH_FAILED, "El tipo de biometría suministrado no coincide con el método registrado (" + auth.getBiometricType() + ")", "biometricType");
+        }
+
+        byte[] inputTemplate;
+        try {
+            inputTemplate = Base64.getDecoder().decode(biometricData);
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(ErrorCode.BIOMETRIC_AUTH_FAILED, "El formato de la plantilla biométrica Base64 es inválido", "biometricData");
+        }
+
+        byte[] decryptedStoredTemplate = aesEncryptionService.decryptBytes(auth.getBiometricTemplate());
+
+        if (!java.security.MessageDigest.isEqual(decryptedStoredTemplate, inputTemplate)) {
+            manejarIntentoFallido(auth);
+            throw new BusinessException(ErrorCode.BIOMETRIC_AUTH_FAILED, "La huella o rostro proporcionado no coincide con el registro biométrico del cliente", "biometricData");
+        }
     }
 
     @Override
@@ -193,15 +239,12 @@ public class AuthServiceImpl implements AuthService {
 
         // Rotación de tokens por seguridad tipo Mercado Pago
         String nuevoAccessToken = jwtTokenService.generateAccessToken(
-                auth.getIdClient(), auth.getIdLogin(), auth.getEmail(), AuthMethod.REFRESH);
+                auth.getIdClient(), auth.getIdLogin(), auth.getEmail(), AuthMethod.REFRESH, auth.getRole());
         String nuevoRefreshToken = jwtTokenService.generateRefreshToken();
 
         auth.setRefreshToken(nuevoRefreshToken);
         auth.setRefreshTokenExpiresAt(OffsetDateTime.now().plusDays(jwtTokenService.getRefreshTokenExpirationDays()));
         authRepository.save(auth);
-
-        // Mantener sesión activa en servidor
-        serverSessionManager.setLoggedIn(true, auth.getEmail(), auth.getIdClient());
 
         log.info("Tokens rotados y renovados exitosamente para cliente ID: {}", auth.getIdClient());
         return authMapper.toResponse(auth, nuevoAccessToken, nuevoRefreshToken, jwtTokenService.getAccessTokenExpirationSeconds());
@@ -218,9 +261,6 @@ public class AuthServiceImpl implements AuthService {
             auth.setRefreshTokenExpiresAt(null);
             authRepository.save(auth);
         });
-
-        // Servidor: Cambiar booleano a false
-        serverSessionManager.setLoggedIn(false, null, null);
     }
 
     @Override
@@ -251,16 +291,13 @@ public class AuthServiceImpl implements AuthService {
         auth.setLastLoginAt(OffsetDateTime.now());
 
         String accessToken = jwtTokenService.generateAccessToken(
-                auth.getIdClient(), auth.getIdLogin(), auth.getEmail(), authMethod);
+                auth.getIdClient(), auth.getIdLogin(), auth.getEmail(), authMethod, auth.getRole());
         String refreshToken = jwtTokenService.generateRefreshToken();
 
         auth.setRefreshToken(refreshToken);
         auth.setRefreshTokenExpiresAt(OffsetDateTime.now().plusDays(jwtTokenService.getRefreshTokenExpirationDays()));
 
         authRepository.save(auth);
-
-        // SERVIDOR: Activar booleano en el servidor (login = true) y reiniciar contador de inactividad
-        serverSessionManager.setLoggedIn(true, auth.getEmail(), auth.getIdClient());
 
         return authMapper.toResponse(auth, accessToken, refreshToken, jwtTokenService.getAccessTokenExpirationSeconds());
     }

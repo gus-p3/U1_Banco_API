@@ -1,5 +1,6 @@
 package com.intrumentoev.demo.entity.auth;
 
+import com.intrumentoev.demo.model.auth.Role;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -69,6 +70,11 @@ public class Auth {
     private OffsetDateTime refreshTokenExpiresAt;
 
     @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
+    private Role role = Role.CLIENT;
+
+    @Builder.Default
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
@@ -92,6 +98,9 @@ public class Auth {
         this.updatedAt = now;
         if (this.isActive == null) {
             this.isActive = true;
+        }
+        if (this.role == null) {
+            this.role = Role.CLIENT;
         }
         if (this.failedAttempts == null) {
             this.failedAttempts = 0;

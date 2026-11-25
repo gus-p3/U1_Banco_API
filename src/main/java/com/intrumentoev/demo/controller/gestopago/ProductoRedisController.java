@@ -1,7 +1,7 @@
 package com.intrumentoev.demo.controller.gestopago;
 
 import com.intrumentoev.demo.model.gestopago.ProductoResponse;
-import com.intrumentoev.demo.service.service.gestopago.ProductoServiceRedis;
+import com.intrumentoev.demo.service.service.gestopago.ProductoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -19,17 +19,17 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProductoRedisController {
 
-    private final ProductoServiceRedis productoServiceRedis;
+    private final ProductoService productoService;
 
     @Operation(summary = "Obtener catálogo de productos desde caché Redis (con fallback a BD y API)")
     @GetMapping
     public ResponseEntity<List<ProductoResponse>> getProductsRedis() {
-        return ResponseEntity.ok(productoServiceRedis.getProductsRedis());
+        return ResponseEntity.ok(productoService.getProductsRedis());
     }
 
     @Operation(summary = "Forzar sincronización manual del catálogo de productos hacia Redis y BD")
     @PostMapping("/sincronizar")
     public ResponseEntity<List<ProductoResponse>> sincronizarManual() {
-        return ResponseEntity.ok(productoServiceRedis.sincronizarCatalogo());
+        return ResponseEntity.ok(productoService.sincronizarCatalogo());
     }
 }

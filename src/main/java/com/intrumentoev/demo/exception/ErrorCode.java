@@ -16,6 +16,7 @@ public enum ErrorCode {
     CLIENT_NOT_FOUND("CLIENT_NOT_FOUND", HttpStatus.NOT_FOUND, "Cliente no encontrado con identificador: %s", "identificador"),
     ACCOUNT_NOT_FOUND("ACCOUNT_NOT_FOUND", HttpStatus.NOT_FOUND, "Cuenta no encontrada con número: %s", "accountNumber"),
     CATALOG_NOT_FOUND("CATALOG_NOT_FOUND", HttpStatus.NOT_FOUND, "Registro de %s no encontrado con ID: %s", "catalog"),
+    PAYMENT_NOT_FOUND("PAYMENT_NOT_FOUND", HttpStatus.NOT_FOUND, "Pago no encontrado con identificador: %s", "pago"),
 
     // --- 409 Conflict (Duplicados) ---
     CURP_DUPLICATED("CURP_DUPLICATED", HttpStatus.CONFLICT, "La CURP '%s' ya se encuentra registrada", "curp"),
@@ -31,6 +32,11 @@ public enum ErrorCode {
     INSUFFICIENT_FUNDS("INSUFFICIENT_FUNDS", HttpStatus.UNPROCESSABLE_ENTITY, "Saldo insuficiente para realizar el pago", "monto"),
     PAYMENT_ACCOUNT_INACTIVE("PAYMENT_ACCOUNT_INACTIVE", HttpStatus.UNPROCESSABLE_ENTITY, "La cuenta no se encuentra activa para realizar pagos", "numCuenta"),
     PAYMENT_PRODUCT_MISMATCH("PAYMENT_PRODUCT_MISMATCH", HttpStatus.UNPROCESSABLE_ENTITY, "%s", "idProducto"),
+    REFERENCE_NOT_VALIDATED("REFERENCE_NOT_VALIDATED", HttpStatus.UNPROCESSABLE_ENTITY, "La referencia del servicio no ha sido validada previamente o su validación expiró", "referencia"),
+    INVALID_SERVICE_REFERENCE("INVALID_SERVICE_REFERENCE", HttpStatus.UNPROCESSABLE_ENTITY, "%s", "referencia"),
+
+    // --- 502 Bad Gateway (Proveedor externo) ---
+    GESTOPAGO_PROVIDER_ERROR("GESTOPAGO_PROVIDER_ERROR", HttpStatus.BAD_GATEWAY, "Error técnico al comunicarse con el proveedor GestoPago: %s", "gestopago"),
 
     // --- 400 Bad Request (pagos) ---
     INVALID_PAYMENT_REQUEST("INVALID_PAYMENT_REQUEST", HttpStatus.BAD_REQUEST, "%s", "requestBody"),
@@ -43,7 +49,7 @@ public enum ErrorCode {
     ACCESS_DENIED("ACCESS_DENIED", HttpStatus.FORBIDDEN, "Acceso no autorizado al recurso solicitado", "security"),
     TOKEN_MISSING("TOKEN_MISSING", HttpStatus.UNAUTHORIZED, "Se requiere el encabezado Authorization: Bearer <token>", "Authorization"),
     SESSION_INACTIVE("SESSION_INACTIVE", HttpStatus.UNAUTHORIZED, "La sesión en el servidor no está activa. Inicie sesión nuevamente", "session"),
-    STRONG_AUTH_REQUIRED("STRONG_AUTH_REQUIRED", HttpStatus.FORBIDDEN, "Para realizar pagos debe iniciar sesión con huella digital", "authMethod"),
+    STRONG_AUTH_REQUIRED("STRONG_AUTH_REQUIRED", HttpStatus.FORBIDDEN, "Para autorizar el pago es obligatorio confirmar la operación con huella digital desde la aplicación móvil", "confirmationToken"),
     PAYMENT_FORBIDDEN("PAYMENT_FORBIDDEN", HttpStatus.FORBIDDEN, "No es posible operar con la cuenta indicada", "numCuenta");
 
     private final String code;

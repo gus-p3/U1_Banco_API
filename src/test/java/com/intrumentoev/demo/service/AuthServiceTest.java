@@ -44,9 +44,6 @@ class AuthServiceTest {
     @Mock
     private com.intrumentoev.demo.service.service.auth.AesEncryptionService aesEncryptionService;
 
-    @Mock
-    private com.intrumentoev.demo.service.service.auth.ServerSessionManager serverSessionManager;
-
     @InjectMocks
     private AuthServiceImpl authService;
 
@@ -82,7 +79,7 @@ class AuthServiceTest {
 
         when(authRepository.findByEmail("cliente@banco.com")).thenReturn(Optional.of(mockAuth));
         when(passwordEncoder.matches(rawPassword, encodedPassword)).thenReturn(true);
-        when(jwtTokenService.generateAccessToken(anyLong(), anyLong(), anyString(), eq(AuthMethod.PASSWORD))).thenReturn("mock-access-jwt");
+        when(jwtTokenService.generateAccessToken(anyLong(), anyLong(), anyString(), eq(AuthMethod.PASSWORD), any())).thenReturn("mock-access-jwt");
         when(jwtTokenService.generateRefreshToken()).thenReturn("mock-new-refresh-token");
         when(jwtTokenService.getRefreshTokenExpirationDays()).thenReturn(7L);
         when(jwtTokenService.getAccessTokenExpirationSeconds()).thenReturn(3600L);
@@ -152,7 +149,7 @@ class AuthServiceTest {
 
         when(authRepository.findByEmail("cliente@banco.com")).thenReturn(Optional.of(mockAuth));
         when(aesEncryptionService.decryptBytes(mockBiometricBytes)).thenReturn(mockBiometricBytes);
-        when(jwtTokenService.generateAccessToken(anyLong(), anyLong(), anyString(), eq(AuthMethod.BIOMETRIC_HUELLA))).thenReturn("mock-bio-jwt");
+        when(jwtTokenService.generateAccessToken(anyLong(), anyLong(), anyString(), eq(AuthMethod.BIOMETRIC_HUELLA), any())).thenReturn("mock-bio-jwt");
         when(jwtTokenService.generateRefreshToken()).thenReturn("mock-bio-refresh-token");
         when(jwtTokenService.getRefreshTokenExpirationDays()).thenReturn(7L);
         when(jwtTokenService.getAccessTokenExpirationSeconds()).thenReturn(3600L);
@@ -213,7 +210,7 @@ class AuthServiceTest {
         RefreshTokenRequest request = new RefreshTokenRequest("valid-refresh-token");
 
         when(authRepository.findByRefreshToken("valid-refresh-token")).thenReturn(Optional.of(mockAuth));
-        when(jwtTokenService.generateAccessToken(anyLong(), anyLong(), anyString(), eq(AuthMethod.REFRESH))).thenReturn("new-jwt");
+        when(jwtTokenService.generateAccessToken(anyLong(), anyLong(), anyString(), eq(AuthMethod.REFRESH), any())).thenReturn("new-jwt");
         when(jwtTokenService.generateRefreshToken()).thenReturn("rotated-refresh-token");
         when(jwtTokenService.getRefreshTokenExpirationDays()).thenReturn(7L);
         when(jwtTokenService.getAccessTokenExpirationSeconds()).thenReturn(3600L);
@@ -239,5 +236,43 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.refrescarToken(request))
                 .isInstanceOf(BusinessException.class)
                 .matches(e -> ((BusinessException) e).getErrorCodeEnum() == ErrorCode.TOKEN_EXPIRED_OR_INVALID);
+    }
+
+    @Test
+    @DisplayName("Confirmar operación solo se permite con huella digital (HUELLA); contraseña o vacío se rechaza con STRONG_AUTH_REQUIRED")
+    void testConfirmarOperacion() {
+        AuthenticatedClient usuario = AuthenticatedClient.builder()
+                .idClient(10L).idLogin(1L).email("cliente@banco.com").authMethod(AuthMethod.PASSWORD).build();
+
+        when(authRepository.findByIdClient(10L)).thenReturn(Optional.of(mockAuth));
+
+        // Intento con contraseña (ej. desde web) -> rechazado con STRONG_AUTH_REQUIRED
+        assertThatThrownBy(() -> authService.confirmarOperacion(
+                usuario, OperationConfirmRequest.builder().password(rawPassword).build()))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCodeEnum")
+                .isEqualTo(ErrorCode.STRONG_AUTH_REQUIRED);
+
+        // Con biometría de HUELLA -> emite token de confirmación de un solo uso
+        when(aesEncryptionService.decryptBytes(mockBiometricBytes)).thenReturn(mockBiometricBytes);
+        when(jwtTokenService.generateConfirmationToken(10L, 1L, "cliente@banco.com", AuthMethod.BIOMETRIC_HUELLA))
+                .thenReturn("confirm-jwt-bio");
+        when(jwtTokenService.getConfirmationTokenExpirationSeconds()).thenReturn(120L);
+
+        OperationConfirmResponse respBio = authService.confirmarOperacion(
+                usuario, OperationConfirmRequest.builder().biometricType("HUELLA").biometricData(base64Biometric).build());
+        assertThat(respBio.getConfirmationToken()).isEqualTo("confirm-jwt-bio");
+        assertThat(respBio.getExpiresIn()).isEqualTo(120L);
+
+        // Sin biometría o con FACIAL -> STRONG_AUTH_REQUIRED
+        assertThatThrownBy(() -> authService.confirmarOperacion(usuario, new OperationConfirmRequest()))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCodeEnum")
+                .isEqualTo(ErrorCode.STRONG_AUTH_REQUIRED);
+        assertThatThrownBy(() -> authService.confirmarOperacion(
+                usuario, OperationConfirmRequest.builder().biometricType("FACIAL").biometricData(base64Biometric).build()))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCodeEnum")
+                .isEqualTo(ErrorCode.STRONG_AUTH_REQUIRED);
     }
 }

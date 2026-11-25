@@ -30,7 +30,6 @@ public class AccountServiceImpl implements AccountService {
     private final AccountMapper accountMapper;
     private final AccountNumberGenerator accountNumberGenerator;
     private final com.intrumentoev.demo.repository.account.AccountBalanceRepository accountBalanceRepository;
-    private final com.intrumentoev.demo.service.service.auth.ServerSessionManager serverSessionManager;
 
     @Value("${bank.account.initial-balance:1000.00}")
     private BigDecimal defaultInitialBalance;
@@ -116,17 +115,7 @@ public class AccountServiceImpl implements AccountService {
     public List<AccountResponse> obtenerCuentasPorCliente(Long idClient) {
         log.info("Consultando cuentas bancarias del cliente ID: {}", idClient);
 
-        // 1. Control de autorización: evitar que un usuario consulte cuentas de otro cliente modificando el ID
-        if (serverSessionManager.isUserLoggedIn()) {
-            Long activeClientId = serverSessionManager.getActiveClientId();
-            if (activeClientId != null && !activeClientId.equals(idClient) && !serverSessionManager.isAdmin()) {
-                log.warn("ACCESO DENEGADO: Cliente autenticado ID {} intentó acceder a cuentas del cliente ID {}",
-                        activeClientId, idClient);
-                throw new BusinessException(ErrorCode.ACCESS_DENIED, "No tiene autorización para consultar la información ni cuentas del cliente solicitado", "idClient");
-            }
-        }
-
-        // 2. Validar existencia del cliente (404 si no existe)
+        // Validar existencia del cliente (404 si no existe)
         Client client = clientRepository.findById(idClient)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CLIENT_NOT_FOUND, String.valueOf(idClient)));
 

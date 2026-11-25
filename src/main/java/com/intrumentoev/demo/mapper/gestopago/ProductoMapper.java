@@ -14,13 +14,21 @@ import java.util.stream.Collectors;
 @Mapper(componentModel = "spring")
 public interface ProductoMapper {
 
+    String GESTOPAGO_LOGO_URL_TEMPLATE = "https://gestopago.portalventas.net/sistema/images/gestopago/servicios/%d.png";
+
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     Producto toEntity(ProductoRequest request);
 
+    @Mapping(target = "logoUrl", expression = "java(construirLogoUrl(entity.getIdServicio()))")
     ProductoResponse toResponse(Producto entity);
 
     List<ProductoResponse> toResponseList(List<Producto> entities);
+
+    @Mapping(target = "id", ignore = true)
+    Producto responseToEntity(ProductoResponse response);
+
+    List<Producto> responseListToEntityList(List<ProductoResponse> responses);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
@@ -34,6 +42,8 @@ public interface ProductoMapper {
     // Mapeos MapStruct de items XML a ProductoResponse (DTO)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "categoria", expression = "java(traducirCategoria(xmlItem.getIdCatTipoServicio(), xmlItem.getTipoFront()))")
+    @Mapping(target = "logoUrl", expression = "java(construirLogoUrl(xmlItem.getIdServicio()))")
     ProductoResponse xmlItemToResponse(GestoPagoProductXmlResponse.ProductoXmlItem xmlItem);
 
     List<ProductoResponse> xmlItemsToResponseList(List<GestoPagoProductXmlResponse.ProductoXmlItem> xmlItems);
@@ -41,9 +51,70 @@ public interface ProductoMapper {
     // Mapeos MapStruct de items XML a Producto (Entidad JPA)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "categoria", expression = "java(traducirCategoria(xmlItem.getIdCatTipoServicio(), xmlItem.getTipoFront()))")
     Producto xmlItemToEntity(GestoPagoProductXmlResponse.ProductoXmlItem xmlItem);
 
     List<Producto> xmlItemsToEntityList(List<GestoPagoProductXmlResponse.ProductoXmlItem> xmlItems);
+
+    @AfterMapping
+    default void enrichResponse(@MappingTarget ProductoResponse target, Producto source) {
+        if (target.getCategoria() == null || target.getCategoria().isBlank()) {
+            target.setCategoria(traducirCategoria(source.getIdCatTipoServicio(), source.getTipoFront()));
+        }
+        if (target.getLogoUrl() == null || target.getLogoUrl().isBlank()) {
+            target.setLogoUrl(construirLogoUrl(source.getIdServicio()));
+        }
+    }
+
+    default String construirLogoUrl(Integer idServicio) {
+        if (idServicio == null || idServicio <= 0) {
+            return null;
+        }
+        return String.format(GESTOPAGO_LOGO_URL_TEMPLATE, idServicio);
+    }
+
+    @AfterMapping
+    default void enrichEntity(@MappingTarget Producto target) {
+        if (target.getCategoria() == null || target.getCategoria().isBlank()) {
+            target.setCategoria(traducirCategoria(target.getIdCatTipoServicio(), target.getTipoFront()));
+        }
+        if (target.getCreatedAt() == null) {
+            target.setCreatedAt(java.time.LocalDateTime.now());
+        }
+    }
+
+    default String traducirCategoria(Integer idCatTipoServicio, Integer tipoFront) {
+        if (idCatTipoServicio != null) {
+            switch (idCatTipoServicio) {
+                case 1:
+                    return "Recargas";
+                case 2:
+                    return "Servicios";
+                case 3:
+                    return "Telecomunicaciones y TV";
+                case 4:
+                    return "Agua y Gobierno";
+                case 10:
+                case 11:
+                    return "Pines y Entretenimiento";
+                default:
+                    break;
+            }
+        }
+        if (tipoFront != null) {
+            switch (tipoFront) {
+                case 1:
+                    return "Recargas";
+                case 2:
+                    return "Servicios";
+                case 4:
+                    return "Pines y Entretenimiento";
+                default:
+                    break;
+            }
+        }
+        return "Otros servicios";
+    }
 
     default List<ProductoResponse> filtrarYOrdenarPorTipoFront(List<ProductoResponse> jsonItems) {
         if (jsonItems == null || jsonItems.isEmpty()) {
@@ -61,6 +132,12 @@ public interface ProductoMapper {
                     }
                     if (p.getCreatedAt() == null) {
                         p.setCreatedAt(now);
+                    }
+                    if (p.getCategoria() == null || p.getCategoria().isBlank()) {
+                        p.setCategoria(traducirCategoria(p.getIdCatTipoServicio(), p.getTipoFront()));
+                    }
+                    if (p.getLogoUrl() == null || p.getLogoUrl().isBlank()) {
+                        p.setLogoUrl(construirLogoUrl(p.getIdServicio()));
                     }
                 })
                 .collect(Collectors.toList());

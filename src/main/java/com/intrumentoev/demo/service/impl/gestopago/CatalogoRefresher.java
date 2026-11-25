@@ -1,6 +1,6 @@
 package com.intrumentoev.demo.service.impl.gestopago;
 
-import com.intrumentoev.demo.service.service.gestopago.ProductoServiceRedis;
+import com.intrumentoev.demo.service.service.gestopago.ProductoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -15,13 +15,13 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class CatalogoRefresher {
 
-    private final ProductoServiceRedis productoServiceRedis;
+    private final ProductoService productoService;
 
     @Async
     public void refrescarEnSegundoPlano() {
         try {
             log.info("Refrescando catálogo de GestoPago en segundo plano (producto no encontrado)");
-            productoServiceRedis.sincronizarCatalogo();
+            productoService.sincronizarCatalogo();
         } catch (Exception e) {
             log.error("No fue posible refrescar el catálogo en segundo plano: {}", e.getMessage());
         }

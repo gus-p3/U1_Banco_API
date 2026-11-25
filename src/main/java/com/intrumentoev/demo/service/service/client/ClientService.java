@@ -23,6 +23,8 @@ public interface ClientService {
     /**
      * API 2: Súper PATCH para actualización parcial y modular de datos personales, contacto, domicilio y laboral.
      */
+    ClientResponse obtenerClientePorId(Long idClient, List<String> includes);
+
     ClientDetailResponse actualizarParcialUnificado(ClientUnifiedPatchRequest request);
 
     /**

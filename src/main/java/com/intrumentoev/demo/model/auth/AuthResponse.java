@@ -23,6 +23,7 @@ public class AuthResponse {
     @com.fasterxml.jackson.annotation.JsonIgnore
     private Long idClient;
     private String email;
+    private Role role;
     private Boolean isActive;
     private Boolean hasBiometricRegistered;
     private String biometricType;
@@ -36,6 +37,7 @@ public class AuthResponse {
                 .expiresIn(expiresIn)
                 .idClient(auth.getIdClient())
                 .email(auth.getEmail())
+                .role(auth.getRole())
                 .isActive(auth.getIsActive())
                 .hasBiometricRegistered(auth.getBiometricTemplate() != null && auth.getBiometricTemplate().length > 0)
                 .biometricType(auth.getBiometricType())
