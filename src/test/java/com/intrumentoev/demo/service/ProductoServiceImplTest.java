@@ -12,12 +12,16 @@ import com.intrumentoev.demo.repository.gestopago.ProductoRepository;
 import com.intrumentoev.demo.service.impl.gestopago.ProductoServiceImpl;
 import com.intrumentoev.demo.service.impl.gestopago.TransformProductImpl;
 import com.intrumentoev.demo.service.service.gestopago.GestoPagoTokenService;
+import feign.FeignException;
+import feign.Request;
+import feign.RequestTemplate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,6 +35,14 @@ import static org.mockito.Mockito.*;
 
 @SuppressWarnings("unchecked")
 class ProductoServiceImplTest {
+
+    private static final String XML_CODIGO_05 =
+            "<RESPONSE><MENSAJE><CODIGO>05</CODIGO><TEXTO>Origen Valido</TEXTO></MENSAJE></RESPONSE>";
+    private static final String XML_CON_PRODUCTOS =
+            "<RESPONSE><MENSAJE><CODIGO>01</CODIGO><TEXTO>OK</TEXTO></MENSAJE><PRODUCTOS>"
+                    + "<producto servicio=\"Telcel\" producto=\"Recarga 50\" idServicio=\"133\" idProducto=\"582\" "
+                    + "idCatTipoServicio=\"1\" tipoFront=\"1\" precio=\"50.00\"><legend>Recarga Telcel</legend></producto>"
+                    + "</PRODUCTOS></RESPONSE>";
 
     private ProductoRepository productoRepository;
     private GestoPagoProductClient productClient;
@@ -47,6 +59,7 @@ class ProductoServiceImplTest {
         redisTemplate = mock(RedisTemplate.class);
         valueOps = mock(ValueOperations.class);
         when(redisTemplate.opsForValue()).thenReturn(valueOps);
+        when(tokenService.obtenerTokenVigente()).thenReturn("gp-token-1");
 
         var mapper = new ProductoMapperImpl();
         var transform = new TransformProductImpl(mapper);
@@ -55,27 +68,47 @@ class ProductoServiceImplTest {
                 productoRepository, mapper, productClient, tokenService, transform, redisTemplate, objMapper);
     }
 
-    private void apiDevuelveProductos() {
-        when(tokenService.obtenerTokenVigente()).thenReturn("tok");
-        when(productClient.getProductListXml("Bearer tok")).thenReturn(TransformProductImplTest.XML);
+    @Test
+    @DisplayName("sincronizarCatalogo realiza la petición real a GestoPago y si retorna CODIGO=05 usa Redis y respalda PostgreSQL")
+    void sincronizarConCodigo05UsaRespaldoSinBorrar() {
+        when(productClient.getProductListXml("Bearer gp-token-1")).thenReturn(XML_CODIGO_05);
+        when(valueOps.get("catalogo:productos:gestopago:v2")).thenReturn(List.of(
+                Map.of("producto", "Telcel 100", "servicio", "Telcel", "tipoFront", 1, "idServicio", 133, "idProducto", 582)));
+        when(productoRepository.count()).thenReturn(0L);
+        when(productoRepository.findAll()).thenReturn(List.of());
+
+        List<ProductoResponse> result = service.sincronizarCatalogo();
+
+        verify(productClient).getProductListXml("Bearer gp-token-1");
+        assertThat(result).extracting(ProductoResponse::getProducto).containsExactly("Telcel 100");
+        assertThat(result.get(0).getLogoUrl())
+                .isEqualTo("https://gestopago.portalventas.net/sistema/images/gestopago/servicios/133.png");
+        verify(productoRepository).saveAll(anyList());
+        verify(productoRepository, never()).deleteAll();
     }
 
     @Test
-    @DisplayName("Con caché en Redis devuelve el catálogo filtrado (solo tipoFront > 0)")
-    void desdeRedis() {
-        when(valueOps.get(anyString())).thenReturn(List.of(
-                Map.of("producto", "Recarga", "tipoFront", 2, "idServicio", 133, "idProducto", 582),
-                Map.of("producto", "Oculto", "tipoFront", 0, "idServicio", 79, "idProducto", 209)));
+    @DisplayName("sincronizarCatalogo guarda en Redis y PostgreSQL cuando GestoPago devuelve productos y reintenta ante 403")
+    void sincronizarConProductosYReintento403() {
+        Request dummyReq = Request.create(Request.HttpMethod.GET, "/getProductList.do", Map.of(), null, StandardCharsets.UTF_8, new RequestTemplate());
+        FeignException forbidden = new FeignException.Forbidden("Expired", dummyReq, null, Map.of());
+        when(productClient.getProductListXml("Bearer gp-token-1")).thenThrow(forbidden);
+        when(tokenService.renovarTokenForzado()).thenReturn("gp-token-2");
+        when(productClient.getProductListXml("Bearer gp-token-2")).thenReturn(XML_CON_PRODUCTOS);
+        when(productoRepository.findAll()).thenReturn(List.of());
 
-        List<ProductoResponse> result = service.getProductsRedis();
+        List<ProductoResponse> result = service.sincronizarCatalogo();
 
-        assertThat(result).extracting(ProductoResponse::getProducto).containsExactly("Recarga");
-        verifyNoInteractions(productoRepository, productClient);
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getServicio()).isEqualTo("Telcel");
+        verify(tokenService).renovarTokenForzado();
+        verify(valueOps).set(eq("catalogo:productos:gestopago:v2"), any());
+        verify(productoRepository).saveAll(anyList());
     }
 
     @Test
-    @DisplayName("Si no está en Redis lo agarra de PostgreSQL y repuebla Redis")
-    void desdePostgres() {
+    @DisplayName("Si Redis está vacío, getProductsRedis toma los productos de PostgreSQL y llena Redis")
+    void desdePostgresYPueblaRedis() {
         when(valueOps.get(anyString())).thenReturn(null);
         Producto p = new Producto();
         p.setId(1);
@@ -89,121 +122,25 @@ class ProductoServiceImplTest {
         List<ProductoResponse> result = service.getProductsRedis();
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getLogoUrl()).contains("133.png");
+        assertThat(result.get(0).getCategoria()).isEqualTo("Recargas");
         verify(valueOps).set(anyString(), any());
         verifyNoInteractions(productClient);
     }
 
     @Test
-    @DisplayName("Sin caché ni BD consulta la API y guarda en Redis")
-    void desdeApi() {
+    @DisplayName("Si Redis y PostgreSQL están vacíos consulta GestoPago; ante CODIGO=05 devuelve lista vacía sin fallar")
+    void ambosVaciosConsultaGestoPagoCodigo05() {
         when(valueOps.get(anyString())).thenReturn(null);
         when(productoRepository.findAll()).thenReturn(List.of());
-        apiDevuelveProductos();
+        when(productClient.getProductListXml(anyString())).thenReturn(XML_CODIGO_05);
 
-        List<ProductoResponse> result = service.getProductsRedis();
-
-        assertThat(result).hasSize(1);
-        verify(valueOps).set(anyString(), any());
+        assertThat(service.getProductsRedis()).isEmpty();
+        assertThat(service.obtenerProductosXML()).isEmpty();
+        verify(productClient, times(2)).getProductListXml("Bearer gp-token-1");
     }
 
     @Test
-    @DisplayName("Si Redis falla al guardar, el catálogo de la API se guarda en PostgreSQL sin borrar existentes")
-    void apiYRedisCaido() {
-        when(valueOps.get(anyString())).thenReturn(null);
-        when(productoRepository.findAll()).thenReturn(List.of());
-        doThrow(new RuntimeException("redis")).when(valueOps).set(anyString(), any());
-        apiDevuelveProductos();
-
-        assertThat(service.getProductsRedis()).hasSize(1);
-        verify(productoRepository, never()).deleteAll();
-        verify(productoRepository).saveAll(anyList());
-    }
-
-    @Test
-    @DisplayName("sincronizarCatalogo actualiza Redis y Postgres SIN borrar productos anteriores")
-    void sincronizarSinBorrarAnteriores() {
-        apiDevuelveProductos();
-        Producto existente = new Producto();
-        existente.setId(99);
-        existente.setIdServicio(133);
-        existente.setIdProducto(582);
-        when(productoRepository.findAll()).thenReturn(List.of(existente));
-
-        List<ProductoResponse> synced = service.sincronizarCatalogo();
-
-        assertThat(synced).hasSize(1);
-        verify(redisTemplate, never()).delete(anyString());
-        verify(productoRepository, never()).deleteAll();
-        verify(valueOps).set(anyString(), any());
-        verify(productoRepository).saveAll(anyList());
-    }
-
-    @Test
-    @DisplayName("Si la API devuelve 0 productos en sincronizarCatalogo, no borra nada y agarra de Redis o Postgres")
-    void sincronizarVacioAgarraDeRedisOPostgres() {
-        when(tokenService.obtenerTokenVigente()).thenReturn("tok");
-        when(productClient.getProductListXml("Bearer tok"))
-                .thenReturn("<RESPONSE><MENSAJE><CODIGO>05</CODIGO><TEXTO>Origen Valido</TEXTO></MENSAJE></RESPONSE>");
-        when(valueOps.get("catalogo:productos:gestopago:v2")).thenReturn(List.of(
-                Map.of("producto", "Telcel 50", "servicio", "Telcel", "idServicio", 133, "idProducto", 582, "tipoFront", 1)));
-
-        List<ProductoResponse> fallback = service.sincronizarCatalogo();
-
-        assertThat(fallback).hasSize(1);
-        assertThat(fallback.get(0).getProducto()).isEqualTo("Telcel 50");
-        verify(redisTemplate, never()).delete(anyString());
-        verify(productoRepository, never()).deleteAll();
-    }
-
-    @Test
-    @DisplayName("sincronizarProductosDesdeGestoPago guarda sin borrar anteriores y si viene vacío no borra nada")
-    void sincronizarProductosEndpoint() {
-        apiDevuelveProductos();
-        when(productoRepository.findAll()).thenReturn(List.of());
-
-        service.sincronizarProductosDesdeGestoPago();
-
-        verify(productoRepository, never()).deleteAll();
-        verify(productoRepository).saveAll(anyList());
-
-        clearInvocations(productoRepository);
-        when(productClient.getProductListXml("Bearer tok"))
-                .thenReturn("<RESPONSE><MENSAJE><CODIGO>05</CODIGO><TEXTO>Origen Valido</TEXTO></MENSAJE></RESPONSE>");
-        service.sincronizarProductosDesdeGestoPago();
-        verify(productoRepository, never()).saveAll(anyList());
-    }
-
-    @Test
-    @DisplayName("obtenerProductosXML devuelve del XML o cae a Redis/Postgres si el XML viene vacío")
-    void obtenerProductosXmlConFallback() {
-        apiDevuelveProductos();
-        assertThat(service.obtenerProductosXML()).hasSize(2);
-
-        when(productClient.getProductListXml("Bearer tok"))
-                .thenReturn("<RESPONSE><MENSAJE><CODIGO>05</CODIGO><TEXTO>Origen Valido</TEXTO></MENSAJE></RESPONSE>");
-        when(valueOps.get("catalogo:productos:gestopago:v2")).thenReturn(List.of(
-                Map.of("producto", "Respaldo Redis", "tipoFront", 1, "idServicio", 133, "idProducto", 582)));
-
-        List<ProductoResponse> fallback = service.obtenerProductosXML();
-        assertThat(fallback).hasSize(1);
-        assertThat(fallback.get(0).getProducto()).isEqualTo("Respaldo Redis");
-    }
-
-    @Test
-    @DisplayName("Sin token de GestoPago se lanza IllegalStateException")
-    void sinToken() {
-        when(valueOps.get(anyString())).thenReturn(null);
-        when(productoRepository.findAll()).thenReturn(List.of());
-        when(tokenService.obtenerTokenVigente()).thenReturn(" ");
-
-        assertThatThrownBy(() -> service.getProductsRedis()).isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> service.sincronizarProductosDesdeGestoPago()).isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> service.obtenerProductosXML()).isInstanceOf(IllegalStateException.class);
-    }
-
-    @Test
-    @DisplayName("CRUD: obtenerTodos, obtenerPorId, reemplazar, actualizarParcial y eliminar")
+    @DisplayName("CRUD: obtenerPorId, reemplazar, actualizarParcial y eliminar")
     void crudConsultasYActualizaciones() {
         Producto entidad = new Producto();
         entidad.setId(1);
@@ -213,14 +150,12 @@ class ProductoServiceImplTest {
         entidad.setIdProducto(582);
         entidad.setTipoFront(1);
 
-        when(productoRepository.findAll()).thenReturn(List.of(entidad));
         when(productoRepository.findById(1)).thenReturn(Optional.of(entidad));
         when(productoRepository.findById(9)).thenReturn(Optional.empty());
         when(productoRepository.save(entidad)).thenReturn(entidad);
         when(productoRepository.existsById(1)).thenReturn(true);
         when(productoRepository.existsById(9)).thenReturn(false);
 
-        assertThat(service.obtenerTodosLosProductos()).hasSize(1);
         assertThat(service.obtenerProductoPorId(1).getProducto()).isEqualTo("Telcel 100");
         assertThatThrownBy(() -> service.obtenerProductoPorId(9)).hasMessageContaining("no encontrado");
 

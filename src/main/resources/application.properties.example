@@ -49,7 +49,7 @@ security.encryption.aes-key=${SECURITY_ENCRYPTION_AES_KEY:}
 jwt.access-token-expiration-seconds=300
 jwt.secret=${JWT_SECRET:}
 
-# Token de confirmación de operación (reautenticación antes de pagar)
+# Token de confirmación de operación (reautenticación biométrica con huella antes de pagar)
 security.confirmation-token.expiration-seconds=${SECURITY_CONFIRMATION_TOKEN_EXPIRATION_SECONDS:120}
 
 # Vigencia de validación previa de referencias de servicios en Redis (en segundos)
@@ -60,7 +60,7 @@ spring.jackson.mapper.allow-coercion-of-scalars=false
 spring.jackson.deserialization.fail-on-unknown-properties=true
 spring.jackson.default-property-inclusion=non_null
 
-# GestoPago (obligatorias por variables de entorno)
+# GestoPago
 gestopago.auth.url=${GESTOPAGO_AUTH_URL:https://gestopago.portalventas.net}
 gestopago.auth.id-distribuidor=${GESTOPAGO_ID_DISTRIBUIDOR:}
 gestopago.auth.codigo-dispositivo=${GESTOPAGO_CODIGO_DISPOSITIVO:}
@@ -76,7 +76,7 @@ gestopago.tx.read-timeout-ms=65000
 gestopago.tx.espera-confirmacion-segundos=62
 gestopago.tx.vigencia-confirmacion-horas=24
 gestopago.tx.codigos-producto-inexistente=
-gestopago.tx.codigos-no-aplicada=70
+gestopago.tx.codigos-no-aplicada=70,05
 
 # CORS
 cors.allowed-origins=${CORS_ALLOWED_ORIGINS:http://localhost:8081,http://localhost:19006,http://localhost:3000}

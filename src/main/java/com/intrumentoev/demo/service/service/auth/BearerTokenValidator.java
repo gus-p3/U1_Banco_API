@@ -52,8 +52,9 @@ public class BearerTokenValidator {
     }
 
     /**
-     * Operaciones de pago: acepta un JWT válido de cualquier método de autenticación,
-     * pero exige un token de confirmación reciente (X-Confirmation-Token), de un solo uso y del mismo cliente.
+     * Operaciones de pago: exige un JWT válido del cliente y un token de confirmación reciente
+     * (X-Confirmation-Token) de un solo uso emitido exclusivamente mediante HUELLA digital (BIOMETRIC_HUELLA).
+     * Rechaza cualquier confirmación por contraseña o desde web con 403 STRONG_AUTH_REQUIRED.
      */
     public AuthenticatedClient validarParaPago(String authorizationHeader, String confirmationTokenHeader) {
         AuthenticatedClient cliente = validarCliente(authorizationHeader);
@@ -73,6 +74,19 @@ public class BearerTokenValidator {
         String purpose = confirmClaims.get(JwtTokenService.CLAIM_TOKEN_PURPOSE, String.class);
         if (!JwtTokenService.PURPOSE_OPERATION_CONFIRM.equals(purpose)) {
             log.warn("Token de confirmación con propósito inválido para cliente {}", cliente.getIdClient());
+            throw new BusinessException(ErrorCode.STRONG_AUTH_REQUIRED);
+        }
+
+        AuthMethod confirmMethod;
+        try {
+            String rawMethod = confirmClaims.get(JwtTokenService.CLAIM_AUTH_METHOD, String.class);
+            confirmMethod = rawMethod != null ? AuthMethod.valueOf(rawMethod) : null;
+        } catch (IllegalArgumentException e) {
+            confirmMethod = null;
+        }
+        if (confirmMethod != AuthMethod.BIOMETRIC_HUELLA) {
+            log.warn("Pago rechazado para cliente {}: confirmación no realizada con HUELLA (authMethod={})",
+                    cliente.getIdClient(), confirmMethod);
             throw new BusinessException(ErrorCode.STRONG_AUTH_REQUIRED);
         }
 

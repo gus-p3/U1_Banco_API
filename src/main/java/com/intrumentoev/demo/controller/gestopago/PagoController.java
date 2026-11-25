@@ -46,13 +46,13 @@ public class PagoController {
     private final PagoGestoPagoService pagoService;
 
     @Operation(
-            summary = "Pagar una recarga o un servicio",
+            summary = "Pagar una recarga o un servicio (exclusivo app móvil con huella digital)",
             description = """
-                    Requiere `Authorization: Bearer <JWT>` (de cualquier método válido: contraseña o huella) \
-                    y el encabezado `X-Confirmation-Token` emitido por `POST /v1/auth/confirmar-operacion` \
-                    (vida corta, de un solo uso y ligado al cliente).
+                    Requiere `Authorization: Bearer <JWT>` y el encabezado `X-Confirmation-Token` emitido por \
+                    `POST /v1/auth/confirmar-operacion` mediante **huella digital (`BIOMETRIC_HUELLA`)** \
+                    (vida corta, de un solo uso y ligado al cliente). No se permiten pagos desde la web ni con contraseña.
 
-                    Validaciones en orden: Bearer/firma/expiración (401) → token de confirmación reciente y único (403 STRONG_AUTH_REQUIRED) → \
+                    Validaciones en orden: Bearer/firma/expiración (401) → token de confirmación biométrico de huella y único (403 STRONG_AUTH_REQUIRED) → \
                     cuenta del cliente del token (403, mensaje genérico) → cliente y cuenta activos (422) → producto en el catálogo de GestoPago → saldo (422).
 
                     `codigo`: 1 = aplicado (CODIGO "01"), 0 = no se pudo o en proceso. Un pago `POR_CONFIRMAR` devuelve codigo 0 y el `upc`; \
@@ -100,9 +100,18 @@ public class PagoController {
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
         AuthenticatedClient cliente = bearerTokenValidator.validarCliente(authorization);
+        if (page < 0) {
+            throw new BusinessException(ErrorCode.INVALID_PAYMENT_REQUEST, "El parámetro 'page' no puede ser negativo");
+        }
+        if (size < 1 || size > 100) {
+            throw new BusinessException(ErrorCode.INVALID_PAYMENT_REQUEST, "El parámetro 'size' debe estar entre 1 y 100");
+        }
         EstadoPago estadoEnum = parsearEstado(estado);
         OffsetDateTime desdeDt = parsearFecha(desde, false);
         OffsetDateTime hastaDt = parsearFecha(hasta, true);
+        if (desdeDt != null && hastaDt != null && desdeDt.isAfter(hastaDt)) {
+            throw new BusinessException(ErrorCode.INVALID_PAYMENT_REQUEST, "La fecha inicial 'desde' no puede ser posterior a 'hasta'");
+        }
         return ResponseEntity.ok(pagoService.listarPagosCliente(cliente, estadoEnum, desdeDt, hastaDt, page, size));
     }
 
@@ -115,6 +124,9 @@ public class PagoController {
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
             @PathVariable("idOrUpc") String idOrUpc) {
         AuthenticatedClient cliente = bearerTokenValidator.validarCliente(authorization);
+        if (idOrUpc == null || idOrUpc.isBlank() || idOrUpc.trim().length() > 40 || !idOrUpc.trim().matches("^[A-Za-z0-9\\-_]+$")) {
+            throw new BusinessException(ErrorCode.INVALID_PAYMENT_REQUEST, "Identificador de pago inválido");
+        }
         return ResponseEntity.ok(pagoService.consultarPagoCliente(cliente, idOrUpc));
     }
 

@@ -38,7 +38,10 @@ public class AccountController {
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
             @PathVariable("accountNumber") String accountNumber) {
         var cliente = bearerTokenValidator.validarCliente(authorization);
-        var cuenta = accountService.obtenerCuentaPorNumero(accountNumber);
+        if (accountNumber == null || !accountNumber.trim().matches("^[0-9]{10}$")) {
+            throw new BusinessException(ErrorCode.INVALID_PAYMENT_REQUEST, "El número de cuenta debe tener exactamente 10 dígitos numéricos");
+        }
+        var cuenta = accountService.obtenerCuentaPorNumero(accountNumber.trim());
         if (!cliente.getIdClient().equals(cuenta.getIdClient())) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }

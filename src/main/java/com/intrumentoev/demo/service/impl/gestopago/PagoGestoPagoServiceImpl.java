@@ -11,6 +11,7 @@ import com.intrumentoev.demo.entity.client.Client;
 import com.intrumentoev.demo.entity.gestopago.PagoGestoPago;
 import com.intrumentoev.demo.exception.BusinessException;
 import com.intrumentoev.demo.exception.ErrorCode;
+import com.intrumentoev.demo.mapper.gestopago.ProductoMapper;
 import com.intrumentoev.demo.model.auth.AuthenticatedClient;
 import com.intrumentoev.demo.model.gestopago.ProductoResponse;
 import com.intrumentoev.demo.model.gestopago.pago.EstadoPago;
@@ -54,17 +55,20 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Flujo de pago vía GestoPago:
- *  1. Tx corta: validar, bloquear cuenta (FOR UPDATE), registrar pago PENDIENTE y descontar el saldo.
- *  2. sendTx fuera de transacción (hasta 65 s de espera).
- *  3. Tx corta según el XML (no según el HTTP status): 01/06 APLICADO, 82 o sin respuesta POR_CONFIRMAR, otro RECHAZADO.
- * El job de confirmTx resuelve los POR_CONFIRMAR con el mismo payload.
+ * Flujo real de pago vía GestoPago (sendTx / confirmTx):
+ *  1. Tx corta: validar entrada, bloquear cuenta (FOR UPDATE), registrar pago PENDIENTE y descontar saldo.
+ *  2. Llamada HTTP real a sendTx.do fuera de transacción (cifrado AES-256-CBC + Bearer token de GestoPago).
+ *  3. Tx corta según el XML devuelto por GestoPago:
+ *     - 01 / 06 -> APLICADO
+ *     - 82 o sin respuesta XML -> POR_CONFIRMAR (resuelto por el job confirmTx)
+ *     - 05 (restricción de origen/IP en GestoPago) o cualquier otro rechazo -> RECHAZADO + reverso íntegro de saldo.
  */
 @Service
 @Slf4j
 public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
 
     static final String CODIGO_APLICADO = "01";
+    static final String CODIGO_ORIGEN_RESTRINGIDO = "05";
     static final String CODIGO_DUPLICADA_APLICADA = "06";
     static final String CODIGO_TIMEOUT = "82";
     static final String CODIGO_CONFIRM_APLICADA = "06";
@@ -73,6 +77,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
     private static final DateTimeFormatter HORA_LOCAL = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private static final ObjectMapper PAYLOAD_MAPPER = new ObjectMapper();
     private static final String MSG_PRODUCTO_NO_DISPONIBLE = "No se pudo realizar el pago: producto o servicio no disponible";
+    private static final String MSG_NO_PROCESABLE_POR_EL_MOMENTO = "No se puede procesar el pago por el momento, intente más tarde";
     private static final String MSG_EN_PROCESO = "Pago en proceso de confirmación";
     private static final int PENDIENTE_HUERFANO_SEGUNDOS = 180;
 
@@ -97,7 +102,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
     @Value("${gestopago.tx.codigos-producto-inexistente:}")
     private String codigosProductoInexistente;
 
-    @Value("${gestopago.tx.codigos-no-aplicada:70}")
+    @Value("${gestopago.tx.codigos-no-aplicada:70,05}")
     private String codigosNoAplicada;
 
     @Value("${gestopago.tx.espera-confirmacion-segundos:62}")
@@ -159,7 +164,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
             throw new BusinessException(ErrorCode.PAYMENT_ACCOUNT_INACTIVE);
         }
 
-        // e) producto en el catálogo de GestoPago (caché), no en el Id local de la tabla
+        // e) producto en el catálogo de GestoPago
         ProductoResponse producto = buscarProducto(request.getIdServicio(), request.getIdProducto());
         if (producto == null) {
             catalogoRefresher.refrescarEnSegundoPlano();
@@ -182,10 +187,10 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
         PagoGestoPago pago = tx.execute(status -> registrarPagoYDescontar(idCliente, request, tipoPago, monto, upc,
                 payloadJson, requestCifrado));
 
-        // 2) sendTx fuera de transacción
+        // 2) sendTx real fuera de transacción
         GestoPagoHttpResponse http = llamar(false, requestCifrado);
 
-        // 3) Tx corta según el XML
+        // 3) Tx corta según el XML devuelto por GestoPago
         PagoGestoPago resuelto = resolverEnvio(pago.getId(), http);
 
         if (resuelto.getEstado() == EstadoPago.RECHAZADO && contiene(codigosProductoInexistente, resuelto.getCodigoRespuesta())) {
@@ -213,8 +218,8 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
                 .idServicio(request.getIdServicio())
                 .idProducto(request.getIdProducto())
                 .tipoPago(tipoPago)
-                .telefono(request.getTelefono())
-                .referencia(request.getReferencia())
+                .telefono(request.getTelefono() != null ? request.getTelefono().trim() : null)
+                .referencia(request.getReferencia() != null ? request.getReferencia().trim() : null)
                 .monto(monto)
                 .upc(upc)
                 .estado(EstadoPago.PENDIENTE)
@@ -248,9 +253,17 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
             copiarResultado(pago, resultado);
             if (CODIGO_APLICADO.equals(resultado.getCodigo()) || CODIGO_DUPLICADA_APLICADA.equals(resultado.getCodigo())) {
                 pago.setEstado(EstadoPago.APLICADO);
+                log.info("Pago {} aplicado exitosamente por GestoPago (CODIGO={})", pago.getUpc(), resultado.getCodigo());
             } else {
                 pago.setEstado(EstadoPago.RECHAZADO);
                 devolverSaldo(pago);
+                if (CODIGO_ORIGEN_RESTRINGIDO.equals(resultado.getCodigo())) {
+                    log.warn("Pago {} rechazado por GestoPago con CODIGO=05 (TEXTO='{}'); saldo devuelto automáticamente a la cuenta {}.",
+                            pago.getUpc(), resultado.getTexto(), pago.getNumCuenta());
+                } else {
+                    log.warn("Pago {} rechazado por GestoPago (CODIGO={}, TEXTO='{}'); saldo devuelto.",
+                            pago.getUpc(), resultado.getCodigo(), resultado.getTexto());
+                }
             }
             return pagoRepository.save(pago);
         });
@@ -266,7 +279,6 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
         List<PagoGestoPago> candidatos = new ArrayList<>(pagoRepository
                 .findTop50ByEstadoAndFechaEnvioBetweenOrderByFechaEnvioAsc(
                         EstadoPago.POR_CONFIRMAR, desde, ahora.minusSeconds(esperaConfirmacionSegundos)));
-        // PENDIENTE huérfano: se descontó el saldo pero la app se cayó antes de resolver sendTx
         candidatos.addAll(pagoRepository.findTop50ByEstadoAndFechaEnvioBetweenOrderByFechaEnvioAsc(
                 EstadoPago.PENDIENTE, desde, ahora.minusSeconds(Math.max(esperaConfirmacionSegundos, PENDIENTE_HUERFANO_SEGUNDOS))));
 
@@ -284,7 +296,6 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
         if (pago == null || !esPorResolver(pago.getEstado())) {
             return;
         }
-        // MISMO payload (mismo upc y horaLocal) que en sendTx
         GestoPagoHttpResponse http = llamar(true, cipher.cifrar(pago.getPayloadJson()));
         GestoPagoTxResult resultado = interpretar(http);
 
@@ -306,7 +317,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
                 copiarResultado(p, resultado);
                 p.setEstado(EstadoPago.RECHAZADO);
                 devolverSaldo(p);
-                log.info("Pago {} confirmado como NO aplicado; saldo devuelto", p.getUpc());
+                log.info("Pago {} confirmado como NO aplicado (CODIGO={}); saldo devuelto", p.getUpc(), resultado.getCodigo());
             } else {
                 log.warn("confirmTx devolvió un código no concluyente ({}) para el pago {}; se reintenta",
                         resultado.getCodigo(), p.getUpc());
@@ -331,6 +342,9 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
     // -------------------------------------------------------------- utilidades
 
     private void validarFormato(PagoRequest request) {
+        if (request == null) {
+            throw new BusinessException(ErrorCode.INVALID_PAYMENT_REQUEST, "El cuerpo de la solicitud de pago es obligatorio");
+        }
         Set<ConstraintViolation<PagoRequest>> errores = validator.validate(request);
         if (!errores.isEmpty()) {
             String mensaje = errores.stream()
@@ -347,12 +361,21 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
         if (!hayTelefono && !hayReferencia) {
             throw new BusinessException(ErrorCode.INVALID_PAYMENT_REQUEST, "Debe enviar telefono (RECARGA) o referencia (SERVICIO)");
         }
-        if ("RECARGA".equals(request.getTipoPago()) && !hayTelefono) {
-            throw new BusinessException(ErrorCode.INVALID_PAYMENT_REQUEST, "El telefono es obligatorio cuando tipoPago es RECARGA");
+        if ("RECARGA".equals(request.getTipoPago())) {
+            if (!hayTelefono) {
+                throw new BusinessException(ErrorCode.INVALID_PAYMENT_REQUEST, "El telefono es obligatorio cuando tipoPago es RECARGA");
+            }
+            if (request.getTelefono().trim().matches("^0+$")) {
+                throw new BusinessException(ErrorCode.INVALID_PAYMENT_REQUEST, "El teléfono no puede consistir únicamente de ceros");
+            }
         }
         if ("SERVICIO".equals(request.getTipoPago())) {
             if (!hayReferencia) {
                 throw new BusinessException(ErrorCode.INVALID_PAYMENT_REQUEST, "La referencia es obligatoria cuando tipoPago es SERVICIO");
+            }
+            String refTrim = request.getReferencia().trim();
+            if (!refTrim.matches("^[A-Za-z0-9\\-_]{1,100}$")) {
+                throw new BusinessException(ErrorCode.INVALID_PAYMENT_REQUEST, "La referencia contiene caracteres no permitidos");
             }
             if (request.getMonto() == null) {
                 throw new BusinessException(ErrorCode.INVALID_PAYMENT_REQUEST, "El monto es obligatorio cuando tipoPago es SERVICIO");
@@ -431,7 +454,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
         } else if (Integer.valueOf(2).equals(producto.getTipoFront())) {
             telefono = "1111111111";
         } else {
-            telefono = request.getTelefono();
+            telefono = request.getTelefono().trim();
         }
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("idProducto", request.getIdProducto());
@@ -441,7 +464,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
         payload.put("upc", upc);
         payload.put("unidad", unidad);
         if (tipoPago == TipoPago.SERVICIO) {
-            payload.put("referencia", request.getReferencia());
+            payload.put("referencia", request.getReferencia().trim());
             payload.put("montoPago", monto);
         }
         try {
@@ -451,7 +474,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
         }
     }
 
-    /** sendTx/confirmTx con el token del día; ante 403 renueva el token UNA vez y reintenta. */
+    /** sendTx/confirmTx reales contra GestoPago: ante 403 renueva el token una sola vez y reintenta. */
     private GestoPagoHttpResponse llamar(boolean confirmacion, String cifrado) {
         try {
             String token = tokenService.obtenerTokenVigente();
@@ -485,7 +508,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
         pago.setNumAutorizacion(r.getNumAutorizacion());
         pago.setIdTx(r.getIdTx());
         if (r.getComision() != null) {
-            pago.setComision(r.getComision()); // la absorbe el banco; solo se guarda para reportes
+            pago.setComision(r.getComision());
         }
     }
 
@@ -534,6 +557,13 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
         return PagoResponse.builder().codigo(0).mensaje(MSG_PRODUCTO_NO_DISPONIBLE).build();
     }
 
+    private String formatearMensajeRechazo(PagoGestoPago pago) {
+        if (CODIGO_ORIGEN_RESTRINGIDO.equals(pago.getCodigoRespuesta())) {
+            return MSG_NO_PROCESABLE_POR_EL_MOMENTO;
+        }
+        return pago.getTextoRespuesta() != null ? pago.getTextoRespuesta() : "El pago no fue aplicado";
+    }
+
     private PagoResponse aRespuesta(PagoGestoPago pago) {
         PagoResponse.PagoResponseBuilder base = PagoResponse.builder()
                 .estado(pago.getEstado())
@@ -546,7 +576,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
                     .mensaje(pago.getTextoRespuesta() != null ? pago.getTextoRespuesta() : "Pago aplicado exitosamente")
                     .build();
             case RECHAZADO -> base.codigo(0)
-                    .mensaje(pago.getTextoRespuesta() != null ? pago.getTextoRespuesta() : "El pago no fue aplicado")
+                    .mensaje(formatearMensajeRechazo(pago))
                     .build();
             default -> base.codigo(0).mensaje(MSG_EN_PROCESO).build();
         };
@@ -637,7 +667,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
         String logoUrl = prod != null && prod.getLogoUrl() != null
                 ? prod.getLogoUrl()
                 : (pago.getIdServicio() != null && pago.getIdServicio() > 0
-                        ? "https://gestopago.portalventas.net/sistema/images/gestopago/servicios/" + pago.getIdServicio() + ".png"
+                        ? String.format(ProductoMapper.GESTOPAGO_LOGO_URL_TEMPLATE, pago.getIdServicio())
                         : null);
 
         String rawDestino = pago.getTipoPago() == TipoPago.RECARGA ? pago.getTelefono() : pago.getReferencia();
@@ -646,7 +676,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
         int codigo = pago.getEstado() == EstadoPago.APLICADO ? 1 : 0;
         String mensaje = switch (pago.getEstado()) {
             case APLICADO -> pago.getTextoRespuesta() != null ? pago.getTextoRespuesta() : "Pago aplicado exitosamente";
-            case RECHAZADO -> pago.getTextoRespuesta() != null ? pago.getTextoRespuesta() : "El pago no fue aplicado";
+            case RECHAZADO -> formatearMensajeRechazo(pago);
             default -> MSG_EN_PROCESO;
         };
 

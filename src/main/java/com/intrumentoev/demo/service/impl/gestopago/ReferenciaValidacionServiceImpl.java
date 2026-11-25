@@ -159,10 +159,6 @@ public class ReferenciaValidacionServiceImpl implements ReferenciaValidacionServ
         return null;
     }
 
-    /**
-     * Verifica que una referencia con hasDigitoVerificador=true no sea una secuencia repetida inválida
-     * ni termine en un sufijo de rechazo conocido en pruebas ("99999").
-     */
     private boolean cumpleDigitoVerificador(String ref) {
         boolean todosIguales = ref.chars().distinct().count() == 1;
         if (todosIguales) {
@@ -250,4 +246,3 @@ public class ReferenciaValidacionServiceImpl implements ReferenciaValidacionServ
         return REDIS_KEY_PREFIX + idClient + ":" + idServicio + ":" + idProducto + ":" + referencia;
     }
 }
-

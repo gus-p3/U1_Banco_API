@@ -41,4 +41,3 @@ public class PagoDetalleResponse {
     private OffsetDateTime fechaCreacion;
     private OffsetDateTime fechaActualizacion;
 }
-

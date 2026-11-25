@@ -460,6 +460,42 @@ class PagoGestoPagoServiceTest extends PagoIntegrationTestBase {
         assertThat(saldo()).isEqualByComparingTo("1000.00");
     }
 
+    @Test
+    @DisplayName("Manejo de CODIGO 05 de GestoPago ('Origen Valido' / restricción de IP): realiza la petición real, rechaza limpiamente y devuelve el saldo")
+    void sendTxYConfirmTxCodigo05OrigenRestringido() {
+        // 1. sendTx responde CODIGO=05 TEXTO=Origen Valido -> RECHAZADO + saldo devuelto + mensaje explicativo claro
+        when(txClient.sendTx(anyString(), anyString())).thenReturn(
+                GestoPagoHttpResponse.conRespuesta(200,
+                        "<RESPONSE><MENSAJE><CODIGO>05</CODIGO><TEXTO>Origen Valido</TEXTO></MENSAJE></RESPONSE>"));
+
+        PagoResponse r = pagoService.procesarPago(cliente(), recarga());
+
+        assertThat(r.getCodigo()).isZero();
+        assertThat(r.getEstado()).isEqualTo(EstadoPago.RECHAZADO);
+        assertThat(r.getCodigoGestoPago()).isEqualTo("05");
+        assertThat(r.getMensaje()).isEqualTo("No se puede procesar el pago por el momento, intente más tarde");
+        assertThat(saldo()).isEqualByComparingTo("1000.00");
+        verify(txClient, times(1)).sendTx(eq("token-1"), anyString());
+        assertThat(balanceRepository.findByIdAccountOrderByCreatedAtDesc(cuentaDemo().getIdAccount()))
+                .extracting(AccountBalance::getMovementType)
+                .contains("REVERSO_PAGO");
+
+        // 2. Si sendTx dio timeout (82) y confirmTx responde CODIGO=05 -> también resuelve a RECHAZADO y devuelve saldo
+        when(txClient.sendTx(anyString(), anyString())).thenReturn(xml("82", "Timeout", null, "-1", null));
+        PagoResponse pend = pagoService.procesarPago(cliente(), recarga());
+        assertThat(pend.getEstado()).isEqualTo(EstadoPago.POR_CONFIRMAR);
+        assertThat(saldo()).isEqualByComparingTo("950.00");
+        envejecer(pago(pend));
+
+        when(txClient.confirmTx(anyString(), anyString())).thenReturn(
+                GestoPagoHttpResponse.conRespuesta(200,
+                        "<RESPONSE><MENSAJE><CODIGO>05</CODIGO><TEXTO>Origen Valido</TEXTO></MENSAJE></RESPONSE>"));
+        pagoService.confirmarPendientes();
+
+        assertThat(pago(pend).getEstado()).isEqualTo(EstadoPago.RECHAZADO);
+        assertThat(saldo()).isEqualByComparingTo("1000.00");
+    }
+
     // ------------------------------------------------------------ helpers
 
     private BusinessException capturar(Runnable r) {

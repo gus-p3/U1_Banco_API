@@ -133,13 +133,21 @@ class BearerTokenValidatorTest {
     }
 
     @Test
-    @DisplayName("Confirmación válida permite pagar tanto con token PASSWORD como BIOMETRIC_HUELLA")
-    void confirmacionValidaPermitePagar() {
-        AuthenticatedClient conPass = validator.validarParaPago(
+    @DisplayName("Solo la confirmación emitida con BIOMETRIC_HUELLA permite pagar; confirmación con PASSWORD o FACIAL es rechazada con 403")
+    void confirmacionSoloConHuellaPermitePagar() {
+        // Confirmación con PASSWORD o BIOMETRIC_FACIAL no autoriza pagos (403 STRONG_AUTH_REQUIRED)
+        assertError(() -> validator.validarParaPago(
                 bearer(AuthMethod.PASSWORD),
-                confirmToken(10L, AuthMethod.PASSWORD));
-        assertThat(conPass.getIdClient()).isEqualTo(10L);
-        assertThat(conPass.getAuthMethod()).isEqualTo(AuthMethod.PASSWORD);
+                confirmToken(10L, AuthMethod.PASSWORD)), ErrorCode.STRONG_AUTH_REQUIRED);
+        assertError(() -> validator.validarParaPago(
+                bearer(AuthMethod.BIOMETRIC_FACIAL),
+                confirmToken(10L, AuthMethod.BIOMETRIC_FACIAL)), ErrorCode.STRONG_AUTH_REQUIRED);
+
+        // Sesión móvil iniciada con contraseña o huella + confirmación biométrica HUELLA sí autoriza
+        AuthenticatedClient sesionPassConHuella = validator.validarParaPago(
+                bearer(AuthMethod.PASSWORD),
+                confirmToken(10L, AuthMethod.BIOMETRIC_HUELLA));
+        assertThat(sesionPassConHuella.getIdClient()).isEqualTo(10L);
 
         AuthenticatedClient conHuella = validator.validarParaPago(
                 bearer(AuthMethod.BIOMETRIC_HUELLA),
@@ -153,26 +161,26 @@ class BearerTokenValidatorTest {
     void confirmacionInvalidaExpiradaReutilizadaOAjenas() {
         // Expirado
         String confirmExpirado = nuevoJwtService(SECRET, -10)
-                .generateConfirmationToken(10L, 1L, "cliente@banco.com", AuthMethod.PASSWORD);
-        assertError(() -> validator.validarParaPago(bearer(AuthMethod.PASSWORD), confirmExpirado),
+                .generateConfirmationToken(10L, 1L, "cliente@banco.com", AuthMethod.BIOMETRIC_HUELLA);
+        assertError(() -> validator.validarParaPago(bearer(AuthMethod.BIOMETRIC_HUELLA), confirmExpirado),
                 ErrorCode.STRONG_AUTH_REQUIRED);
 
         // Mal formado o un access token común usado como confirmación
-        assertError(() -> validator.validarParaPago(bearer(AuthMethod.PASSWORD), "no-es-jwt"),
+        assertError(() -> validator.validarParaPago(bearer(AuthMethod.BIOMETRIC_HUELLA), "no-es-jwt"),
                 ErrorCode.STRONG_AUTH_REQUIRED);
-        String accessNormal = jwtTokenService.generateAccessToken(10L, 1L, "cliente@banco.com", AuthMethod.PASSWORD);
-        assertError(() -> validator.validarParaPago(bearer(AuthMethod.PASSWORD), accessNormal),
+        String accessNormal = jwtTokenService.generateAccessToken(10L, 1L, "cliente@banco.com", AuthMethod.BIOMETRIC_HUELLA);
+        assertError(() -> validator.validarParaPago(bearer(AuthMethod.BIOMETRIC_HUELLA), accessNormal),
                 ErrorCode.STRONG_AUTH_REQUIRED);
 
         // De otro cliente
-        String confirmOtroCliente = confirmToken(999L, AuthMethod.PASSWORD);
-        assertError(() -> validator.validarParaPago(bearer(AuthMethod.PASSWORD), confirmOtroCliente),
+        String confirmOtroCliente = confirmToken(999L, AuthMethod.BIOMETRIC_HUELLA);
+        assertError(() -> validator.validarParaPago(bearer(AuthMethod.BIOMETRIC_HUELLA), confirmOtroCliente),
                 ErrorCode.STRONG_AUTH_REQUIRED);
 
         // Reutilizado (de un solo uso)
-        String confirmUnico = confirmToken(10L, AuthMethod.PASSWORD);
-        assertThat(validator.validarParaPago(bearer(AuthMethod.PASSWORD), confirmUnico).getIdClient()).isEqualTo(10L);
-        assertError(() -> validator.validarParaPago(bearer(AuthMethod.PASSWORD), confirmUnico),
+        String confirmUnico = confirmToken(10L, AuthMethod.BIOMETRIC_HUELLA);
+        assertThat(validator.validarParaPago(bearer(AuthMethod.BIOMETRIC_HUELLA), confirmUnico).getIdClient()).isEqualTo(10L);
+        assertError(() -> validator.validarParaPago(bearer(AuthMethod.BIOMETRIC_HUELLA), confirmUnico),
                 ErrorCode.STRONG_AUTH_REQUIRED);
     }
 

@@ -45,7 +45,7 @@ class PagoControllerTest extends PagoIntegrationTestBase {
     }
 
     private String confirmToken(Long clientId) {
-        return jwtTokenService.generateConfirmationToken(clientId, 1L, "alejandro.hernandez@banco-demo.com", AuthMethod.PASSWORD);
+        return jwtTokenService.generateConfirmationToken(clientId, 1L, "alejandro.hernandez@banco-demo.com", AuthMethod.BIOMETRIC_HUELLA);
     }
 
     private MockHttpServletRequestBuilder pagar(String authorization, String json) {
@@ -104,28 +104,43 @@ class PagoControllerTest extends PagoIntegrationTestBase {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error.code", is("STRONG_AUTH_REQUIRED")));
 
-        verify(txClient, never()).sendTx(anyString(), anyString());
-
-        // 4. Válido con POST /v1/auth/confirmar-operacion y fallo al reutilizarlo
-        when(txClient.sendTx(anyString(), anyString())).thenReturn(xml("01", "Transaccion aplicada", 291437188L, "100024988", "2.50"));
-        String confirmResp = mockMvc.perform(post("/v1/auth/confirmar-operacion")
+        // 4. Confirmación por contraseña (ej. desde Web) rechazada con 403 STRONG_AUTH_REQUIRED
+        mockMvc.perform(post("/v1/auth/confirmar-operacion")
                         .header("Authorization", bearer(AuthMethod.PASSWORD))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"password\":\"PasswordSegura#2026\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code", is("STRONG_AUTH_REQUIRED")));
+
+        String tokenConPassword = jwtTokenService.generateConfirmationToken(
+                idCliente, 1L, "alejandro.hernandez@banco-demo.com", AuthMethod.PASSWORD);
+        mockMvc.perform(pagarConConfirmacion(bearer(AuthMethod.PASSWORD), tokenConPassword, RECARGA_JSON))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code", is("STRONG_AUTH_REQUIRED")));
+
+        verify(txClient, never()).sendTx(anyString(), anyString());
+
+        // 5. Válido con huella digital en POST /v1/auth/confirmar-operacion y fallo al reutilizarlo
+        when(txClient.sendTx(anyString(), anyString())).thenReturn(xml("01", "Transaccion aplicada", 291437188L, "100024988", "2.50"));
+        String confirmResp = mockMvc.perform(post("/v1/auth/confirmar-operacion")
+                        .header("Authorization", bearer(AuthMethod.BIOMETRIC_HUELLA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"biometricType\":\"HUELLA\",\"biometricData\":\""
+                                + com.intrumentoev.demo.config.DemoUserInitializer.DEMO_BIOMETRIC_DATA + "\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.confirmationToken").isNotEmpty())
                 .andReturn().getResponse().getContentAsString();
         String tokenConfirmacion = new com.fasterxml.jackson.databind.ObjectMapper()
                 .readTree(confirmResp).get("confirmationToken").asText();
 
-        // Primer uso: pago exitoso con JWT PASSWORD (web/móvil)
-        mockMvc.perform(pagarConConfirmacion(bearer(AuthMethod.PASSWORD), tokenConfirmacion, RECARGA_JSON))
+        // Primer uso: pago exitoso autorizado con huella digital
+        mockMvc.perform(pagarConConfirmacion(bearer(AuthMethod.BIOMETRIC_HUELLA), tokenConfirmacion, RECARGA_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.codigo", is(1)))
                 .andExpect(jsonPath("$.estado", is("APLICADO")));
 
         // Segundo uso del mismo token: rechazado con 403 STRONG_AUTH_REQUIRED
-        mockMvc.perform(pagarConConfirmacion(bearer(AuthMethod.PASSWORD), tokenConfirmacion, RECARGA_JSON))
+        mockMvc.perform(pagarConConfirmacion(bearer(AuthMethod.BIOMETRIC_HUELLA), tokenConfirmacion, RECARGA_JSON))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error.code", is("STRONG_AUTH_REQUIRED")));
     }
@@ -271,8 +286,8 @@ class PagoControllerTest extends PagoIntegrationTestBase {
                 .andExpect(jsonPath("$.codigo", is(1)))
                 .andExpect(jsonPath("$.estado", is("APLICADO")));
 
-        // 4. Error técnico del proveedor (timeout / sin token disponible) -> 502 GESTOPAGO_PROVIDER_ERROR
-        when(tokenService.obtenerTokenVigente()).thenThrow(new RuntimeException("Timeout conectando a GestoPago"));
+        // 4. Error técnico consultando catálogo -> 502 GESTOPAGO_PROVIDER_ERROR
+        when(productoService.getProductsRedis()).thenThrow(new RuntimeException("Fallo temporal de almacenamiento"));
         mockMvc.perform(post("/v1/referencias/validar")
                         .header("Authorization", auth)
                         .contentType(MediaType.APPLICATION_JSON)

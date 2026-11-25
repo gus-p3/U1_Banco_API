@@ -13,6 +13,7 @@ import com.intrumentoev.demo.repository.gestopago.ProductoRepository;
 import com.intrumentoev.demo.service.service.gestopago.GestoPagoTokenService;
 import com.intrumentoev.demo.service.service.gestopago.ProductoService;
 import com.intrumentoev.demo.service.service.gestopago.TransformProduct;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -24,6 +25,14 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Servicio unificado de productos con integración real a GestoPago y manejo resiliente de respuestas sin catálogo
+ * (ej. CODIGO=05 TEXTO=Origen Valido):
+ * - Realiza las peticiones reales de autenticación y catálogo XML a GestoPago.
+ * - Si GestoPago devuelve productos, los guarda en Redis y los sincroniza en PostgreSQL sin borrar existentes.
+ * - Si GestoPago responde con un código sin productos (ej. CODIGO=05) o presenta error de red, maneja la respuesta
+ *   sin fallar ni vaciar la caché/BD, respaldando el catálogo entre Redis y PostgreSQL.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -40,17 +49,13 @@ public class ProductoServiceImpl implements ProductoService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
 
-    /**
-     * 1. Sincroniza productos desde la API de GestoPago SIN borrar los anteriores en Redis ni en Postgres.
-     * 2. Si la API no devuelve productos (ej. CODIGO=05) o falla, agarra los de Redis y si no hay, los de Postgres.
-     */
     @Override
     @Transactional
     public List<ProductoResponse> sincronizarCatalogo() {
-        log.info("Iniciando sincronizacion de catalogo (sin borrar productos anteriores)...");
-        List<GestoPagoProductXmlResponse.ProductoXmlItem> items = consultarItemsDesdeApi();
-        List<ProductoResponse> itemJSON = transformProduct.transformProductJSON(items);
-        List<ProductoResponse> productos = productoMapper.filtrarYOrdenarPorTipoFront(itemJSON);
+        log.info("Sincronizando catálogo contra la API de GestoPago (sin borrar productos previos)...");
+        List<GestoPagoProductXmlResponse.ProductoXmlItem> items = consultarItemsDesdeApiTolerante();
+        List<ProductoResponse> productos = productoMapper.filtrarYOrdenarPorTipoFront(
+                transformProduct.transformProductJSON(items));
 
         if (productos != null && !productos.isEmpty()) {
             guardarEnRedis(productos);
@@ -58,15 +63,10 @@ public class ProductoServiceImpl implements ProductoService {
             return productos;
         }
 
-        log.warn("La API de GestoPago no devolvió productos; tomando respaldo de Redis o PostgreSQL.");
+        log.warn("La API de GestoPago no devolvió productos utilizables (ej. CODIGO=05); usando respaldo de Redis o PostgreSQL.");
         return obtenerDesdeRedisOPostgres();
     }
 
-    /**
-     * Obtiene el catálogo:
-     * - Primero intenta desde Redis ( o Postgres si no está en Redis).
-     * - Si tampoco hay en Redis ni en Postgres, intenta sincronizar desde la API de GestoPago.
-     */
     @Override
     @Transactional
     public List<ProductoResponse> getProductsRedis() {
@@ -76,29 +76,28 @@ public class ProductoServiceImpl implements ProductoService {
         }
 
         log.info("No se encontraron productos en Redis ni en PostgreSQL. Consultando API de GestoPago...");
-        List<GestoPagoProductXmlResponse.ProductoXmlItem> items = consultarItemsDesdeApi();
-        List<ProductoResponse> itemJSON = transformProduct.transformProductJSON(items);
-        List<ProductoResponse> productos = productoMapper.filtrarYOrdenarPorTipoFront(itemJSON);
+        List<GestoPagoProductXmlResponse.ProductoXmlItem> items = consultarItemsDesdeApiTolerante();
+        List<ProductoResponse> productos = productoMapper.filtrarYOrdenarPorTipoFront(
+                transformProduct.transformProductJSON(items));
 
         if (productos != null && !productos.isEmpty()) {
-            boolean enRedis = guardarEnRedis(productos);
-            if (!enRedis) {
-                guardarSinBorrarEnPostgres(items);
-            }
+            guardarEnRedis(productos);
+            guardarSinBorrarEnPostgres(items);
             return productos;
         }
 
-        log.warn("GestoPago devolvió 0 productos utilizables.");
+        log.warn("GestoPago devolvió 0 productos utilizables (ej. CODIGO=05) y no existe respaldo local previo.");
         return List.of();
     }
 
-    // 1. POST /v1/productos -> Sincroniza desde GestoPago sin borrar los anteriores
+    // 1. POST /v1/productos -> Sincroniza desde GestoPago y si retorna 0 productos conserva/respalda Redis y Postgres
     @Override
     @Transactional
     public void sincronizarProductosDesdeGestoPago() {
-        List<GestoPagoProductXmlResponse.ProductoXmlItem> items = consultarItemsDesdeApi();
+        List<GestoPagoProductXmlResponse.ProductoXmlItem> items = consultarItemsDesdeApiTolerante();
         if (items == null || items.isEmpty()) {
-            log.warn("La respuesta XML de GestoPago no contiene productos; se conservan los de Redis y Postgres.");
+            log.warn("GestoPago no devolvió productos en sincronización manual (ej. CODIGO=05); se conserva y respalda lo existente en Redis y PostgreSQL.");
+            obtenerDesdeRedisOPostgres();
             return;
         }
 
@@ -107,37 +106,45 @@ public class ProductoServiceImpl implements ProductoService {
         if (productos != null && !productos.isEmpty()) {
             guardarEnRedis(productos);
         }
-
         guardarSinBorrarEnPostgres(items);
     }
 
-    // 2. GET /v1/productos -> Si hay en Redis o Postgres los devuelve
+    // 2. GET /v1/productos -> Obtiene productos de Postgres o Redis y si ambos están vacíos consulta GestoPago
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<ProductoResponse> obtenerTodosLosProductos() {
-        log.info("Consultando productos (Postgres / Redis)");
         List<Producto> enPostgres = productoRepository.findAll();
         if (enPostgres != null && !enPostgres.isEmpty()) {
-            return productoMapper.toResponseList(enPostgres);
+            List<ProductoResponse> lista = productoMapper.filtrarYOrdenarPorTipoFront(
+                    productoMapper.toResponseList(enPostgres));
+            if (leerDesdeRedis().isEmpty() && !lista.isEmpty()) {
+                guardarEnRedis(lista);
+            }
+            return lista;
         }
-        return leerDesdeRedis();
+
+        List<ProductoResponse> enRedis = leerDesdeRedis();
+        if (!enRedis.isEmpty()) {
+            sincronizarRedisHaciaPostgresSinBorrar(enRedis);
+            return enRedis;
+        }
+
+        return sincronizarCatalogo();
     }
 
     // 3. GET /v1/productos/{id}
     @Override
     @Transactional(readOnly = true)
     public ProductoResponse obtenerProductoPorId(Integer id) {
-        log.info("Buscando producto por ID: {}", id);
         Producto producto = productoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado con id: " + id));
         return productoMapper.toResponse(producto);
     }
 
-    // 4. PUT /v1/productos/{id} (Reemplazo completo)
+    // 4. PUT /v1/productos/{id}
     @Override
     @Transactional
     public ProductoResponse reemplazarProducto(Integer id, ProductoRequest request) {
-        log.info("Reemplazando completo producto con ID: {}", id);
         Producto existente = productoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado con id: " + id));
 
@@ -146,11 +153,10 @@ public class ProductoServiceImpl implements ProductoService {
         return productoMapper.toResponse(actualizado);
     }
 
-    // 5. PATCH /v1/productos/{id} (Actualización parcial)
+    // 5. PATCH /v1/productos/{id}
     @Override
     @Transactional
     public ProductoResponse actualizarParcialProducto(Integer id, ProductoPatchRequest request) {
-        log.info("Actualizando parcialmente producto con ID: {}", id);
         Producto existente = productoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado con id: " + id));
 
@@ -163,22 +169,24 @@ public class ProductoServiceImpl implements ProductoService {
     @Override
     @Transactional
     public void eliminarProducto(Integer id) {
-        log.info("Eliminando producto con ID: {}", id);
         if (!productoRepository.existsById(id)) {
             throw new RuntimeException("Producto no encontrado con id: " + id);
         }
         productoRepository.deleteById(id);
     }
 
-    // 7. GET /v1/productos/xml -> Consulta API XML; si no trae productos, agarra los de Redis y si no los de Postgres
+    // 7. GET /v1/productos/xml -> Consulta XML en vivo de GestoPago; si devuelve CODIGO=05 sin productos, usa respaldo
     @Override
+    @Transactional
     public List<ProductoResponse> obtenerProductosXML() {
-        List<GestoPagoProductXmlResponse.ProductoXmlItem> items = consultarItemsDesdeApi();
-        List<ProductoResponse> resultado = transformProduct.transformProductJSON(items);
-        if (resultado != null && !resultado.isEmpty()) {
-            return resultado;
+        List<GestoPagoProductXmlResponse.ProductoXmlItem> items = consultarItemsDesdeApiTolerante();
+        List<ProductoResponse> productos = productoMapper.filtrarYOrdenarPorTipoFront(
+                transformProduct.transformProductJSON(items));
+        if (productos != null && !productos.isEmpty()) {
+            guardarEnRedis(productos);
+            guardarSinBorrarEnPostgres(items);
+            return productos;
         }
-        log.warn("La API XML de GestoPago no trajo productos; tomando respaldo de Redis o PostgreSQL.");
         return obtenerDesdeRedisOPostgres();
     }
 
@@ -187,6 +195,7 @@ public class ProductoServiceImpl implements ProductoService {
     private List<ProductoResponse> obtenerDesdeRedisOPostgres() {
         List<ProductoResponse> enRedis = leerDesdeRedis();
         if (!enRedis.isEmpty()) {
+            asegurarRespaldoEnPostgres(enRedis);
             return enRedis;
         }
         return leerDesdePostgres();
@@ -202,7 +211,6 @@ public class ProductoServiceImpl implements ProductoService {
                 List<ProductoResponse> enCache = objectMapper.convertValue(
                         cached, new TypeReference<List<ProductoResponse>>() {});
                 if (enCache != null && !enCache.isEmpty()) {
-                    log.info("Productos recuperados desde cache Redis ({} registros).", enCache.size());
                     return productoMapper.filtrarYOrdenarPorTipoFront(enCache);
                 }
             }
@@ -213,7 +221,6 @@ public class ProductoServiceImpl implements ProductoService {
                 if (enLegacy != null && !enLegacy.isEmpty()) {
                     List<ProductoResponse> filtrados = productoMapper.filtrarYOrdenarPorTipoFront(enLegacy);
                     guardarEnRedis(filtrados);
-                    log.info("Productos recuperados desde clave legacy de Redis ({} registros).", filtrados.size());
                     return filtrados;
                 }
             }
@@ -226,7 +233,6 @@ public class ProductoServiceImpl implements ProductoService {
     private List<ProductoResponse> leerDesdePostgres() {
         List<Producto> enPostgres = productoRepository.findAll();
         if (enPostgres != null && !enPostgres.isEmpty()) {
-            log.info("Productos recuperados desde PostgreSQL ({} registros).", enPostgres.size());
             List<ProductoResponse> responses = productoMapper.toResponseList(enPostgres);
             List<ProductoResponse> filtrados = productoMapper.filtrarYOrdenarPorTipoFront(responses);
             if (!filtrados.isEmpty()) {
@@ -245,27 +251,46 @@ public class ProductoServiceImpl implements ProductoService {
             redisTemplate.opsForValue().set(REDIS_CATALOGO_KEY, productos);
             return true;
         } catch (Exception ex) {
-            log.warn("No fue posible guardar en Redis: {}", ex.getMessage());
+            log.warn("No fue posible guardar catálogo en Redis: {}", ex.getMessage());
             return false;
         }
     }
 
-    /**
-     * Guarda o actualiza los productos en PostgreSQL SIN borrar los productos anteriores.
-     */
+    private void asegurarRespaldoEnPostgres(List<ProductoResponse> enRedis) {
+        try {
+            if (productoRepository.count() == 0) {
+                log.info("PostgreSQL vacío; respaldando {} productos desde Redis...", enRedis.size());
+                sincronizarRedisHaciaPostgresSinBorrar(enRedis);
+            }
+        } catch (Exception ex) {
+            log.warn("No fue posible respaldar productos de Redis hacia PostgreSQL: {}", ex.getMessage());
+        }
+    }
+
     private void guardarSinBorrarEnPostgres(List<GestoPagoProductXmlResponse.ProductoXmlItem> items) {
         if (items == null || items.isEmpty()) {
             return;
         }
         List<Producto> nuevos = transformProduct.transformProductEntities(items);
-        if (nuevos == null || nuevos.isEmpty()) {
+        persistirSinBorrarEnPostgres(nuevos);
+    }
+
+    private void sincronizarRedisHaciaPostgresSinBorrar(List<ProductoResponse> desdeRedis) {
+        if (desdeRedis == null || desdeRedis.isEmpty()) {
             return;
         }
+        List<Producto> candidatos = productoMapper.responseListToEntityList(desdeRedis);
+        persistirSinBorrarEnPostgres(candidatos);
+    }
 
+    private void persistirSinBorrarEnPostgres(List<Producto> candidatos) {
+        if (candidatos == null || candidatos.isEmpty()) {
+            return;
+        }
         List<Producto> existentes = productoRepository.findAll();
         if (existentes == null || existentes.isEmpty()) {
-            productoRepository.saveAll(nuevos);
-            log.info("{} productos guardados en PostgreSQL.", nuevos.size());
+            productoRepository.saveAll(candidatos);
+            log.info("{} productos guardados en PostgreSQL.", candidatos.size());
             return;
         }
 
@@ -276,7 +301,7 @@ public class ProductoServiceImpl implements ProductoService {
                         Function.identity(),
                         (a, b) -> a));
 
-        for (Producto nuevo : nuevos) {
+        for (Producto nuevo : candidatos) {
             String key = nuevo.getIdServicio() + ":" + nuevo.getIdProducto();
             Producto previo = mapaExistentes.get(key);
             if (previo != null) {
@@ -287,18 +312,37 @@ public class ProductoServiceImpl implements ProductoService {
             }
         }
 
-        productoRepository.saveAll(nuevos);
-        log.info("{} productos sincronizados en PostgreSQL sin borrar existentes.", nuevos.size());
+        productoRepository.saveAll(candidatos);
+        log.info("{} productos sincronizados en PostgreSQL sin borrar existentes.", candidatos.size());
+    }
+
+    private List<GestoPagoProductXmlResponse.ProductoXmlItem> consultarItemsDesdeApiTolerante() {
+        try {
+            return consultarItemsDesdeApi();
+        } catch (Exception ex) {
+            log.warn("Error técnico al consultar getProductList.do en GestoPago ({}); se usará respaldo local.", ex.getMessage());
+            return List.of();
+        }
     }
 
     private List<GestoPagoProductXmlResponse.ProductoXmlItem> consultarItemsDesdeApi() {
         String token = tokenService.obtenerTokenVigente();
         if (token == null || token.isBlank()) {
             throw new IllegalStateException(
-                    "No se encontró token activo de GestoPago. Configure GESTOPAGO_BEARER_TOKEN con el token vigente.");
+                    "No se encontró token activo de GestoPago. Configure las credenciales de GestoPago o GESTOPAGO_BEARER_TOKEN.");
         }
-        String bearerHeader = "Bearer " + token;
-        String xmlResponse = gestoPagoProductClient.getProductListXml(bearerHeader);
+        String xmlResponse;
+        try {
+            xmlResponse = gestoPagoProductClient.getProductListXml("Bearer " + token);
+        } catch (FeignException ex) {
+            if (ex.status() == 401 || ex.status() == 403) {
+                log.warn("Token GestoPago rechazado en getProductList.do (HTTP {}); renovando y reintentando una vez...", ex.status());
+                token = tokenService.renovarTokenForzado();
+                xmlResponse = gestoPagoProductClient.getProductListXml("Bearer " + token);
+            } else {
+                throw ex;
+            }
+        }
         return transformProduct.transformProductXML(xmlResponse);
     }
 }

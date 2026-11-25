@@ -9,7 +9,6 @@ import com.intrumentoev.demo.service.service.gestopago.GestoPagoTokenService;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -66,12 +65,7 @@ public class GestoPagoTokenServiceImpl implements GestoPagoTokenService {
         }
     }
 
-    /**
-     * Se revisa cada hora, pero solo se pide un token nuevo cuando el guardado ya tiene más de
-     * tokenMaxAgeHours (GestoPago exige reutilizar el token del día, no pedir uno por petición).
-     */
     @Override
-    @Scheduled(fixedRateString = "${gestopago.auth.refresh-rate-ms:3600000}", initialDelay = 0)
     public synchronized void renovarToken() {
         if (staticBearerToken != null && !staticBearerToken.isBlank()) {
             return;
@@ -102,6 +96,9 @@ public class GestoPagoTokenServiceImpl implements GestoPagoTokenService {
 
     @Override
     public synchronized String renovarTokenForzado() {
+        if (staticBearerToken != null && !staticBearerToken.isBlank()) {
+            return staticBearerToken;
+        }
         log.warn("Renovación forzada del token GestoPago (token expirado o rechazado con 403)");
         return solicitarYGuardarToken();
     }
@@ -113,7 +110,8 @@ public class GestoPagoTokenServiceImpl implements GestoPagoTokenService {
 
     private boolean estaVencido(GestoPagoToken token) {
         LocalDateTime ultima = token.getFechaActualizacion() != null ? token.getFechaActualizacion() : token.getFechaCreacion();
-        return token.getToken() == null || token.getToken().isBlank() || ultima == null || Duration.between(ultima, LocalDateTime.now()).toHours() >= tokenMaxAgeHours;
+        return token.getToken() == null || token.getToken().isBlank() || ultima == null
+                || Duration.between(ultima, LocalDateTime.now()).toHours() >= tokenMaxAgeHours;
     }
 
     private String solicitarYGuardarToken() {
@@ -138,8 +136,6 @@ public class GestoPagoTokenServiceImpl implements GestoPagoTokenService {
                     return nuevo;
                 });
 
-        // Si GestoPago devuelve el mismo token, Hibernate no marcaría la fila como modificada;
-        // se fuerza la fecha para que la "edad" del token se reinicie.
         tokenEntity.setFechaActualizacion(LocalDateTime.now());
         tokenRepository.save(tokenEntity);
         log.info("Token GestoPago guardado correctamente");

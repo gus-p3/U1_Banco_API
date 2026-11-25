@@ -26,6 +26,11 @@ public interface ProductoMapper {
     List<ProductoResponse> toResponseList(List<Producto> entities);
 
     @Mapping(target = "id", ignore = true)
+    Producto responseToEntity(ProductoResponse response);
+
+    List<Producto> responseListToEntityList(List<ProductoResponse> responses);
+
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     void updateEntityFromRequest(ProductoRequest request, @MappingTarget Producto entity);
 
@@ -72,6 +77,9 @@ public interface ProductoMapper {
     default void enrichEntity(@MappingTarget Producto target) {
         if (target.getCategoria() == null || target.getCategoria().isBlank()) {
             target.setCategoria(traducirCategoria(target.getIdCatTipoServicio(), target.getTipoFront()));
+        }
+        if (target.getCreatedAt() == null) {
+            target.setCreatedAt(java.time.LocalDateTime.now());
         }
     }
 

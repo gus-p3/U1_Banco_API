@@ -82,24 +82,21 @@ public class AuthServiceImpl implements AuthService {
         boolean tieneBiometria = request != null
                 && request.getBiometricData() != null && !request.getBiometricData().isBlank();
 
-        AuthMethod metodoConfirmacion;
-        if (tienePassword) {
-            validarPassword(auth, request.getPassword());
-            metodoConfirmacion = AuthMethod.PASSWORD;
-        } else if (tieneBiometria) {
-            String tipoBio = (request.getBiometricType() != null && !request.getBiometricType().isBlank())
-                    ? request.getBiometricType()
-                    : "HUELLA";
-            validarPlantillaBiometrica(auth, tipoBio, request.getBiometricData());
-            metodoConfirmacion = "HUELLA".equalsIgnoreCase(tipoBio)
-                    ? AuthMethod.BIOMETRIC_HUELLA
-                    : AuthMethod.BIOMETRIC_FACIAL;
-        } else {
-            throw new BusinessException(
-                    ErrorCode.INVALID_CREDENTIALS,
-                    "Debe proporcionar su contraseña o huella digital para confirmar la operación",
-                    "password");
+        if (tienePassword || !tieneBiometria) {
+            log.warn("Confirmación de pago rechazada para cliente {}: se intentó usar contraseña o sin huella digital", usuario.getIdClient());
+            throw new BusinessException(ErrorCode.STRONG_AUTH_REQUIRED);
         }
+
+        String tipoBio = (request.getBiometricType() != null && !request.getBiometricType().isBlank())
+                ? request.getBiometricType().trim()
+                : "HUELLA";
+        if (!"HUELLA".equalsIgnoreCase(tipoBio)) {
+            log.warn("Confirmación de pago rechazada para cliente {}: tipo biométrico no permitido ({})", usuario.getIdClient(), tipoBio);
+            throw new BusinessException(ErrorCode.STRONG_AUTH_REQUIRED);
+        }
+
+        validarPlantillaBiometrica(auth, "HUELLA", request.getBiometricData());
+        AuthMethod metodoConfirmacion = AuthMethod.BIOMETRIC_HUELLA;
 
         if (auth.getFailedAttempts() != null && auth.getFailedAttempts() > 0) {
             auth.setFailedAttempts(0);

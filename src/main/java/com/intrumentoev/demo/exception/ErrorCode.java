@@ -49,7 +49,7 @@ public enum ErrorCode {
     ACCESS_DENIED("ACCESS_DENIED", HttpStatus.FORBIDDEN, "Acceso no autorizado al recurso solicitado", "security"),
     TOKEN_MISSING("TOKEN_MISSING", HttpStatus.UNAUTHORIZED, "Se requiere el encabezado Authorization: Bearer <token>", "Authorization"),
     SESSION_INACTIVE("SESSION_INACTIVE", HttpStatus.UNAUTHORIZED, "La sesión en el servidor no está activa. Inicie sesión nuevamente", "session"),
-    STRONG_AUTH_REQUIRED("STRONG_AUTH_REQUIRED", HttpStatus.FORBIDDEN, "Para autorizar el pago debe confirmar la operación con su contraseña o huella digital", "confirmationToken"),
+    STRONG_AUTH_REQUIRED("STRONG_AUTH_REQUIRED", HttpStatus.FORBIDDEN, "Para autorizar el pago es obligatorio confirmar la operación con huella digital desde la aplicación móvil", "confirmationToken"),
     PAYMENT_FORBIDDEN("PAYMENT_FORBIDDEN", HttpStatus.FORBIDDEN, "No es posible operar con la cuenta indicada", "numCuenta");
 
     private final String code;

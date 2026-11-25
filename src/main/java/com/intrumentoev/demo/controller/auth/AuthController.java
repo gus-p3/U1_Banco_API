@@ -153,12 +153,13 @@ public class AuthController {
     }
 
     @Operation(
-            summary = "Confirmar operación sensible (reautenticación para pagos en web y móvil)",
-            description = "Recibe la contraseña del cliente autenticado (o su huella en móvil), la valida y devuelve un token de confirmación de vida corta y de un solo uso para enviar en el header X-Confirmation-Token de POST /v1/pagos."
+            summary = "Confirmar operación de pago (exclusivo en app móvil con huella digital)",
+            description = "Recibe la firma biométrica de huella digital (HUELLA) del cliente autenticado, la valida contra su plantilla cifrada y devuelve un token de confirmación de vida corta y de un solo uso para enviar en el header X-Confirmation-Token de POST /v1/pagos. La confirmación por contraseña o desde web está prohibida (403 STRONG_AUTH_REQUIRED)."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Operación confirmada; devuelve confirmationToken"),
-            @ApiResponse(responseCode = "401", description = "Contraseña o huella inválida, o sesión expirada"),
+            @ApiResponse(responseCode = "200", description = "Operación confirmada con huella digital; devuelve confirmationToken"),
+            @ApiResponse(responseCode = "401", description = "Huella inválida o sesión expirada"),
+            @ApiResponse(responseCode = "403", description = "Intento de confirmar sin huella digital (ej. contraseña o web)"),
             @ApiResponse(responseCode = "423", description = "Cuenta bloqueada por exceso de intentos fallidos")
     })
     @PostMapping(

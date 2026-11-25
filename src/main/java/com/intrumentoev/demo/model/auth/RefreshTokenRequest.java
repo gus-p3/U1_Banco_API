@@ -2,6 +2,7 @@ package com.intrumentoev.demo.model.auth;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,5 +16,6 @@ import lombok.NoArgsConstructor;
 public class RefreshTokenRequest {
 
     @NotBlank(message = "El refresh token es obligatorio")
+    @Size(min = 1, max = 512, message = "El refresh token tiene una longitud inválida")
     private String refreshToken;
 }

@@ -239,34 +239,40 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("Confirmar operación con contraseña o huella emite token de confirmación")
+    @DisplayName("Confirmar operación solo se permite con huella digital (HUELLA); contraseña o vacío se rechaza con STRONG_AUTH_REQUIRED")
     void testConfirmarOperacion() {
         AuthenticatedClient usuario = AuthenticatedClient.builder()
                 .idClient(10L).idLogin(1L).email("cliente@banco.com").authMethod(AuthMethod.PASSWORD).build();
 
         when(authRepository.findByIdClient(10L)).thenReturn(Optional.of(mockAuth));
-        when(passwordEncoder.matches(rawPassword, encodedPassword)).thenReturn(true);
-        when(jwtTokenService.generateConfirmationToken(10L, 1L, "cliente@banco.com", AuthMethod.PASSWORD))
-                .thenReturn("confirm-jwt-pass");
-        when(jwtTokenService.getConfirmationTokenExpirationSeconds()).thenReturn(120L);
 
-        OperationConfirmResponse respPass = authService.confirmarOperacion(
-                usuario, OperationConfirmRequest.builder().password(rawPassword).build());
-        assertThat(respPass.getConfirmationToken()).isEqualTo("confirm-jwt-pass");
-        assertThat(respPass.getExpiresIn()).isEqualTo(120L);
+        // Intento con contraseña (ej. desde web) -> rechazado con STRONG_AUTH_REQUIRED
+        assertThatThrownBy(() -> authService.confirmarOperacion(
+                usuario, OperationConfirmRequest.builder().password(rawPassword).build()))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCodeEnum")
+                .isEqualTo(ErrorCode.STRONG_AUTH_REQUIRED);
 
-        // Con biometría
+        // Con biometría de HUELLA -> emite token de confirmación de un solo uso
         when(aesEncryptionService.decryptBytes(mockBiometricBytes)).thenReturn(mockBiometricBytes);
         when(jwtTokenService.generateConfirmationToken(10L, 1L, "cliente@banco.com", AuthMethod.BIOMETRIC_HUELLA))
                 .thenReturn("confirm-jwt-bio");
+        when(jwtTokenService.getConfirmationTokenExpirationSeconds()).thenReturn(120L);
+
         OperationConfirmResponse respBio = authService.confirmarOperacion(
                 usuario, OperationConfirmRequest.builder().biometricType("HUELLA").biometricData(base64Biometric).build());
         assertThat(respBio.getConfirmationToken()).isEqualTo("confirm-jwt-bio");
+        assertThat(respBio.getExpiresIn()).isEqualTo(120L);
 
-        // Sin contraseña ni biometría -> INVALID_CREDENTIALS
+        // Sin biometría o con FACIAL -> STRONG_AUTH_REQUIRED
         assertThatThrownBy(() -> authService.confirmarOperacion(usuario, new OperationConfirmRequest()))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCodeEnum")
-                .isEqualTo(ErrorCode.INVALID_CREDENTIALS);
+                .isEqualTo(ErrorCode.STRONG_AUTH_REQUIRED);
+        assertThatThrownBy(() -> authService.confirmarOperacion(
+                usuario, OperationConfirmRequest.builder().biometricType("FACIAL").biometricData(base64Biometric).build()))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCodeEnum")
+                .isEqualTo(ErrorCode.STRONG_AUTH_REQUIRED);
     }
 }
