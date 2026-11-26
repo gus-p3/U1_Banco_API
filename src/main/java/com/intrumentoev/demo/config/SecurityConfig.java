@@ -53,7 +53,6 @@ public class SecurityConfig {
                         // Solo ADMIN
                         .requestMatchers(HttpMethod.POST, "/v1/catalogos/sincronizar").hasRole(ADMIN)
                         .requestMatchers(HttpMethod.POST, "/v1/clientes/buscar").hasRole(ADMIN)
-                        .requestMatchers(HttpMethod.PATCH, "/v1/clientes").hasRole(ADMIN)
                         .requestMatchers(HttpMethod.DELETE, "/v1/clientes").hasRole(ADMIN)
                         .requestMatchers("/personas", "/personasActualiza", "/personasElimina").hasRole(ADMIN)
                         .requestMatchers(HttpMethod.GET, "/v1/productos/**").authenticated()

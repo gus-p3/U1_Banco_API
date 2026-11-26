@@ -77,7 +77,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
     private static final DateTimeFormatter HORA_LOCAL = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private static final ObjectMapper PAYLOAD_MAPPER = new ObjectMapper();
     private static final String MSG_PRODUCTO_NO_DISPONIBLE = "No se pudo realizar el pago: producto o servicio no disponible";
-    private static final String MSG_NO_PROCESABLE_POR_EL_MOMENTO = "No se puede procesar el pago por el momento, intente más tarde";
+    private static final String MSG_NO_PROCESABLE_POR_EL_MOMENTO = "El pago no se pudo procesar, intente de nuevo más tarde";
     private static final String MSG_EN_PROCESO = "Pago en proceso de confirmación";
     private static final int PENDIENTE_HUERFANO_SEGUNDOS = 180;
 
@@ -558,10 +558,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
     }
 
     private String formatearMensajeRechazo(PagoGestoPago pago) {
-        if (CODIGO_ORIGEN_RESTRINGIDO.equals(pago.getCodigoRespuesta())) {
-            return MSG_NO_PROCESABLE_POR_EL_MOMENTO;
-        }
-        return pago.getTextoRespuesta() != null ? pago.getTextoRespuesta() : "El pago no fue aplicado";
+        return MSG_NO_PROCESABLE_POR_EL_MOMENTO;
     }
 
     private PagoResponse aRespuesta(PagoGestoPago pago) {

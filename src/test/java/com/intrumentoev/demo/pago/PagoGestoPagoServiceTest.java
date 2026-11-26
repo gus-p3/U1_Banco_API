@@ -145,7 +145,7 @@ class PagoGestoPagoServiceTest extends PagoIntegrationTestBase {
         assertThat(r.getCodigo()).isZero();
         assertThat(r.getEstado()).isEqualTo(EstadoPago.RECHAZADO);
         assertThat(r.getCodigoGestoPago()).isEqualTo("02");
-        assertThat(r.getMensaje()).isEqualTo("Saldo insuficiente del distribuidor"); // TEXTO de GestoPago en mensaje
+        assertThat(r.getMensaje()).isEqualTo("El pago no se pudo procesar, intente de nuevo más tarde");
         assertThat(saldo()).isEqualByComparingTo("1000.00");
         assertThat(balanceRepository.findByIdAccountOrderByCreatedAtDesc(cuentaDemo().getIdAccount()))
                 .extracting(AccountBalance::getMovementType)
@@ -473,7 +473,7 @@ class PagoGestoPagoServiceTest extends PagoIntegrationTestBase {
         assertThat(r.getCodigo()).isZero();
         assertThat(r.getEstado()).isEqualTo(EstadoPago.RECHAZADO);
         assertThat(r.getCodigoGestoPago()).isEqualTo("05");
-        assertThat(r.getMensaje()).isEqualTo("No se puede procesar el pago por el momento, intente más tarde");
+        assertThat(r.getMensaje()).isEqualTo("El pago no se pudo procesar, intente de nuevo más tarde");
         assertThat(saldo()).isEqualByComparingTo("1000.00");
         verify(txClient, times(1)).sendTx(eq("token-1"), anyString());
         assertThat(balanceRepository.findByIdAccountOrderByCreatedAtDesc(cuentaDemo().getIdAccount()))

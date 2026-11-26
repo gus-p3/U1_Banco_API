@@ -132,11 +132,30 @@ class SecurityRolesIntegrationTest {
     }
 
     @Test
-    @DisplayName("Actualizar y dar de baja clientes (PATCH/DELETE) solo para ADMIN")
+    @DisplayName("PATCH /v1/clientes permite al CLIENT editar solo su propia CURP/RFC; rechaza ajena (403); DELETE solo ADMIN")
     void modificarSoloAdmin() throws Exception {
+        // Obtenemos la CURP real del cliente autenticado
+        String meBody = mockMvc.perform(get("/v1/clientes/me").header("Authorization", token(Role.CLIENT)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String propiaCurp = objectMapper.readTree(meBody).get("curp").asText();
+
+        // CLIENT intentando modificar una CURP ajena -> 403
         mockMvc.perform(patch("/v1/clientes").header("Authorization", token(Role.CLIENT))
-                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"identificador\":\"ROMA900101HDFRRN01\",\"occupation\":\"Doctor\"}"))
                 .andExpect(status().isForbidden());
+        // CLIENT intentando modificar su propia CURP -> 200 OK
+        mockMvc.perform(patch("/v1/clientes").header("Authorization", token(Role.CLIENT))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"identificador\":\"" + propiaCurp + "\",\"occupation\":\"Arquitecto\"}"))
+                .andExpect(status().isOk());
+        // ADMIN puede modificar cualquier CURP (no recibe 403 aunque no exista -> 404)
+        mockMvc.perform(patch("/v1/clientes").header("Authorization", token(Role.ADMIN))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"identificador\":\"ROMA900101HDFRRN01\",\"occupation\":\"Doctor\"}"))
+                .andExpect(status().isNotFound());
+        // DELETE sigue restringido exclusivamente a ADMIN
         mockMvc.perform(delete("/v1/clientes").header("Authorization", token(Role.CLIENT))
                         .contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isForbidden());
