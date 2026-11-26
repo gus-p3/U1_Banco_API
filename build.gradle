@@ -56,7 +56,8 @@ dependencies {
 
 	// Serialización
 
-	// Utilerías Google
+	// Utilerías Google / Firebase Cloud Messaging (notificaciones push Android)
+	implementation 'com.google.firebase:firebase-admin:9.4.3'
 
 	// Mail / XML
 	implementation 'org.glassfish.jaxb:jaxb-runtime:4.0.3'

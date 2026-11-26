@@ -17,8 +17,10 @@ public enum ErrorCode {
     ACCOUNT_NOT_FOUND("ACCOUNT_NOT_FOUND", HttpStatus.NOT_FOUND, "Cuenta no encontrada con número: %s", "accountNumber"),
     CATALOG_NOT_FOUND("CATALOG_NOT_FOUND", HttpStatus.NOT_FOUND, "Registro de %s no encontrado con ID: %s", "catalog"),
     PAYMENT_NOT_FOUND("PAYMENT_NOT_FOUND", HttpStatus.NOT_FOUND, "Pago no encontrado con identificador: %s", "pago"),
+    AUTHORIZATION_NOT_FOUND("AUTHORIZATION_NOT_FOUND", HttpStatus.NOT_FOUND, "Solicitud de autorización de pago no encontrada: %s", "autorizacion"),
 
     // --- 409 Conflict (Duplicados) ---
+    AUTHORIZATION_INVALID_STATE("AUTHORIZATION_INVALID_STATE", HttpStatus.CONFLICT, "%s", "autorizacion"),
     CURP_DUPLICATED("CURP_DUPLICATED", HttpStatus.CONFLICT, "La CURP '%s' ya se encuentra registrada", "curp"),
     RFC_DUPLICATED("RFC_DUPLICATED", HttpStatus.CONFLICT, "El RFC '%s' ya se encuentra registrado", "rfc"),
     EMAIL_DUPLICATED("EMAIL_DUPLICATED", HttpStatus.CONFLICT, "El correo electrónico '%s' ya está en uso", "email"),

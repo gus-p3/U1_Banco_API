@@ -129,6 +129,7 @@ public class ClientOnboardingRequest {
 
     @NotNull(message = "El ingreso mensual es obligatorio")
     @DecimalMin(value = "0.01", message = "El ingreso mensual debe ser mayor a cero")
+    @Digits(integer = 10, fraction = 2, message = "El ingreso mensual admite máximo 10 enteros y 2 decimales")
     private BigDecimal monthlyIncome;
 
     // --- 5. Cuenta Bancaria Inicial (Opcional, si no se envía se toma el default del sistema) ---
