@@ -1,5 +1,8 @@
 package com.intrumentoev.demo.controller.client;
 
+import com.intrumentoev.demo.exception.BusinessException;
+import com.intrumentoev.demo.exception.ErrorCode;
+import com.intrumentoev.demo.model.auth.AuthenticatedClient;
 import com.intrumentoev.demo.model.client.*;
 import com.intrumentoev.demo.service.service.client.ClientService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -78,7 +82,17 @@ public class ClientController {
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<ClientDetailResponse> actualizarParcialCliente(
+            @AuthenticationPrincipal AuthenticatedClient usuario,
             @Valid @RequestBody ClientUnifiedPatchRequest request) {
+        if (usuario != null && usuario.getIdClient() != null && !usuario.isAdmin()) {
+            ClientResponse propio = clientService.obtenerClientePorId(usuario.getIdClient(), null);
+            String idSolicitado = request.getIdentificador() != null ? request.getIdentificador().trim() : "";
+            boolean coincideCurp = propio.getCurp() != null && propio.getCurp().equalsIgnoreCase(idSolicitado);
+            boolean coincideRfc = propio.getRfc() != null && propio.getRfc().equalsIgnoreCase(idSolicitado);
+            if (!coincideCurp && !coincideRfc) {
+                throw new BusinessException(ErrorCode.ACCESS_DENIED);
+            }
+        }
         ClientDetailResponse actualizado = clientService.actualizarParcialUnificado(request);
         return ResponseEntity.ok(actualizado);
     }
