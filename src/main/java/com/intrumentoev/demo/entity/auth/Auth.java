@@ -79,6 +79,13 @@ public class Auth {
     private Boolean isActive = true;
 
     @Builder.Default
+    @Column(name = "email_verified", nullable = false)
+    private Boolean emailVerified = true;
+
+    @Column(name = "email_verified_at")
+    private OffsetDateTime emailVerifiedAt;
+
+    @Builder.Default
     @Column(name = "failed_attempts", nullable = false)
     private Integer failedAttempts = 0;
 

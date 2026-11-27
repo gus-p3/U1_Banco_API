@@ -46,7 +46,17 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/", "/health").permitAll()
                         .requestMatchers("/error", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/favicon.ico").permitAll()
                         // Autenticación
-                        .requestMatchers(HttpMethod.POST, "/v1/auth/login", "/v1/auth/login-biometrico", "/v1/auth/refresh").permitAll()
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/v1/auth/login",
+                                "/v1/auth/login-biometrico",
+                                "/v1/auth/refresh",
+                                "/v1/auth/verificar-codigo",
+                                "/v1/auth/2fa/enviar-codigo",
+                                "/v1/auth/2fa/solicitar-huella",
+                                "/v1/auth/2fa/estado",
+                                "/v1/auth/2fa/cancelar"
+                        ).permitAll()
                         // Onboarding público y catálogos necesarios para el formulario
                         .requestMatchers(HttpMethod.POST, "/v1/clientes").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/catalogos/**").permitAll()

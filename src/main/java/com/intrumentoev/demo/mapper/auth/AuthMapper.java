@@ -23,6 +23,8 @@ public interface AuthMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "role", ignore = true)
     @Mapping(target = "isActive", constant = "true")
+    @Mapping(target = "emailVerified", constant = "true")
+    @Mapping(target = "emailVerifiedAt", ignore = true)
     Auth toEntity(AuthRegisterRequest request);
 
     /**
@@ -32,6 +34,13 @@ public interface AuthMapper {
     @Mapping(target = "tokenType", constant = "Bearer")
     @Mapping(target = "expiresIn", ignore = true)
     @Mapping(target = "hasBiometricRegistered", expression = "java(entity.getBiometricTemplate() != null && entity.getBiometricTemplate().length > 0)")
+    @Mapping(target = "requiresVerification", ignore = true)
+    @Mapping(target = "verificationPurpose", ignore = true)
+    @Mapping(target = "challengeId", ignore = true)
+    @Mapping(target = "pollToken", ignore = true)
+    @Mapping(target = "availableMethods", ignore = true)
+    @Mapping(target = "codeSent", ignore = true)
+    @Mapping(target = "challengeExpiresIn", ignore = true)
     AuthResponse toResponse(Auth entity);
 
     /**

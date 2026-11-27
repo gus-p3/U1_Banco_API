@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -25,9 +26,19 @@ public class AuthResponse {
     private String email;
     private Role role;
     private Boolean isActive;
+    private Boolean emailVerified;
     private Boolean hasBiometricRegistered;
     private String biometricType;
     private OffsetDateTime lastLoginAt;
+
+    // Campos para desafío de verificación / 2FA en login o registro
+    private Boolean requiresVerification;
+    private String verificationPurpose;
+    private String challengeId;
+    private String pollToken;
+    private List<String> availableMethods;
+    private Boolean codeSent;
+    private Long challengeExpiresIn;
 
     public static AuthResponse fromEntity(com.intrumentoev.demo.entity.auth.Auth auth, String token, String refreshToken, Long expiresIn) {
         return AuthResponse.builder()
@@ -39,6 +50,7 @@ public class AuthResponse {
                 .email(auth.getEmail())
                 .role(auth.getRole())
                 .isActive(auth.getIsActive())
+                .emailVerified(auth.getEmailVerified())
                 .hasBiometricRegistered(auth.getBiometricTemplate() != null && auth.getBiometricTemplate().length > 0)
                 .biometricType(auth.getBiometricType())
                 .lastLoginAt(auth.getLastLoginAt())

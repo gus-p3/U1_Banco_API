@@ -7,16 +7,17 @@ import com.intrumentoev.demo.mapper.auth.AuthMapper;
 import com.intrumentoev.demo.model.auth.*;
 import com.intrumentoev.demo.repository.auth.AuthRepository;
 import com.intrumentoev.demo.service.service.auth.AesEncryptionService;
+import com.intrumentoev.demo.service.service.auth.AuthChallengeService;
 import com.intrumentoev.demo.service.service.auth.AuthService;
 import com.intrumentoev.demo.service.service.auth.JwtTokenService;
 import com.intrumentoev.demo.service.service.auth.PasswordEncoder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Optional;
 
@@ -33,6 +34,9 @@ public class AuthServiceImpl implements AuthService {
     private final JwtTokenService jwtTokenService;
     private final AesEncryptionService aesEncryptionService;
 
+    @Autowired(required = false)
+    private AuthChallengeService authChallengeService;
+
     @Override
     @Transactional
     public AuthResponse login(AuthRequest request) {
@@ -44,6 +48,12 @@ public class AuthServiceImpl implements AuthService {
 
         validarEstadoYBloqueo(auth);
         validarPassword(auth, request.getPassword());
+
+        boolean hasChannel = request.getChannel() != null && !request.getChannel().isBlank();
+        boolean requiresEmailVerification = !Boolean.TRUE.equals(auth.getEmailVerified());
+        if (authChallengeService != null && (hasChannel || requiresEmailVerification)) {
+            return authChallengeService.iniciarDesafioLogin(auth, request.getChannel());
+        }
 
         return generarSesionExitosa(auth, AuthMethod.PASSWORD);
     }
@@ -180,6 +190,7 @@ public class AuthServiceImpl implements AuthService {
                 .biometricTemplate(template)
                 .biometricRegisteredAt(biometricRegisteredAt)
                 .isActive(true)
+                .emailVerified(false)
                 .failedAttempts(0)
                 .build();
 

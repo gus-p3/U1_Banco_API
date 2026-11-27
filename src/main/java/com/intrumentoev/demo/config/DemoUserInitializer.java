@@ -172,6 +172,7 @@ public class DemoUserInitializer implements CommandLineRunner {
             auth.setBiometricTemplate(encryptedBiometric);
             auth.setBiometricRegisteredAt(OffsetDateTime.now());
             auth.setIsActive(true);
+            auth.setEmailVerified(true);
             auth.setFailedAttempts(0);
             authRepository.save(auth);
 

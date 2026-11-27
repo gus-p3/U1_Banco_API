@@ -31,10 +31,12 @@ import com.intrumentoev.demo.repository.contactDetail.ContactDetailRepository;
 import com.intrumentoev.demo.repository.employment.EmploymentInformationRepository;
 import com.intrumentoev.demo.repository.home.HomeRepository;
 import com.intrumentoev.demo.service.service.account.AccountService;
+import com.intrumentoev.demo.service.service.auth.AuthChallengeService;
 import com.intrumentoev.demo.service.service.auth.AuthService;
 import com.intrumentoev.demo.service.service.client.ClientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -71,6 +73,9 @@ public class ClientServiceImpl implements ClientService {
 
     private final AccountService accountService;
     private final AuthService authService;
+
+    @Autowired(required = false)
+    private AuthChallengeService authChallengeService;
 
     // =========================================================================
     // 1. GET: Consulta y Búsqueda Dinámica con Ordenamiento
@@ -299,7 +304,7 @@ public class ClientServiceImpl implements ClientService {
         // E. Creación de Cuenta Bancaria
         AccountResponse cuentaGuardada = accountService.crearCuenta(idClient, request.getInitialBalance());
 
-        // F. Creación de Credenciales de Acceso
+        // F. Creación de Credenciales de Acceso y envío de código de verificación por correo
         AuthResponse authResponse = null;
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             Auth auth = authService.crearCredencialesCliente(
@@ -308,7 +313,9 @@ public class ClientServiceImpl implements ClientService {
                     request.getPassword(),
                     request.getBiometricType(),
                     request.getBiometricData());
-            authResponse = authMapper.toResponse(auth);
+            authResponse = authChallengeService != null
+                    ? authChallengeService.crearDesafioVerificacionCuenta(auth, clienteGuardado.getName())
+                    : authMapper.toResponse(auth);
         }
 
         ClientResponse clienteDto = clientMapper.toResponse(clienteGuardado);

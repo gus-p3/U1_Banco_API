@@ -52,7 +52,10 @@ public enum ErrorCode {
     TOKEN_MISSING("TOKEN_MISSING", HttpStatus.UNAUTHORIZED, "Se requiere el encabezado Authorization: Bearer <token>", "Authorization"),
     SESSION_INACTIVE("SESSION_INACTIVE", HttpStatus.UNAUTHORIZED, "La sesión en el servidor no está activa. Inicie sesión nuevamente", "session"),
     STRONG_AUTH_REQUIRED("STRONG_AUTH_REQUIRED", HttpStatus.FORBIDDEN, "Para autorizar el pago es obligatorio confirmar la operación con huella digital desde la aplicación móvil", "confirmationToken"),
-    PAYMENT_FORBIDDEN("PAYMENT_FORBIDDEN", HttpStatus.FORBIDDEN, "No es posible operar con la cuenta indicada", "numCuenta");
+    PAYMENT_FORBIDDEN("PAYMENT_FORBIDDEN", HttpStatus.FORBIDDEN, "No es posible operar con la cuenta indicada", "numCuenta"),
+    VERIFICATION_CODE_INVALID("VERIFICATION_CODE_INVALID", HttpStatus.UNAUTHORIZED, "%s", "code"),
+    VERIFICATION_CHALLENGE_EXPIRED("VERIFICATION_CHALLENGE_EXPIRED", HttpStatus.GONE, "%s", "challengeId"),
+    EMAIL_DELIVERY_FAILED("EMAIL_DELIVERY_FAILED", HttpStatus.BAD_GATEWAY, "No se pudo enviar el correo de verificación. Intenta nuevamente", "email");
 
     private final String code;
     private final HttpStatus httpStatus;

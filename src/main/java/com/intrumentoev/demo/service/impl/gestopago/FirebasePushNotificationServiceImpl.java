@@ -10,6 +10,7 @@ import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.MessagingErrorCode;
 import com.google.firebase.messaging.Notification;
+import com.intrumentoev.demo.entity.auth.AuthChallenge;
 import com.intrumentoev.demo.entity.gestopago.DispositivoPush;
 import com.intrumentoev.demo.entity.gestopago.PagoAutorizacion;
 import com.intrumentoev.demo.repository.gestopago.DispositivoPushRepository;
@@ -113,6 +114,65 @@ public class FirebasePushNotificationServiceImpl implements PushNotificationServ
             } else {
                 enviarFcm(dispositivo, titulo, cuerpo, autorizacion);
             }
+        }
+    }
+
+    @Override
+    public void enviarNotificacionLogin2fa(Long idCliente, AuthChallenge challenge) {
+        List<DispositivoPush> dispositivos = dispositivoRepository.findByIdClienteAndActivoTrue(idCliente);
+        if (dispositivos.isEmpty()) {
+            log.debug("Cliente {} sin dispositivos push registrados para login 2FA.", idCliente);
+            return;
+        }
+        String titulo = "Autoriza tu inicio de sesión en Web";
+        String cuerpo = "Confirma con tu huella digital el acceso a Banco Digital Web (" + challenge.getEmail() + ").";
+
+        for (DispositivoPush dispositivo : dispositivos) {
+            String token = dispositivo.getPushToken();
+            if (token.startsWith("ExponentPushToken[") || token.startsWith("ExpoPushToken[")) {
+                enviarExpoPushLogin(token, titulo, cuerpo, challenge);
+            } else {
+                enviarFcmLogin(dispositivo, titulo, cuerpo, challenge);
+            }
+        }
+    }
+
+    private void enviarFcmLogin(DispositivoPush dispositivo, String titulo, String cuerpo, AuthChallenge challenge) {
+        if (!firebaseInitialized) {
+            return;
+        }
+        try {
+            Message message = Message.builder()
+                    .setToken(dispositivo.getPushToken())
+                    .setNotification(Notification.builder().setTitle(titulo).setBody(cuerpo).build())
+                    .setAndroidConfig(AndroidConfig.builder()
+                            .setPriority(AndroidConfig.Priority.HIGH)
+                            .setNotification(AndroidNotification.builder().setChannelId("payment-auth").build())
+                            .build())
+                    .putData("type", "LOGIN_2FA")
+                    .putData("challengeId", challenge.getId())
+                    .build();
+            FirebaseMessaging.getInstance().send(message);
+        } catch (Exception ex) {
+            log.warn("Error enviando FCM para login 2FA {}: {}", challenge.getId(), ex.getMessage());
+        }
+    }
+
+    private void enviarExpoPushLogin(String token, String titulo, String cuerpo, AuthChallenge challenge) {
+        try {
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("to", token);
+            body.put("title", titulo);
+            body.put("body", cuerpo);
+            body.put("sound", "default");
+            body.put("priority", "high");
+            body.put("channelId", "payment-auth");
+            body.put("data", Map.of("type", "LOGIN_2FA", "challengeId", challenge.getId()));
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            restTemplate.postForEntity(EXPO_PUSH_URL, new HttpEntity<>(body, headers), String.class);
+        } catch (Exception ex) {
+            log.warn("Error enviando Expo Push para login 2FA {}: {}", challenge.getId(), ex.getMessage());
         }
     }
 

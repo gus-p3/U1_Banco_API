@@ -3,18 +3,24 @@ package com.intrumentoev.demo.controller.auth;
 import com.intrumentoev.demo.exception.BusinessException;
 import com.intrumentoev.demo.exception.ErrorCode;
 import com.intrumentoev.demo.model.auth.*;
+import com.intrumentoev.demo.service.service.auth.AuthChallengeService;
 import com.intrumentoev.demo.service.service.auth.AuthService;
+import com.intrumentoev.demo.service.service.auth.BearerTokenValidator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Tag(
         name = "Autenticación y Seguridad",
@@ -27,6 +33,12 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+
+    @Autowired(required = false)
+    private AuthChallengeService authChallengeService;
+
+    @Autowired(required = false)
+    private BearerTokenValidator bearerTokenValidator;
 
     @Operation(
             summary = "Login con correo y contraseña",
@@ -172,5 +184,80 @@ public class AuthController {
             @Valid @RequestBody OperationConfirmRequest request) {
         OperationConfirmResponse response = authService.confirmarOperacion(usuario, request);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Verificar código OTP de 6 dígitos enviado por correo (Brevo)")
+    @PostMapping(
+            value = "/verificar-codigo",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<AuthResponse> verificarCodigo(@Valid @RequestBody VerifyCodeRequest request) {
+        return ResponseEntity.ok(authChallengeService.verificarCodigo(request));
+    }
+
+    @Operation(summary = "Enviar o reenviar código 2FA por correo electrónico (Brevo)")
+    @PostMapping(
+            value = "/2fa/enviar-codigo",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<AuthChallengeStatusResponse> enviarCodigo2fa(@Valid @RequestBody ChallengeActionRequest request) {
+        return ResponseEntity.ok(authChallengeService.enviarCodigoPorCorreo(request));
+    }
+
+    @Operation(summary = "Solicitar autorización con huella digital en el celular Android para login Web")
+    @PostMapping(
+            value = "/2fa/solicitar-huella",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<AuthChallengeStatusResponse> solicitarHuella2fa(@Valid @RequestBody ChallengeActionRequest request) {
+        return ResponseEntity.ok(authChallengeService.solicitarHuellaMovil(request));
+    }
+
+    @Operation(summary = "Consultar estado del desafío 2FA (polling desde Web)")
+    @PostMapping(
+            value = "/2fa/estado",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<AuthChallengeStatusResponse> consultarEstado2fa(@Valid @RequestBody ChallengeActionRequest request) {
+        return ResponseEntity.ok(authChallengeService.consultarEstadoChallenge(request.getChallengeId(), request.getPollToken()));
+    }
+
+    @Operation(summary = "Cancelar desafío 2FA pendiente")
+    @PostMapping(
+            value = "/2fa/cancelar",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<AuthChallengeStatusResponse> cancelar2fa(@Valid @RequestBody ChallengeActionRequest request) {
+        return ResponseEntity.ok(authChallengeService.cancelarChallenge(request));
+    }
+
+    @Operation(summary = "Listar solicitudes de inicio de sesión Web pendientes de aprobar con huella en móvil")
+    @GetMapping(value = "/2fa/pendientes", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<PendingLogin2faResponse>> listarPendientes2fa(
+            @AuthenticationPrincipal AuthenticatedClient usuario) {
+        return ResponseEntity.ok(authChallengeService.listarPendientesMovil(usuario));
+    }
+
+    @Operation(summary = "Aprobar inicio de sesión Web desde Android con huella digital (X-Confirmation-Token)")
+    @PostMapping(value = "/2fa/{id}/aprobar", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<PendingLogin2faResponse> aprobarLogin2fa(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+            @RequestHeader(value = "X-Confirmation-Token", required = false) String confirmationToken,
+            @PathVariable("id") String id) {
+        AuthenticatedClient cliente = bearerTokenValidator.validarParaPago(authorization, confirmationToken);
+        return ResponseEntity.ok(authChallengeService.aprobarConHuellaMovil(cliente, id));
+    }
+
+    @Operation(summary = "Rechazar solicitud de inicio de sesión Web desde Android")
+    @PostMapping(value = "/2fa/{id}/rechazar", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<PendingLogin2faResponse> rechazarLogin2fa(
+            @AuthenticationPrincipal AuthenticatedClient usuario,
+            @PathVariable("id") String id) {
+        return ResponseEntity.ok(authChallengeService.rechazarDesdeMovil(usuario, id));
     }
 }

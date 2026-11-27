@@ -32,4 +32,12 @@ public class AuthRequest {
     )
     @io.swagger.v3.oas.annotations.media.Schema(example = "PasswordSegura#2026", description = "Contraseña segura del cliente")
     private String password;
+
+    @Pattern(regexp = "^(WEB|MOBILE)$", message = "El canal debe ser WEB o MOBILE")
+    @io.swagger.v3.oas.annotations.media.Schema(example = "WEB", description = "Canal de acceso opcional (WEB o MOBILE) para activar verificación 2FA")
+    private String channel;
+
+    public AuthRequest(String email, String password) {
+        this(email, password, null);
+    }
 }
