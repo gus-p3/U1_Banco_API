@@ -5,6 +5,8 @@ import com.intrumentoev.demo.model.catalog.GenderResponse;
 import com.intrumentoev.demo.model.catalog.MaritalStatusResponse;
 import com.intrumentoev.demo.model.catalog.MunicipalityResponse;
 import com.intrumentoev.demo.model.catalog.NationalityResponse;
+import com.intrumentoev.demo.model.catalog.OperationAmountRangeResponse;
+import com.intrumentoev.demo.model.catalog.ProfessionResponse;
 import com.intrumentoev.demo.model.catalog.StateResponse;
 
 import java.util.List;
@@ -38,4 +40,10 @@ public interface CatalogService {
 
     /** Obtiene los estados civiles activos. */
     List<MaritalStatusResponse> obtenerEstadosCiviles();
+
+    /** Obtiene el catálogo de profesiones / ocupaciones activas. */
+    List<ProfessionResponse> obtenerProfesiones();
+
+    /** Obtiene el catálogo de rangos de monto de operación (escalones de $5,000 MXN). */
+    List<OperationAmountRangeResponse> obtenerMontosOperacion();
 }

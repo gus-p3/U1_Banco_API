@@ -28,16 +28,16 @@ public class Client {
     @Column(name = "id_client")
     private Long idClient;
 
-    @Column(name = "name", nullable = false, length = 50)
+    @Column(name = "name", nullable = false, length = 62)
     private String name;
 
-    @Column(name = "second_name", length = 50)
+    @Column(name = "second_name", length = 62)
     private String secondName;
 
-    @Column(name = "last_name", nullable = false, length = 50)
+    @Column(name = "last_name", nullable = false, length = 62)
     private String lastName;
 
-    @Column(name = "second_last_name", length = 50)
+    @Column(name = "second_last_name", length = 62)
     private String secondLastName;
 
     @Column(name = "birth_date", nullable = false)

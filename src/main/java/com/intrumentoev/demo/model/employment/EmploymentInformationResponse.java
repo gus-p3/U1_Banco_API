@@ -20,6 +20,11 @@ public class EmploymentInformationResponse {
     @com.fasterxml.jackson.annotation.JsonIgnore
     private Long idClient;
     private String occupation;
+    private Short idProfession;
+    private String professionName;
+    private Short idOperationAmount;
+    private String operationAmountLabel;
+    private BigDecimal operationAmountMax;
     private String company;
     private BigDecimal monthlyIncome;
     private OffsetDateTime createdAt;

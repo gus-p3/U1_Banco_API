@@ -40,6 +40,12 @@ public class EmploymentInformation {
     @Column(name = "occupation", nullable = false, length = 80)
     private String occupation;
 
+    @Column(name = "id_profession")
+    private Short idProfession;
+
+    @Column(name = "id_operation_amount")
+    private Short idOperationAmount;
+
     @NotBlank(message = "La empresa es obligatoria")
     @Size(max = 100, message = "La empresa no puede superar los 100 caracteres")
     @Column(name = "company", nullable = false, length = 100)

@@ -5,6 +5,8 @@ import com.intrumentoev.demo.model.catalog.GenderResponse;
 import com.intrumentoev.demo.model.catalog.MaritalStatusResponse;
 import com.intrumentoev.demo.model.catalog.MunicipalityResponse;
 import com.intrumentoev.demo.model.catalog.NationalityResponse;
+import com.intrumentoev.demo.model.catalog.OperationAmountRangeResponse;
+import com.intrumentoev.demo.model.catalog.ProfessionResponse;
 import com.intrumentoev.demo.model.catalog.StateResponse;
 import com.intrumentoev.demo.service.service.catalog.CatalogService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -58,6 +60,18 @@ public class CatalogController {
     @GetMapping(value = "/estados-civiles", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<MaritalStatusResponse>> obtenerEstadosCiviles() {
         return ResponseEntity.ok(catalogService.obtenerEstadosCiviles());
+    }
+
+    @Operation(summary = "Obtener profesiones", description = "Retorna el catálogo de profesiones/ocupaciones disponibles para el onboarding y edición de perfil.")
+    @GetMapping(value = "/profesiones", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<ProfessionResponse>> obtenerProfesiones() {
+        return ResponseEntity.ok(catalogService.obtenerProfesiones());
+    }
+
+    @Operation(summary = "Obtener rangos de monto de operación", description = "Retorna los rangos de monto de operación en escalones de $5,000 MXN (perfil transaccional y límite por operación).")
+    @GetMapping(value = "/montos-operacion", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<OperationAmountRangeResponse>> obtenerMontosOperacion() {
+        return ResponseEntity.ok(catalogService.obtenerMontosOperacion());
     }
 
     // ──────────────────── Catálogos geográficos (INEGI) ────────────────────

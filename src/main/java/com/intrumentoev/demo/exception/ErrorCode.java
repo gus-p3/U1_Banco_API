@@ -32,6 +32,7 @@ public enum ErrorCode {
     STATE_MISMATCH("STATE_MISMATCH", HttpStatus.UNPROCESSABLE_ENTITY, "La clave de entidad '%s' no coincide con la entidad federativa del municipio seleccionado ('%s' - %s)", "claveEntidad"),
     BUSINESS_VALIDATION("BUSINESS_VALIDATION", HttpStatus.UNPROCESSABLE_ENTITY, "%s", "rule"),
     INSUFFICIENT_FUNDS("INSUFFICIENT_FUNDS", HttpStatus.UNPROCESSABLE_ENTITY, "Saldo insuficiente para realizar el pago", "monto"),
+    OPERATION_LIMIT_EXCEEDED("OPERATION_LIMIT_EXCEEDED", HttpStatus.UNPROCESSABLE_ENTITY, "El monto ($%s) supera tu límite de operación configurado (%s). Puedes ajustarlo en tu perfil", "monto"),
     PAYMENT_ACCOUNT_INACTIVE("PAYMENT_ACCOUNT_INACTIVE", HttpStatus.UNPROCESSABLE_ENTITY, "La cuenta no se encuentra activa para realizar pagos", "numCuenta"),
     PAYMENT_PRODUCT_MISMATCH("PAYMENT_PRODUCT_MISMATCH", HttpStatus.UNPROCESSABLE_ENTITY, "%s", "idProducto"),
     REFERENCE_NOT_VALIDATED("REFERENCE_NOT_VALIDATED", HttpStatus.UNPROCESSABLE_ENTITY, "La referencia del servicio no ha sido validada previamente o su validación expiró", "referencia"),

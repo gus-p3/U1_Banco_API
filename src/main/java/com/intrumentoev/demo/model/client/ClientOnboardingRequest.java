@@ -19,21 +19,21 @@ public class ClientOnboardingRequest {
 
     // --- 1. Datos Personales ---
     @NotBlank(message = "El nombre es obligatorio")
-    @Size(min = 2, max = 50, message = "El nombre debe tener entre 2 y 50 caracteres")
-    @Pattern(regexp = "^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{2,50}$", message = "El nombre contiene caracteres no válidos")
+    @Size(min = 2, max = 62, message = "El nombre debe tener entre 2 y 62 caracteres")
+    @Pattern(regexp = "^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{2,62}$", message = "El nombre contiene caracteres no válidos")
     private String name;
 
-    @Size(min = 2, max = 50, message = "El segundo nombre debe tener entre 2 y 50 caracteres")
-    @Pattern(regexp = "^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{2,50}$", message = "El segundo nombre contiene caracteres no válidos")
+    @Size(max = 62, message = "El segundo nombre no puede superar los 62 caracteres")
+    @Pattern(regexp = "^$|[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{2,62}$", message = "El segundo nombre contiene caracteres no válidos")
     private String secondName;
 
     @NotBlank(message = "El apellido paterno es obligatorio")
-    @Size(min = 2, max = 50, message = "El apellido paterno debe tener entre 2 y 50 caracteres")
-    @Pattern(regexp = "^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{2,50}$", message = "El apellido paterno contiene caracteres no válidos")
+    @Size(min = 2, max = 62, message = "El apellido paterno debe tener entre 2 y 62 caracteres")
+    @Pattern(regexp = "^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{2,62}$", message = "El apellido paterno contiene caracteres no válidos")
     private String lastName;
 
-    @Size(min = 2, max = 50, message = "El apellido materno debe tener entre 2 y 50 caracteres")
-    @Pattern(regexp = "^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{2,50}$", message = "El apellido materno contiene caracteres no válidos")
+    @Size(max = 62, message = "El apellido materno no puede superar los 62 caracteres")
+    @Pattern(regexp = "^$|[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{2,62}$", message = "El apellido materno contiene caracteres no válidos")
     private String secondLastName;
 
     @NotNull(message = "La fecha de nacimiento es obligatoria")
@@ -119,9 +119,14 @@ public class ClientOnboardingRequest {
     private String country = "México";
 
     // --- 4. Información Laboral ---
-    @NotBlank(message = "La ocupación es obligatoria")
     @Size(max = 80, message = "La ocupación no puede superar los 80 caracteres")
     private String occupation;
+
+    @Positive(message = "El identificador de la profesión debe ser positivo")
+    private Short idProfession;
+
+    @Positive(message = "El identificador del monto de operación debe ser positivo")
+    private Short idOperationAmount;
 
     @NotBlank(message = "La empresa es obligatoria")
     @Size(max = 100, message = "La empresa no puede superar los 100 caracteres")

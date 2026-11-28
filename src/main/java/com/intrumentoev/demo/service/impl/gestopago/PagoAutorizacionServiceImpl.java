@@ -1,7 +1,9 @@
 package com.intrumentoev.demo.service.impl.gestopago;
 
 import com.intrumentoev.demo.entity.account.Account;
+import com.intrumentoev.demo.entity.catalogs.OperationAmountRange;
 import com.intrumentoev.demo.entity.client.Client;
+import com.intrumentoev.demo.entity.employment.EmploymentInformation;
 import com.intrumentoev.demo.entity.gestopago.DispositivoPush;
 import com.intrumentoev.demo.entity.gestopago.PagoAutorizacion;
 import com.intrumentoev.demo.exception.BusinessException;
@@ -15,7 +17,9 @@ import com.intrumentoev.demo.model.gestopago.pago.PagoResponse;
 import com.intrumentoev.demo.model.gestopago.pago.PushTokenRequest;
 import com.intrumentoev.demo.model.gestopago.pago.TipoPago;
 import com.intrumentoev.demo.repository.account.AccountRepository;
+import com.intrumentoev.demo.repository.catalogs.OperationAmountRangeRepository;
 import com.intrumentoev.demo.repository.client.ClientRepository;
+import com.intrumentoev.demo.repository.employment.EmploymentInformationRepository;
 import com.intrumentoev.demo.repository.gestopago.DispositivoPushRepository;
 import com.intrumentoev.demo.repository.gestopago.PagoAutorizacionRepository;
 import com.intrumentoev.demo.service.service.gestopago.PagoAutorizacionService;
@@ -27,6 +31,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -52,6 +57,12 @@ public class PagoAutorizacionServiceImpl implements PagoAutorizacionService {
     private final PagoGestoPagoService pagoGestoPagoService;
     private final PushNotificationService pushNotificationService;
     private final Validator validator;
+
+    @Autowired(required = false)
+    private EmploymentInformationRepository employmentRepository;
+
+    @Autowired(required = false)
+    private OperationAmountRangeRepository operationAmountRangeRepository;
 
     @Value("${pagos.autorizacion.ttl-seconds:120}")
     private long ttlSeconds = 120L;
@@ -96,6 +107,19 @@ public class PagoAutorizacionServiceImpl implements PagoAutorizacionService {
         }
         validarTipoPago(tipoPago, producto);
         BigDecimal monto = calcularMonto(tipoPago, request, producto);
+        if (employmentRepository != null && operationAmountRangeRepository != null && monto != null) {
+            EmploymentInformation emp = employmentRepository.findByIdClient(idCliente).orElse(null);
+            if (emp != null && emp.getIdOperationAmount() != null) {
+                OperationAmountRange rango = operationAmountRangeRepository.findById(emp.getIdOperationAmount()).orElse(null);
+                if (rango != null && rango.getMaxAmount() != null && monto.compareTo(rango.getMaxAmount()) > 0) {
+                    throw new BusinessException(
+                            ErrorCode.OPERATION_LIMIT_EXCEEDED,
+                            monto.toPlainString(),
+                            rango.getLabel()
+                    );
+                }
+            }
+        }
 
         if (cuenta.getBalance().compareTo(monto) < 0) {
             throw new BusinessException(ErrorCode.INSUFFICIENT_FUNDS);

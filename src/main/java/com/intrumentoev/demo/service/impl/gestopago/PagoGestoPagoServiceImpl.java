@@ -7,7 +7,9 @@ import com.intrumentoev.demo.client.gestopago.GestoPagoTxClient;
 import com.intrumentoev.demo.client.gestopago.GestoPagoXmlParser;
 import com.intrumentoev.demo.entity.account.Account;
 import com.intrumentoev.demo.entity.account.AccountBalance;
+import com.intrumentoev.demo.entity.catalogs.OperationAmountRange;
 import com.intrumentoev.demo.entity.client.Client;
+import com.intrumentoev.demo.entity.employment.EmploymentInformation;
 import com.intrumentoev.demo.entity.gestopago.PagoGestoPago;
 import com.intrumentoev.demo.exception.BusinessException;
 import com.intrumentoev.demo.exception.ErrorCode;
@@ -24,7 +26,9 @@ import com.intrumentoev.demo.model.gestopago.pago.PagoResponse;
 import com.intrumentoev.demo.model.gestopago.pago.TipoPago;
 import com.intrumentoev.demo.repository.account.AccountBalanceRepository;
 import com.intrumentoev.demo.repository.account.AccountRepository;
+import com.intrumentoev.demo.repository.catalogs.OperationAmountRangeRepository;
 import com.intrumentoev.demo.repository.client.ClientRepository;
+import com.intrumentoev.demo.repository.employment.EmploymentInformationRepository;
 import com.intrumentoev.demo.repository.gestopago.PagoGestoPagoRepository;
 import com.intrumentoev.demo.service.service.gestopago.GestoPagoTokenService;
 import com.intrumentoev.demo.service.service.gestopago.PagoGestoPagoService;
@@ -34,6 +38,7 @@ import com.intrumentoev.demo.service.service.gestopago.UpcGenerator;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -95,6 +100,12 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
     private final UpcGenerator upcGenerator;
     private final Validator validator;
     private final TransactionTemplate tx;
+
+    @Autowired(required = false)
+    private EmploymentInformationRepository employmentRepository;
+
+    @Autowired(required = false)
+    private OperationAmountRangeRepository operationAmountRangeRepository;
 
     @Value("${gestopago.tx.unidad:086}")
     private String unidad;
@@ -172,6 +183,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
         }
         validarTipoPago(tipoPago, producto);
         BigDecimal monto = calcularMonto(tipoPago, request, producto);
+        validarLimiteOperacion(idCliente, monto);
 
         if (tipoPago == TipoPago.SERVICIO && !referenciaValidacionService.esReferenciaValidada(
                 idCliente, request.getIdServicio(), request.getIdProducto(), request.getReferencia(), monto)) {
@@ -198,6 +210,24 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
             return productoNoDisponible();
         }
         return aRespuesta(resuelto);
+    }
+
+    private void validarLimiteOperacion(Long idCliente, BigDecimal monto) {
+        if (employmentRepository == null || operationAmountRangeRepository == null || monto == null) {
+            return;
+        }
+        EmploymentInformation emp = employmentRepository.findByIdClient(idCliente).orElse(null);
+        if (emp == null || emp.getIdOperationAmount() == null) {
+            return;
+        }
+        OperationAmountRange rango = operationAmountRangeRepository.findById(emp.getIdOperationAmount()).orElse(null);
+        if (rango != null && rango.getMaxAmount() != null && monto.compareTo(rango.getMaxAmount()) > 0) {
+            throw new BusinessException(
+                    ErrorCode.OPERATION_LIMIT_EXCEEDED,
+                    monto.toPlainString(),
+                    rango.getLabel()
+            );
+        }
     }
 
     private PagoGestoPago registrarPagoYDescontar(Long idCliente, PagoRequest request, TipoPago tipoPago, BigDecimal monto,

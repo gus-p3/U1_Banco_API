@@ -3,6 +3,8 @@ package com.intrumentoev.demo.service.impl.client;
 import com.intrumentoev.demo.entity.account.Account;
 import com.intrumentoev.demo.entity.auth.Auth;
 import com.intrumentoev.demo.entity.catalogs.Municipality;
+import com.intrumentoev.demo.entity.catalogs.OperationAmountRange;
+import com.intrumentoev.demo.entity.catalogs.Profession;
 import com.intrumentoev.demo.entity.catalogs.State;
 import com.intrumentoev.demo.entity.client.Client;
 import com.intrumentoev.demo.entity.contactDetail.ContactDetail;
@@ -18,12 +20,15 @@ import com.intrumentoev.demo.mapper.home.HomeMapper;
 import com.intrumentoev.demo.model.account.AccountResponse;
 import com.intrumentoev.demo.model.auth.AuthResponse;
 import com.intrumentoev.demo.model.client.*;
+import com.intrumentoev.demo.model.employment.EmploymentInformationResponse;
 import com.intrumentoev.demo.model.home.HomeResponse;
 import com.intrumentoev.demo.repository.account.AccountRepository;
 import com.intrumentoev.demo.repository.catalogs.GenderRepository;
 import com.intrumentoev.demo.repository.catalogs.MaritalStatusRepository;
 import com.intrumentoev.demo.repository.catalogs.MunicipalityRepository;
 import com.intrumentoev.demo.repository.catalogs.NationalityRepository;
+import com.intrumentoev.demo.repository.catalogs.OperationAmountRangeRepository;
+import com.intrumentoev.demo.repository.catalogs.ProfessionRepository;
 import com.intrumentoev.demo.repository.catalogs.StateRepository;
 import com.intrumentoev.demo.repository.client.ClientRepository;
 import com.intrumentoev.demo.repository.client.ClientSpecification;
@@ -76,6 +81,12 @@ public class ClientServiceImpl implements ClientService {
 
     @Autowired(required = false)
     private AuthChallengeService authChallengeService;
+
+    @Autowired(required = false)
+    private ProfessionRepository professionRepository;
+
+    @Autowired(required = false)
+    private OperationAmountRangeRepository operationAmountRangeRepository;
 
     // =========================================================================
     // 1. GET: Consulta y Búsqueda Dinámica con Ordenamiento
@@ -143,7 +154,11 @@ public class ClientServiceImpl implements ClientService {
         }
         if (incEmployment) {
             employmentRepository.findByIdClient(clientDto.getIdClient())
-                    .ifPresent(emp -> clientDto.setEmploymentInformation(employmentMapper.toResponse(emp)));
+                    .ifPresent(emp -> {
+                        EmploymentInformationResponse empDto = employmentMapper.toResponse(emp);
+                        enrichEmploymentWithCatalogs(empDto);
+                        clientDto.setEmploymentInformation(empDto);
+                    });
         }
     }
     // =========================================================================
@@ -160,6 +175,12 @@ public class ClientServiceImpl implements ClientService {
 
         // 1. Actualizar datos personales (MapStruct ignora nulos automáticamente)
         clientMapper.updateEntityFromUnifiedPatch(request, client);
+        if (request.getSecondName() != null && request.getSecondName().isBlank()) {
+            client.setSecondName(null);
+        }
+        if (request.getSecondLastName() != null && request.getSecondLastName().isBlank()) {
+            client.setSecondLastName(null);
+        }
         clientRepository.save(client);
 
         // 2. Actualizar contacto (validación de unicidad y mapeo automático)
@@ -185,10 +206,21 @@ public class ClientServiceImpl implements ClientService {
         homeMapper.updateEntityFromUnifiedPatch(request, home);
         homeRepository.save(home);
 
-        // 4. Actualizar información laboral (mapeo automático sin ifs)
+        // 4. Actualizar información laboral (mapeo automático + catálogos de profesión y monto de operación)
         EmploymentInformation employment = employmentRepository.findByIdClient(idClient)
                 .orElseGet(() -> EmploymentInformation.builder().idClient(idClient).build());
         employmentMapper.updateEntityFromUnifiedPatch(request, employment);
+        if (request.getIdProfession() != null && professionRepository != null) {
+            Profession prof = professionRepository.findById(request.getIdProfession())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.CATALOG_NOT_FOUND, "profesión", request.getIdProfession().longValue()));
+            employment.setIdProfession(prof.getIdProfession());
+            employment.setOccupation(prof.getName());
+        }
+        if (request.getIdOperationAmount() != null && operationAmountRangeRepository != null) {
+            OperationAmountRange range = operationAmountRangeRepository.findById(request.getIdOperationAmount())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.CATALOG_NOT_FOUND, "monto de operación", request.getIdOperationAmount().longValue()));
+            employment.setIdOperationAmount(range.getIdOperationAmount());
+        }
         employmentRepository.save(employment);
 
         return construirDetalleCliente(client, contact, home, employment);
@@ -267,6 +299,12 @@ public class ClientServiceImpl implements ClientService {
         Client client = clientMapper.toEntityFromOnboarding(request);
         client.setCurp(curpNorm);
         client.setRfc(rfcNorm);
+        if (client.getSecondName() != null && client.getSecondName().isBlank()) {
+            client.setSecondName(null);
+        }
+        if (client.getSecondLastName() != null && client.getSecondLastName().isBlank()) {
+            client.setSecondLastName(null);
+        }
         Client clienteGuardado = clientRepository.save(client);
         Long idClient = clienteGuardado.getIdClient();
 
@@ -293,9 +331,27 @@ public class ClientServiceImpl implements ClientService {
         Home domicilioGuardado = homeRepository.save(home);
 
         // D. Guardar Información Laboral
+        String resolvedOccupation = request.getOccupation() != null ? request.getOccupation().trim() : null;
+        Short resolvedIdProfession = request.getIdProfession();
+        if (resolvedIdProfession != null && professionRepository != null) {
+            Profession prof = professionRepository.findById(resolvedIdProfession)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.CATALOG_NOT_FOUND, "profesión", resolvedIdProfession.longValue()));
+            resolvedOccupation = prof.getName();
+        }
+        if (resolvedOccupation == null || resolvedOccupation.isBlank()) {
+            throw new BusinessException(ErrorCode.BUSINESS_VALIDATION, "La profesión u ocupación es obligatoria");
+        }
+        Short resolvedIdOperationAmount = request.getIdOperationAmount();
+        if (resolvedIdOperationAmount != null && operationAmountRangeRepository != null) {
+            operationAmountRangeRepository.findById(resolvedIdOperationAmount)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.CATALOG_NOT_FOUND, "monto de operación", resolvedIdOperationAmount.longValue()));
+        }
+
         EmploymentInformation employment = EmploymentInformation.builder()
                 .idClient(idClient)
-                .occupation(request.getOccupation())
+                .occupation(resolvedOccupation)
+                .idProfession(resolvedIdProfession)
+                .idOperationAmount(resolvedIdOperationAmount)
                 .company(request.getCompany())
                 .monthlyIncome(request.getMonthlyIncome())
                 .build();
@@ -324,11 +380,14 @@ public class ClientServiceImpl implements ClientService {
         HomeResponse homeDto = homeMapper.toResponse(domicilioGuardado);
         enrichHomeWithCatalogs(homeDto);
 
+        EmploymentInformationResponse employmentDto = employmentMapper.toResponse(laboralGuardado);
+        enrichEmploymentWithCatalogs(employmentDto);
+
         return ClientDetailResponse.builder()
                 .client(clienteDto)
                 .contactDetail(contactDetailMapper.toResponse(contactoGuardado))
                 .home(homeDto)
-                .employmentInformation(employmentMapper.toResponse(laboralGuardado))
+                .employmentInformation(employmentDto)
                 .primaryAccount(cuentaGuardada)
                 .accounts(List.of(cuentaGuardada))
                 .auth(authResponse)
@@ -383,11 +442,14 @@ public class ClientServiceImpl implements ClientService {
                 .toResponseList(accountRepository.findByIdClient(client.getIdClient()));
         AccountResponse primaryAccount = cuentasDto.isEmpty() ? null : cuentasDto.get(0);
 
+        EmploymentInformationResponse employmentDto = employmentMapper.toResponse(employment);
+        enrichEmploymentWithCatalogs(employmentDto);
+
         return ClientDetailResponse.builder()
                 .client(clienteDto)
                 .contactDetail(contactDetailMapper.toResponse(contact))
                 .home(homeDto)
-                .employmentInformation(employmentMapper.toResponse(employment))
+                .employmentInformation(employmentDto)
                 .primaryAccount(primaryAccount)
                 .accounts(cuentasDto)
                 .build();
@@ -422,6 +484,23 @@ public class ClientServiceImpl implements ClientService {
                 homeDto.setStateName(state.getName());
                 homeDto.setCveEnt(state.getCveEnt());
             }
+        }
+    }
+
+    private void enrichEmploymentWithCatalogs(EmploymentInformationResponse empDto) {
+        if (empDto == null) {
+            return;
+        }
+        if (empDto.getIdProfession() != null && professionRepository != null) {
+            professionRepository.findById(empDto.getIdProfession())
+                    .ifPresent(p -> empDto.setProfessionName(p.getName()));
+        }
+        if (empDto.getIdOperationAmount() != null && operationAmountRangeRepository != null) {
+            operationAmountRangeRepository.findById(empDto.getIdOperationAmount())
+                    .ifPresent(r -> {
+                        empDto.setOperationAmountLabel(r.getLabel());
+                        empDto.setOperationAmountMax(r.getMaxAmount());
+                    });
         }
     }
 }

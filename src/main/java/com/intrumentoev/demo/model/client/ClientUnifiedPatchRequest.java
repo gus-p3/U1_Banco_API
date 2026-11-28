@@ -29,6 +29,22 @@ public class ClientUnifiedPatchRequest {
     private String identificador;
 
     // --- 1. Datos Personales Modificables ---
+    @Size(min = 2, max = 62, message = "El nombre debe tener entre 2 y 62 caracteres")
+    @Pattern(regexp = "^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{2,62}$", message = "El nombre contiene caracteres no válidos")
+    private String name;
+
+    @Size(max = 62, message = "El segundo nombre no puede superar los 62 caracteres")
+    @Pattern(regexp = "^$|[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{2,62}$", message = "El segundo nombre contiene caracteres no válidos")
+    private String secondName;
+
+    @Size(min = 2, max = 62, message = "El apellido paterno debe tener entre 2 y 62 caracteres")
+    @Pattern(regexp = "^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{2,62}$", message = "El apellido paterno contiene caracteres no válidos")
+    private String lastName;
+
+    @Size(max = 62, message = "El apellido materno no puede superar los 62 caracteres")
+    @Pattern(regexp = "^$|[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{2,62}$", message = "El apellido materno contiene caracteres no válidos")
+    private String secondLastName;
+
     @Positive(message = "El idGender debe ser un identificador positivo")
     private Short idGender;
 
@@ -70,6 +86,12 @@ public class ClientUnifiedPatchRequest {
     // --- 4. Datos Laborales Modificables ---
     @Size(min = 3, max = 80, message = "La ocupación debe tener entre 3 y 80 caracteres")
     private String occupation;
+
+    @Positive(message = "El idProfession debe ser un identificador positivo")
+    private Short idProfession;
+
+    @Positive(message = "El idOperationAmount debe ser un identificador positivo")
+    private Short idOperationAmount;
 
     @Size(min = 3, max = 100, message = "La empresa debe tener entre 3 y 100 caracteres")
     private String company;

@@ -13,15 +13,20 @@ import com.intrumentoev.demo.model.catalog.GenderResponse;
 import com.intrumentoev.demo.model.catalog.MaritalStatusResponse;
 import com.intrumentoev.demo.model.catalog.MunicipalityResponse;
 import com.intrumentoev.demo.model.catalog.NationalityResponse;
+import com.intrumentoev.demo.model.catalog.OperationAmountRangeResponse;
+import com.intrumentoev.demo.model.catalog.ProfessionResponse;
 import com.intrumentoev.demo.model.catalog.StateResponse;
 import com.intrumentoev.demo.repository.catalogs.GenderRepository;
 import com.intrumentoev.demo.repository.catalogs.MaritalStatusRepository;
 import com.intrumentoev.demo.repository.catalogs.MunicipalityRepository;
 import com.intrumentoev.demo.repository.catalogs.NationalityRepository;
+import com.intrumentoev.demo.repository.catalogs.OperationAmountRangeRepository;
+import com.intrumentoev.demo.repository.catalogs.ProfessionRepository;
 import com.intrumentoev.demo.repository.catalogs.StateRepository;
 import com.intrumentoev.demo.service.service.catalog.CatalogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,6 +54,12 @@ public class CatalogServiceImpl implements CatalogService {
     private final InegiClient inegiClient;
     private final CatalogMapper catalogMapper;
     private final RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired(required = false)
+    private ProfessionRepository professionRepository;
+
+    @Autowired(required = false)
+    private OperationAmountRangeRepository operationAmountRangeRepository;
 
     @Override
     @Transactional
@@ -248,6 +259,41 @@ public class CatalogServiceImpl implements CatalogService {
                         .name(m.getName())
                         .description(m.getDescription())
                         .isActive(m.getIsActive())
+                        .build())
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProfessionResponse> obtenerProfesiones() {
+        if (professionRepository == null) {
+            return List.of();
+        }
+        log.info("Obteniendo catálogo de profesiones...");
+        return professionRepository.findByIsActiveTrueOrderByNameAsc().stream()
+                .map(p -> ProfessionResponse.builder()
+                        .idProfession(p.getIdProfession())
+                        .name(p.getName())
+                        .description(p.getDescription())
+                        .isActive(p.getIsActive())
+                        .build())
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<OperationAmountRangeResponse> obtenerMontosOperacion() {
+        if (operationAmountRangeRepository == null) {
+            return List.of();
+        }
+        log.info("Obteniendo catálogo de rangos de monto de operación...");
+        return operationAmountRangeRepository.findByIsActiveTrueOrderByMinAmountAsc().stream()
+                .map(r -> OperationAmountRangeResponse.builder()
+                        .idOperationAmount(r.getIdOperationAmount())
+                        .label(r.getLabel())
+                        .minAmount(r.getMinAmount())
+                        .maxAmount(r.getMaxAmount())
+                        .isActive(r.getIsActive())
                         .build())
                 .toList();
     }
