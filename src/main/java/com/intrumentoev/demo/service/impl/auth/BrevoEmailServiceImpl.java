@@ -123,10 +123,37 @@ public class BrevoEmailServiceImpl implements EmailService {
         String destino = escaparHtml(ticket.getDestino() != null ? ticket.getDestino() : "N/D");
         String cuenta = escaparHtml(ticket.getCuentaEnmascarada() != null ? ticket.getCuentaEnmascarada() : "N/D");
         String montoTxt = ticket.getMonto() != null ? "$" + ticket.getMonto().setScale(2, java.math.RoundingMode.HALF_UP) + " MXN" : "$0.00 MXN";
-        String estado = escaparHtml(ticket.getEstado() != null ? ticket.getEstado() : "APLICADO");
-        String autorizacion = escaparHtml(ticket.getNumAutorizacion() != null && !ticket.getNumAutorizacion().isBlank()
-                ? ticket.getNumAutorizacion() : "N/D");
-        String idTx = ticket.getIdTx() != null ? String.valueOf(ticket.getIdTx()) : "N/D";
+        String estadoRaw = ticket.getEstado() != null ? ticket.getEstado().trim().toUpperCase() : "APLICADO";
+        boolean esAplicado = "APLICADO".equals(estadoRaw);
+        boolean esRechazado = "RECHAZADO".equals(estadoRaw);
+
+        String badgeBg = esAplicado ? "#ECFDF5" : (esRechazado ? "#FEF2F2" : "#FFFBEB");
+        String badgeFg = esAplicado ? "#059669" : (esRechazado ? "#DC2626" : "#D97706");
+        String estadoLabel = esAplicado ? "APLICADO" : (esRechazado ? "RECHAZADO" : "POR CONFIRMAR");
+        String titulo = esAplicado
+                ? "Comprobante de " + tipo
+                : (esRechazado ? "Aviso de " + tipo + " rechazado" : "Operación en proceso de confirmación");
+        String intro = esAplicado
+                ? "Hola <strong>" + nombreSeguro + "</strong>, tu operación fue aplicada exitosamente. Aquí tienes tu comprobante:"
+                : (esRechazado
+                        ? "Hola <strong>" + nombreSeguro + "</strong>, tu intento de operación no pudo procesarse y no se aplicó el cargo a tu cuenta. Aquí tienes el detalle:"
+                        : "Hola <strong>" + nombreSeguro + "</strong>, tu operación está en proceso de confirmación con el proveedor. Aquí tienes el resumen:");
+        String etiquetaMonto = esAplicado
+                ? "Importe pagado"
+                : (esRechazado ? "Importe intentado" : "Importe en proceso");
+        String asunto = esAplicado
+                ? "Comprobante de pago " + servicio + " (" + montoTxt + ") — Banco Digital"
+                : (esRechazado
+                        ? "Pago rechazado " + servicio + " (" + montoTxt + ") — Banco Digital"
+                        : "Pago en proceso " + servicio + " (" + montoTxt + ") — Banco Digital");
+
+        String rawAuth = ticket.getNumAutorizacion() != null ? ticket.getNumAutorizacion().trim() : "";
+        String filaAutorizacion = (!rawAuth.isEmpty() && !"-1".equals(rawAuth))
+                ? "<tr><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;color:#64748B;\">Folio de autorización</td><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;text-align:right;font-weight:700;\">" + escaparHtml(rawAuth) + "</td></tr>"
+                : "";
+        String filaIdTx = ticket.getIdTx() != null
+                ? "<tr><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;color:#64748B;\">ID Transacción (idTx)</td><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;text-align:right;font-weight:700;\">" + ticket.getIdTx() + "</td></tr>"
+                : "";
         String upc = escaparHtml(ticket.getUpc() != null ? ticket.getUpc() : "N/D");
         String fecha = escaparHtml(ticket.getFechaHora() != null ? ticket.getFechaHora() : "");
         String leyenda = ticket.getLeyendaProducto() != null && !ticket.getLeyendaProducto().isBlank()
@@ -142,12 +169,12 @@ public class BrevoEmailServiceImpl implements EmailService {
         String html = "<div style=\"font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;border:1px solid #E2E8F0;border-radius:14px;background:#FFFFFF;\">"
                 + "<div style=\"display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1C69F7;padding-bottom:12px;margin-bottom:16px;\">"
                 + "<div style=\"color:#1C69F7;font-weight:800;font-size:20px;\">Banco Digital</div>"
-                + "<span style=\"background:#ECFDF5;color:#059669;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;\">" + estado + "</span>"
+                + "<span style=\"background:" + badgeBg + ";color:" + badgeFg + ";padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;\">" + estadoLabel + "</span>"
                 + "</div>"
-                + "<h2 style=\"color:#0F172A;margin:0 0 6px 0;font-size:18px;\">Comprobante de " + tipo + "</h2>"
-                + "<p style=\"color:#475569;font-size:14px;margin:0 0 16px 0;\">Hola <strong>" + nombreSeguro + "</strong>, aquí tienes el ticket de tu operación:</p>"
+                + "<h2 style=\"color:#0F172A;margin:0 0 6px 0;font-size:18px;\">" + titulo + "</h2>"
+                + "<p style=\"color:#475569;font-size:14px;margin:0 0 16px 0;\">" + intro + "</p>"
                 + "<div style=\"background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:14px;text-align:center;margin-bottom:16px;\">"
-                + "<div style=\"font-size:12px;color:#1D4ED8;font-weight:700;text-transform:uppercase;\">Importe pagado</div>"
+                + "<div style=\"font-size:12px;color:#1D4ED8;font-weight:700;text-transform:uppercase;\">" + etiquetaMonto + "</div>"
                 + "<div style=\"font-size:28px;font-weight:800;color:#0F172A;margin-top:4px;\">" + montoTxt + "</div>"
                 + "<div style=\"font-size:13px;color:#334155;margin-top:4px;\">" + servicio + (producto.isEmpty() ? "" : " · " + producto) + "</div>"
                 + "</div>"
@@ -155,8 +182,8 @@ public class BrevoEmailServiceImpl implements EmailService {
                 + "<tr><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;color:#64748B;\">Destino / Referencia</td><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;text-align:right;font-weight:700;\">" + destino + "</td></tr>"
                 + "<tr><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;color:#64748B;\">Cuenta de cargo</td><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;text-align:right;font-weight:700;\">" + cuenta + "</td></tr>"
                 + "<tr><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;color:#64748B;\">Comisión cliente</td><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;text-align:right;font-weight:700;\">$0.00 MXN</td></tr>"
-                + "<tr><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;color:#64748B;\">Folio de autorización</td><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;text-align:right;font-weight:700;\">" + autorizacion + "</td></tr>"
-                + "<tr><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;color:#64748B;\">ID Transacción (idTx)</td><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;text-align:right;font-weight:700;\">" + idTx + "</td></tr>"
+                + filaAutorizacion
+                + filaIdTx
                 + "<tr><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;color:#64748B;\">Folio UPC</td><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;text-align:right;font-weight:700;\">" + upc + "</td></tr>"
                 + "<tr><td style=\"padding:6px 0;color:#64748B;\">Fecha y hora</td><td style=\"padding:6px 0;text-align:right;font-weight:700;\">" + fecha + "</td></tr>"
                 + "</table>"
@@ -170,7 +197,7 @@ public class BrevoEmailServiceImpl implements EmailService {
                 "name", ticket.getNombreCliente() != null && !ticket.getNombreCliente().isBlank()
                         ? ticket.getNombreCliente() : ticket.getDestinatarioEmail()
         )));
-        payload.put("subject", "Ticket de pago " + servicio + " (" + montoTxt + ") — Banco Digital");
+        payload.put("subject", asunto);
         payload.put("htmlContent", html);
 
         HttpHeaders headers = new HttpHeaders();

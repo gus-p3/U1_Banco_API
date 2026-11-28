@@ -219,10 +219,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
             catalogoRefresher.refrescarEnSegundoPlano();
             return productoNoDisponible();
         }
-        boolean ticketEnviado = false;
-        if (resuelto.getEstado() == EstadoPago.APLICADO) {
-            ticketEnviado = enviarTicketCorreoSeguro(resuelto, producto, client, cliente.getEmail());
-        }
+        boolean ticketEnviado = enviarTicketCorreoSeguro(resuelto, producto, client, cliente.getEmail());
         return aRespuesta(resuelto, producto, ticketEnviado);
     }
 
@@ -351,25 +348,26 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
             p.setIntentosConfirmacion(p.getIntentosConfirmacion() + 1);
             p.setResponseRaw(bitacora(p.getResponseRaw(), http));
 
-            boolean pasoAAplicado = false;
+            boolean pasoAFinal = false;
             if (resultado == null) {
                 log.warn("confirmTx sin respuesta para el pago {}; se reintenta en la siguiente vuelta", p.getUpc());
             } else if (CODIGO_CONFIRM_APLICADA.equals(resultado.getCodigo())) {
                 copiarResultado(p, resultado);
                 p.setEstado(EstadoPago.APLICADO);
-                pasoAAplicado = true;
+                pasoAFinal = true;
                 log.info("Pago {} confirmado como APLICADO", p.getUpc());
             } else if (contiene(codigosNoAplicada, resultado.getCodigo())) {
                 copiarResultado(p, resultado);
                 p.setEstado(EstadoPago.RECHAZADO);
                 devolverSaldo(p);
+                pasoAFinal = true;
                 log.info("Pago {} confirmado como NO aplicado (CODIGO={}); saldo devuelto", p.getUpc(), resultado.getCodigo());
             } else {
                 log.warn("confirmTx devolvió un código no concluyente ({}) para el pago {}; se reintenta",
                         resultado.getCodigo(), p.getUpc());
             }
             PagoGestoPago saved = pagoRepository.save(p);
-            return pasoAAplicado ? saved : null;
+            return pasoAFinal ? saved : null;
         });
         if (confirmadoAplicado != null) {
             ProductoResponse prod = buscarProducto(confirmadoAplicado.getIdServicio(), confirmadoAplicado.getIdProducto());
