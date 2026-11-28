@@ -26,5 +26,4 @@ public class PaymentTicketEmailRequest {
     private String upc;
     private String fechaHora;
     private String leyendaProducto;
-    private String aclaraciones;
 }

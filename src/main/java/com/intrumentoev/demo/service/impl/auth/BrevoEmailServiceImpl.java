@@ -129,12 +129,15 @@ public class BrevoEmailServiceImpl implements EmailService {
         String idTx = ticket.getIdTx() != null ? String.valueOf(ticket.getIdTx()) : "N/D";
         String upc = escaparHtml(ticket.getUpc() != null ? ticket.getUpc() : "N/D");
         String fecha = escaparHtml(ticket.getFechaHora() != null ? ticket.getFechaHora() : "");
-        String leyenda = escaparHtml(ticket.getLeyendaProducto() != null && !ticket.getLeyendaProducto().isBlank()
-                ? ticket.getLeyendaProducto()
-                : "Operación procesada a través de GestoPago. Conserva este comprobante para cualquier aclaración.");
-        String aclaraciones = escaparHtml(ticket.getAclaraciones() != null && !ticket.getAclaraciones().isBlank()
-                ? ticket.getAclaraciones()
-                : "Para aclaraciones o reclamaciones comunícate a la UNE de Banco Digital o CONDUSEF presentando tu folio UPC y número de autorización.");
+        String leyenda = ticket.getLeyendaProducto() != null && !ticket.getLeyendaProducto().isBlank()
+                ? escaparHtml(ticket.getLeyendaProducto().trim())
+                : "";
+        String bloqueSoporte = leyenda.isEmpty()
+                ? ""
+                : "<div style=\"background:#F8FAFC;border-left:4px solid #1C69F7;border-radius:6px;padding:12px;\">"
+                        + "<div style=\"font-size:12px;font-weight:700;color:#0F172A;margin-bottom:4px;\">Soporte y aclaraciones</div>"
+                        + "<div style=\"font-size:12px;color:#475569;line-height:1.45;\">" + leyenda + "</div>"
+                        + "</div>";
 
         String html = "<div style=\"font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;border:1px solid #E2E8F0;border-radius:14px;background:#FFFFFF;\">"
                 + "<div style=\"display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1C69F7;padding-bottom:12px;margin-bottom:16px;\">"
@@ -142,7 +145,7 @@ public class BrevoEmailServiceImpl implements EmailService {
                 + "<span style=\"background:#ECFDF5;color:#059669;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;\">" + estado + "</span>"
                 + "</div>"
                 + "<h2 style=\"color:#0F172A;margin:0 0 6px 0;font-size:18px;\">Comprobante de " + tipo + "</h2>"
-                + "<p style=\"color:#475569;font-size:14px;margin:0 0 16px 0;\">Hola <strong>" + nombreSeguro + "</strong>, aquí tienes el ticket oficial de tu operación:</p>"
+                + "<p style=\"color:#475569;font-size:14px;margin:0 0 16px 0;\">Hola <strong>" + nombreSeguro + "</strong>, aquí tienes el ticket de tu operación:</p>"
                 + "<div style=\"background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:14px;text-align:center;margin-bottom:16px;\">"
                 + "<div style=\"font-size:12px;color:#1D4ED8;font-weight:700;text-transform:uppercase;\">Importe pagado</div>"
                 + "<div style=\"font-size:28px;font-weight:800;color:#0F172A;margin-top:4px;\">" + montoTxt + "</div>"
@@ -157,14 +160,7 @@ public class BrevoEmailServiceImpl implements EmailService {
                 + "<tr><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;color:#64748B;\">Folio UPC</td><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;text-align:right;font-weight:700;\">" + upc + "</td></tr>"
                 + "<tr><td style=\"padding:6px 0;color:#64748B;\">Fecha y hora</td><td style=\"padding:6px 0;text-align:right;font-weight:700;\">" + fecha + "</td></tr>"
                 + "</table>"
-                + "<div style=\"background:#F8FAFC;border-left:4px solid #1C69F7;border-radius:6px;padding:12px;margin-bottom:12px;\">"
-                + "<div style=\"font-size:12px;font-weight:700;color:#0F172A;margin-bottom:4px;\">Leyenda del producto / proveedor</div>"
-                + "<div style=\"font-size:12px;color:#475569;line-height:1.45;\">" + leyenda + "</div>"
-                + "</div>"
-                + "<div style=\"background:#FFFBEB;border-left:4px solid #D97706;border-radius:6px;padding:12px;\">"
-                + "<div style=\"font-size:12px;font-weight:700;color:#92400E;margin-bottom:4px;\">¿Dónde puedo reclamar o solicitar una aclaración?</div>"
-                + "<div style=\"font-size:12px;color:#78350F;line-height:1.45;\">" + aclaraciones + "</div>"
-                + "</div>"
+                + bloqueSoporte
                 + "</div>";
 
         Map<String, Object> payload = new LinkedHashMap<>();

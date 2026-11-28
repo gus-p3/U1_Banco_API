@@ -38,7 +38,6 @@ public class PagoDetalleResponse {
     private Long idTx;
     private String upc;
     private String leyendaProducto;
-    private String aclaraciones;
     private OffsetDateTime fechaEnvio;
     private OffsetDateTime fechaCreacion;
     private OffsetDateTime fechaActualizacion;

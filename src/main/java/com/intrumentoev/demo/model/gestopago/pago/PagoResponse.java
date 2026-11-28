@@ -38,9 +38,6 @@ public class PagoResponse {
     @Schema(description = "Leyenda oficial del producto/proveedor devuelta por GestoPago")
     private String leyendaProducto;
 
-    @Schema(description = "Canales oficiales de aclaraciones y reclamaciones (UNE Banco Digital y CONDUSEF)")
-    private String aclaraciones;
-
     @Schema(description = "Indica si se envió el comprobante/ticket al correo electrónico del titular")
     private Boolean ticketEnviadoCorreo;
 }

@@ -117,12 +117,6 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
     @Autowired(required = false)
     private ContactDetailRepository contactDetailRepository;
 
-    @Value("${bank.support.email:aclaraciones@bancodigital.com}")
-    private String supportEmail = "aclaraciones@bancodigital.com";
-
-    @Value("${bank.support.phone:800-000-2262}")
-    private String supportPhone = "800-000-2262";
-
     @Value("${gestopago.tx.unidad:086}")
     private String unidad;
 
@@ -623,19 +617,7 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
         if (prod != null && prod.getLegend() != null && !prod.getLegend().isBlank()) {
             return prod.getLegend().trim();
         }
-        return "Operación procesada a través de GestoPago. Conserva tu folio UPC y número de autorización para cualquier aclaración.";
-    }
-
-    private String construirTextoAclaraciones(String upc, String numAutorizacion) {
-        String correo = (supportEmail != null && !supportEmail.isBlank()) ? supportEmail.trim() : "aclaraciones@bancodigital.com";
-        String tel = (supportPhone != null && !supportPhone.isBlank()) ? supportPhone.trim() : "800-000-2262";
-        String refFolio = (upc != null && !upc.isBlank()) ? "Folio UPC " + upc : "tu folio de operación";
-        if (numAutorizacion != null && !numAutorizacion.isBlank()) {
-            refFolio += " y autorización " + numAutorizacion;
-        }
-        return "Si tienes alguna aclaración o reclamación sobre este pago, comunícate a la Unidad Especializada de Atención a Usuarios (UNE) de Banco Digital al "
-                + tel + " o escribe a " + correo + " (Lun–Dom 24 h) proporcionando " + refFolio
-                + ". En caso de no recibir respuesta satisfactoria, puedes acudir a CONDUSEF (55 5340 0999 · www.condusef.gob.mx).";
+        return null;
     }
 
     private boolean enviarTicketCorreoSeguro(PagoGestoPago pago, ProductoResponse prod, Client client, String fallbackEmail) {
@@ -680,7 +662,6 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
                     .upc(pago.getUpc())
                     .fechaHora(fechaTxt)
                     .leyendaProducto(resolverLeyendaProducto(prod))
-                    .aclaraciones(construirTextoAclaraciones(pago.getUpc(), pago.getNumAutorizacion()))
                     .build());
             return true;
         } catch (Exception e) {
@@ -697,7 +678,6 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
                 .idTx(pago.getIdTx())
                 .upc(pago.getUpc())
                 .leyendaProducto(resolverLeyendaProducto(prod))
-                .aclaraciones(construirTextoAclaraciones(pago.getUpc(), pago.getNumAutorizacion()))
                 .ticketEnviadoCorreo(ticketEnviado);
         return switch (pago.getEstado()) {
             case APLICADO -> base.codigo(1)
@@ -831,7 +811,6 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
                 .idTx(pago.getIdTx())
                 .upc(pago.getUpc())
                 .leyendaProducto(resolverLeyendaProducto(prod))
-                .aclaraciones(construirTextoAclaraciones(pago.getUpc(), pago.getNumAutorizacion()))
                 .fechaEnvio(pago.getFechaEnvio())
                 .fechaCreacion(pago.getFechaCreacion() != null ? pago.getFechaCreacion() : pago.getFechaEnvio())
                 .fechaActualizacion(pago.getFechaActualizacion())
