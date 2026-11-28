@@ -1,6 +1,7 @@
 package com.intrumentoev.demo.service.impl.gestopago;
 
 import com.intrumentoev.demo.entity.account.Account;
+import com.intrumentoev.demo.entity.auth.Auth;
 import com.intrumentoev.demo.entity.catalogs.OperationAmountRange;
 import com.intrumentoev.demo.entity.client.Client;
 import com.intrumentoev.demo.entity.employment.EmploymentInformation;
@@ -17,6 +18,7 @@ import com.intrumentoev.demo.model.gestopago.pago.PagoResponse;
 import com.intrumentoev.demo.model.gestopago.pago.PushTokenRequest;
 import com.intrumentoev.demo.model.gestopago.pago.TipoPago;
 import com.intrumentoev.demo.repository.account.AccountRepository;
+import com.intrumentoev.demo.repository.auth.AuthRepository;
 import com.intrumentoev.demo.repository.catalogs.OperationAmountRangeRepository;
 import com.intrumentoev.demo.repository.client.ClientRepository;
 import com.intrumentoev.demo.repository.employment.EmploymentInformationRepository;
@@ -64,6 +66,9 @@ public class PagoAutorizacionServiceImpl implements PagoAutorizacionService {
     @Autowired(required = false)
     private OperationAmountRangeRepository operationAmountRangeRepository;
 
+    @Autowired(required = false)
+    private AuthRepository authRepository;
+
     @Value("${pagos.autorizacion.ttl-seconds:120}")
     private long ttlSeconds = 120L;
 
@@ -99,6 +104,16 @@ public class PagoAutorizacionServiceImpl implements PagoAutorizacionService {
         }
         if (!"ACTIVA".equals(cuenta.getStatus())) {
             throw new BusinessException(ErrorCode.PAYMENT_ACCOUNT_INACTIVE);
+        }
+        if (authRepository != null) {
+            Auth auth = authRepository.findByIdClient(idCliente).orElse(null);
+            boolean tieneHuella = auth != null
+                    && auth.getBiometricTemplate() != null
+                    && auth.getBiometricTemplate().length > 0
+                    && "HUELLA".equalsIgnoreCase(auth.getBiometricType());
+            if (!tieneHuella) {
+                throw new BusinessException(ErrorCode.STRONG_AUTH_REQUIRED);
+            }
         }
 
         ProductoResponse producto = buscarProducto(request.getIdServicio(), request.getIdProducto());

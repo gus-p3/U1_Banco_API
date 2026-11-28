@@ -37,6 +37,7 @@ public class ClientResponse {
     private Short idMaritalStatus;
     private String maritalStatusName;
     private Boolean isActive;
+    private Boolean hasBiometric;
     private OffsetDateTime deactivatedAt;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;

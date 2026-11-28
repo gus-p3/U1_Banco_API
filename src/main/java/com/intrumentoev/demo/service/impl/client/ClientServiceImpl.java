@@ -23,6 +23,7 @@ import com.intrumentoev.demo.model.client.*;
 import com.intrumentoev.demo.model.employment.EmploymentInformationResponse;
 import com.intrumentoev.demo.model.home.HomeResponse;
 import com.intrumentoev.demo.repository.account.AccountRepository;
+import com.intrumentoev.demo.repository.auth.AuthRepository;
 import com.intrumentoev.demo.repository.catalogs.GenderRepository;
 import com.intrumentoev.demo.repository.catalogs.MaritalStatusRepository;
 import com.intrumentoev.demo.repository.catalogs.MunicipalityRepository;
@@ -87,6 +88,9 @@ public class ClientServiceImpl implements ClientService {
 
     @Autowired(required = false)
     private OperationAmountRangeRepository operationAmountRangeRepository;
+
+    @Autowired(required = false)
+    private AuthRepository authRepository;
 
     // =========================================================================
     // 1. GET: Consulta y Búsqueda Dinámica con Ordenamiento
@@ -469,6 +473,14 @@ public class ClientServiceImpl implements ClientService {
         if (response.getIdMaritalStatus() != null) {
             maritalStatusRepository.findById(response.getIdMaritalStatus())
                     .ifPresent(m -> response.setMaritalStatusName(m.getName()));
+        }
+        if (response.getIdClient() != null && authRepository != null) {
+            boolean hasFingerprint = authRepository.findByIdClient(response.getIdClient())
+                    .map(a -> a.getBiometricTemplate() != null
+                            && a.getBiometricTemplate().length > 0
+                            && "HUELLA".equalsIgnoreCase(a.getBiometricType()))
+                    .orElse(false);
+            response.setHasBiometric(hasFingerprint);
         }
     }
 
