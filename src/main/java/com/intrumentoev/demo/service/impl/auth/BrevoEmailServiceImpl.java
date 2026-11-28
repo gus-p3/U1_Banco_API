@@ -2,6 +2,7 @@ package com.intrumentoev.demo.service.impl.auth;
 
 import com.intrumentoev.demo.exception.BusinessException;
 import com.intrumentoev.demo.exception.ErrorCode;
+import com.intrumentoev.demo.model.gestopago.pago.PaymentTicketEmailRequest;
 import com.intrumentoev.demo.service.service.auth.EmailService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -100,6 +101,93 @@ public class BrevoEmailServiceImpl implements EmailService {
         } catch (Exception e) {
             log.error("Error al enviar correo vía Brevo a {}: {}", destinatarioEmail, e.getMessage());
             throw new BusinessException(ErrorCode.EMAIL_DELIVERY_FAILED);
+        }
+    }
+
+    @Override
+    public void enviarTicketPago(PaymentTicketEmailRequest ticket) {
+        if (ticket == null || ticket.getDestinatarioEmail() == null || ticket.getDestinatarioEmail().isBlank()) {
+            return;
+        }
+        if (apiKey.isBlank()) {
+            log.warn("BREVO_API_KEY no configurada; omitiendo envío real de ticket de pago UPC {} a {}",
+                    ticket.getUpc(), ticket.getDestinatarioEmail());
+            return;
+        }
+
+        String nombreSeguro = escaparHtml(ticket.getNombreCliente() != null && !ticket.getNombreCliente().isBlank()
+                ? ticket.getNombreCliente() : "Cliente");
+        String servicio = escaparHtml(ticket.getNombreServicio() != null ? ticket.getNombreServicio() : "Servicio");
+        String producto = escaparHtml(ticket.getNombreProducto() != null ? ticket.getNombreProducto() : "");
+        String tipo = escaparHtml(ticket.getTipoOperacion() != null ? ticket.getTipoOperacion() : "Pago");
+        String destino = escaparHtml(ticket.getDestino() != null ? ticket.getDestino() : "N/D");
+        String cuenta = escaparHtml(ticket.getCuentaEnmascarada() != null ? ticket.getCuentaEnmascarada() : "N/D");
+        String montoTxt = ticket.getMonto() != null ? "$" + ticket.getMonto().setScale(2, java.math.RoundingMode.HALF_UP) + " MXN" : "$0.00 MXN";
+        String estado = escaparHtml(ticket.getEstado() != null ? ticket.getEstado() : "APLICADO");
+        String autorizacion = escaparHtml(ticket.getNumAutorizacion() != null && !ticket.getNumAutorizacion().isBlank()
+                ? ticket.getNumAutorizacion() : "N/D");
+        String idTx = ticket.getIdTx() != null ? String.valueOf(ticket.getIdTx()) : "N/D";
+        String upc = escaparHtml(ticket.getUpc() != null ? ticket.getUpc() : "N/D");
+        String fecha = escaparHtml(ticket.getFechaHora() != null ? ticket.getFechaHora() : "");
+        String leyenda = escaparHtml(ticket.getLeyendaProducto() != null && !ticket.getLeyendaProducto().isBlank()
+                ? ticket.getLeyendaProducto()
+                : "Operación procesada a través de GestoPago. Conserva este comprobante para cualquier aclaración.");
+        String aclaraciones = escaparHtml(ticket.getAclaraciones() != null && !ticket.getAclaraciones().isBlank()
+                ? ticket.getAclaraciones()
+                : "Para aclaraciones o reclamaciones comunícate a la UNE de Banco Digital o CONDUSEF presentando tu folio UPC y número de autorización.");
+
+        String html = "<div style=\"font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;border:1px solid #E2E8F0;border-radius:14px;background:#FFFFFF;\">"
+                + "<div style=\"display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1C69F7;padding-bottom:12px;margin-bottom:16px;\">"
+                + "<div style=\"color:#1C69F7;font-weight:800;font-size:20px;\">Banco Digital</div>"
+                + "<span style=\"background:#ECFDF5;color:#059669;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;\">" + estado + "</span>"
+                + "</div>"
+                + "<h2 style=\"color:#0F172A;margin:0 0 6px 0;font-size:18px;\">Comprobante de " + tipo + "</h2>"
+                + "<p style=\"color:#475569;font-size:14px;margin:0 0 16px 0;\">Hola <strong>" + nombreSeguro + "</strong>, aquí tienes el ticket oficial de tu operación:</p>"
+                + "<div style=\"background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:14px;text-align:center;margin-bottom:16px;\">"
+                + "<div style=\"font-size:12px;color:#1D4ED8;font-weight:700;text-transform:uppercase;\">Importe pagado</div>"
+                + "<div style=\"font-size:28px;font-weight:800;color:#0F172A;margin-top:4px;\">" + montoTxt + "</div>"
+                + "<div style=\"font-size:13px;color:#334155;margin-top:4px;\">" + servicio + (producto.isEmpty() ? "" : " · " + producto) + "</div>"
+                + "</div>"
+                + "<table style=\"width:100%;border-collapse:collapse;font-size:13px;color:#334155;margin-bottom:16px;\">"
+                + "<tr><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;color:#64748B;\">Destino / Referencia</td><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;text-align:right;font-weight:700;\">" + destino + "</td></tr>"
+                + "<tr><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;color:#64748B;\">Cuenta de cargo</td><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;text-align:right;font-weight:700;\">" + cuenta + "</td></tr>"
+                + "<tr><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;color:#64748B;\">Comisión cliente</td><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;text-align:right;font-weight:700;\">$0.00 MXN</td></tr>"
+                + "<tr><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;color:#64748B;\">Folio de autorización</td><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;text-align:right;font-weight:700;\">" + autorizacion + "</td></tr>"
+                + "<tr><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;color:#64748B;\">ID Transacción (idTx)</td><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;text-align:right;font-weight:700;\">" + idTx + "</td></tr>"
+                + "<tr><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;color:#64748B;\">Folio UPC</td><td style=\"padding:6px 0;border-bottom:1px solid #F1F5F9;text-align:right;font-weight:700;\">" + upc + "</td></tr>"
+                + "<tr><td style=\"padding:6px 0;color:#64748B;\">Fecha y hora</td><td style=\"padding:6px 0;text-align:right;font-weight:700;\">" + fecha + "</td></tr>"
+                + "</table>"
+                + "<div style=\"background:#F8FAFC;border-left:4px solid #1C69F7;border-radius:6px;padding:12px;margin-bottom:12px;\">"
+                + "<div style=\"font-size:12px;font-weight:700;color:#0F172A;margin-bottom:4px;\">Leyenda del producto / proveedor</div>"
+                + "<div style=\"font-size:12px;color:#475569;line-height:1.45;\">" + leyenda + "</div>"
+                + "</div>"
+                + "<div style=\"background:#FFFBEB;border-left:4px solid #D97706;border-radius:6px;padding:12px;\">"
+                + "<div style=\"font-size:12px;font-weight:700;color:#92400E;margin-bottom:4px;\">¿Dónde puedo reclamar o solicitar una aclaración?</div>"
+                + "<div style=\"font-size:12px;color:#78350F;line-height:1.45;\">" + aclaraciones + "</div>"
+                + "</div>"
+                + "</div>";
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("sender", Map.of("name", senderName, "email", senderEmail));
+        payload.put("to", List.of(Map.of(
+                "email", ticket.getDestinatarioEmail(),
+                "name", ticket.getNombreCliente() != null && !ticket.getNombreCliente().isBlank()
+                        ? ticket.getNombreCliente() : ticket.getDestinatarioEmail()
+        )));
+        payload.put("subject", "Ticket de pago " + servicio + " (" + montoTxt + ") — Banco Digital");
+        payload.put("htmlContent", html);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        headers.set("api-key", apiKey);
+
+        try {
+            restTemplate.postForEntity(apiUrl, new HttpEntity<>(payload, headers), String.class);
+            log.info("Ticket de pago UPC {} enviado por Brevo a {}", ticket.getUpc(), ticket.getDestinatarioEmail());
+        } catch (Exception e) {
+            log.error("Error al enviar ticket de pago UPC {} vía Brevo a {}: {}",
+                    ticket.getUpc(), ticket.getDestinatarioEmail(), e.getMessage());
         }
     }
 

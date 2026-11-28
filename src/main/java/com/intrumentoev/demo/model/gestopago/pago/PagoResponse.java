@@ -34,4 +34,13 @@ public class PagoResponse {
 
     @Schema(example = "BXMGH3K9P2Q7R4T", description = "Identificador único del pago; úsalo para consultar un pago POR_CONFIRMAR")
     private String upc;
+
+    @Schema(description = "Leyenda oficial del producto/proveedor devuelta por GestoPago")
+    private String leyendaProducto;
+
+    @Schema(description = "Canales oficiales de aclaraciones y reclamaciones (UNE Banco Digital y CONDUSEF)")
+    private String aclaraciones;
+
+    @Schema(description = "Indica si se envió el comprobante/ticket al correo electrónico del titular")
+    private Boolean ticketEnviadoCorreo;
 }

@@ -9,6 +9,7 @@ import com.intrumentoev.demo.entity.account.Account;
 import com.intrumentoev.demo.entity.account.AccountBalance;
 import com.intrumentoev.demo.entity.catalogs.OperationAmountRange;
 import com.intrumentoev.demo.entity.client.Client;
+import com.intrumentoev.demo.entity.contactDetail.ContactDetail;
 import com.intrumentoev.demo.entity.employment.EmploymentInformation;
 import com.intrumentoev.demo.entity.gestopago.PagoGestoPago;
 import com.intrumentoev.demo.exception.BusinessException;
@@ -23,13 +24,16 @@ import com.intrumentoev.demo.model.gestopago.pago.PagoDetalleResponse;
 import com.intrumentoev.demo.model.gestopago.pago.PagoHistorialPageResponse;
 import com.intrumentoev.demo.model.gestopago.pago.PagoRequest;
 import com.intrumentoev.demo.model.gestopago.pago.PagoResponse;
+import com.intrumentoev.demo.model.gestopago.pago.PaymentTicketEmailRequest;
 import com.intrumentoev.demo.model.gestopago.pago.TipoPago;
 import com.intrumentoev.demo.repository.account.AccountBalanceRepository;
 import com.intrumentoev.demo.repository.account.AccountRepository;
 import com.intrumentoev.demo.repository.catalogs.OperationAmountRangeRepository;
 import com.intrumentoev.demo.repository.client.ClientRepository;
+import com.intrumentoev.demo.repository.contactDetail.ContactDetailRepository;
 import com.intrumentoev.demo.repository.employment.EmploymentInformationRepository;
 import com.intrumentoev.demo.repository.gestopago.PagoGestoPagoRepository;
+import com.intrumentoev.demo.service.service.auth.EmailService;
 import com.intrumentoev.demo.service.service.gestopago.GestoPagoTokenService;
 import com.intrumentoev.demo.service.service.gestopago.PagoGestoPagoService;
 import com.intrumentoev.demo.service.service.gestopago.ProductoService;
@@ -106,6 +110,18 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
 
     @Autowired(required = false)
     private OperationAmountRangeRepository operationAmountRangeRepository;
+
+    @Autowired(required = false)
+    private EmailService emailService;
+
+    @Autowired(required = false)
+    private ContactDetailRepository contactDetailRepository;
+
+    @Value("${bank.support.email:aclaraciones@bancodigital.com}")
+    private String supportEmail = "aclaraciones@bancodigital.com";
+
+    @Value("${bank.support.phone:800-000-2262}")
+    private String supportPhone = "800-000-2262";
 
     @Value("${gestopago.tx.unidad:086}")
     private String unidad;
@@ -209,7 +225,11 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
             catalogoRefresher.refrescarEnSegundoPlano();
             return productoNoDisponible();
         }
-        return aRespuesta(resuelto);
+        boolean ticketEnviado = false;
+        if (resuelto.getEstado() == EstadoPago.APLICADO) {
+            ticketEnviado = enviarTicketCorreoSeguro(resuelto, producto, client, cliente.getEmail());
+        }
+        return aRespuesta(resuelto, producto, ticketEnviado);
     }
 
     private void validarLimiteOperacion(Long idCliente, BigDecimal monto) {
@@ -329,19 +349,21 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
         GestoPagoHttpResponse http = llamar(true, cipher.cifrar(pago.getPayloadJson()));
         GestoPagoTxResult resultado = interpretar(http);
 
-        tx.executeWithoutResult(status -> {
+        PagoGestoPago confirmadoAplicado = tx.execute(status -> {
             PagoGestoPago p = pagoRepository.findByIdForUpdate(idPago).orElseThrow();
             if (!esPorResolver(p.getEstado())) {
-                return;
+                return null;
             }
             p.setIntentosConfirmacion(p.getIntentosConfirmacion() + 1);
             p.setResponseRaw(bitacora(p.getResponseRaw(), http));
 
+            boolean pasoAAplicado = false;
             if (resultado == null) {
                 log.warn("confirmTx sin respuesta para el pago {}; se reintenta en la siguiente vuelta", p.getUpc());
             } else if (CODIGO_CONFIRM_APLICADA.equals(resultado.getCodigo())) {
                 copiarResultado(p, resultado);
                 p.setEstado(EstadoPago.APLICADO);
+                pasoAAplicado = true;
                 log.info("Pago {} confirmado como APLICADO", p.getUpc());
             } else if (contiene(codigosNoAplicada, resultado.getCodigo())) {
                 copiarResultado(p, resultado);
@@ -352,8 +374,14 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
                 log.warn("confirmTx devolvió un código no concluyente ({}) para el pago {}; se reintenta",
                         resultado.getCodigo(), p.getUpc());
             }
-            pagoRepository.save(p);
+            PagoGestoPago saved = pagoRepository.save(p);
+            return pasoAAplicado ? saved : null;
         });
+        if (confirmadoAplicado != null) {
+            ProductoResponse prod = buscarProducto(confirmadoAplicado.getIdServicio(), confirmadoAplicado.getIdProducto());
+            Client c = clientRepository.findById(confirmadoAplicado.getIdCliente()).orElse(null);
+            enviarTicketCorreoSeguro(confirmadoAplicado, prod, c, null);
+        }
     }
 
     @Override
@@ -591,13 +619,86 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
         return MSG_NO_PROCESABLE_POR_EL_MOMENTO;
     }
 
-    private PagoResponse aRespuesta(PagoGestoPago pago) {
+    private String resolverLeyendaProducto(ProductoResponse prod) {
+        if (prod != null && prod.getLegend() != null && !prod.getLegend().isBlank()) {
+            return prod.getLegend().trim();
+        }
+        return "Operación procesada a través de GestoPago. Conserva tu folio UPC y número de autorización para cualquier aclaración.";
+    }
+
+    private String construirTextoAclaraciones(String upc, String numAutorizacion) {
+        String correo = (supportEmail != null && !supportEmail.isBlank()) ? supportEmail.trim() : "aclaraciones@bancodigital.com";
+        String tel = (supportPhone != null && !supportPhone.isBlank()) ? supportPhone.trim() : "800-000-2262";
+        String refFolio = (upc != null && !upc.isBlank()) ? "Folio UPC " + upc : "tu folio de operación";
+        if (numAutorizacion != null && !numAutorizacion.isBlank()) {
+            refFolio += " y autorización " + numAutorizacion;
+        }
+        return "Si tienes alguna aclaración o reclamación sobre este pago, comunícate a la Unidad Especializada de Atención a Usuarios (UNE) de Banco Digital al "
+                + tel + " o escribe a " + correo + " (Lun–Dom 24 h) proporcionando " + refFolio
+                + ". En caso de no recibir respuesta satisfactoria, puedes acudir a CONDUSEF (55 5340 0999 · www.condusef.gob.mx).";
+    }
+
+    private boolean enviarTicketCorreoSeguro(PagoGestoPago pago, ProductoResponse prod, Client client, String fallbackEmail) {
+        if (emailService == null) {
+            return false;
+        }
+        try {
+            String destinatario = fallbackEmail;
+            if ((destinatario == null || destinatario.isBlank()) && contactDetailRepository != null && pago.getIdCliente() != null) {
+                destinatario = contactDetailRepository.findByIdClient(pago.getIdCliente())
+                        .map(ContactDetail::getEmail)
+                        .orElse(null);
+            }
+            if (destinatario == null || destinatario.isBlank()) {
+                return false;
+            }
+            String nombreCliente = client != null
+                    ? String.join(" ", java.util.stream.Stream.of(client.getName(), client.getLastName())
+                            .filter(s -> s != null && !s.isBlank()).toList())
+                    : "Cliente";
+            String nombreServicio = prod != null && prod.getServicio() != null
+                    ? prod.getServicio() : "Servicio #" + pago.getIdServicio();
+            String nombreProducto = prod != null && prod.getProducto() != null
+                    ? prod.getProducto() : "Producto #" + pago.getIdProducto();
+            String destino = pago.getTipoPago() == TipoPago.RECARGA ? pago.getTelefono() : pago.getReferencia();
+            String fechaTxt = (pago.getFechaEnvio() != null ? pago.getFechaEnvio() : OffsetDateTime.now())
+                    .atZoneSameInstant(ZONA_MEXICO)
+                    .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss z"));
+
+            emailService.enviarTicketPago(PaymentTicketEmailRequest.builder()
+                    .destinatarioEmail(destinatario)
+                    .nombreCliente(nombreCliente)
+                    .estado(pago.getEstado().name())
+                    .tipoOperacion(pago.getTipoPago() == TipoPago.RECARGA ? "Recarga móvil" : "Pago de servicio")
+                    .nombreServicio(nombreServicio)
+                    .nombreProducto(nombreProducto)
+                    .destino(destino)
+                    .cuentaEnmascarada(enmascararReferencia(pago.getNumCuenta()))
+                    .monto(pago.getMonto())
+                    .numAutorizacion(pago.getNumAutorizacion())
+                    .idTx(pago.getIdTx())
+                    .upc(pago.getUpc())
+                    .fechaHora(fechaTxt)
+                    .leyendaProducto(resolverLeyendaProducto(prod))
+                    .aclaraciones(construirTextoAclaraciones(pago.getUpc(), pago.getNumAutorizacion()))
+                    .build());
+            return true;
+        } catch (Exception e) {
+            log.warn("No fue posible enviar el ticket por correo para el pago {}: {}", pago.getUpc(), e.getMessage());
+            return false;
+        }
+    }
+
+    private PagoResponse aRespuesta(PagoGestoPago pago, ProductoResponse prod, boolean ticketEnviado) {
         PagoResponse.PagoResponseBuilder base = PagoResponse.builder()
                 .estado(pago.getEstado())
                 .codigoGestoPago(pago.getCodigoRespuesta())
                 .numAutorizacion(pago.getNumAutorizacion())
                 .idTx(pago.getIdTx())
-                .upc(pago.getUpc());
+                .upc(pago.getUpc())
+                .leyendaProducto(resolverLeyendaProducto(prod))
+                .aclaraciones(construirTextoAclaraciones(pago.getUpc(), pago.getNumAutorizacion()))
+                .ticketEnviadoCorreo(ticketEnviado);
         return switch (pago.getEstado()) {
             case APLICADO -> base.codigo(1)
                     .mensaje(pago.getTextoRespuesta() != null ? pago.getTextoRespuesta() : "Pago aplicado exitosamente")
@@ -729,6 +830,8 @@ public class PagoGestoPagoServiceImpl implements PagoGestoPagoService {
                 .numAutorizacion(pago.getNumAutorizacion())
                 .idTx(pago.getIdTx())
                 .upc(pago.getUpc())
+                .leyendaProducto(resolverLeyendaProducto(prod))
+                .aclaraciones(construirTextoAclaraciones(pago.getUpc(), pago.getNumAutorizacion()))
                 .fechaEnvio(pago.getFechaEnvio())
                 .fechaCreacion(pago.getFechaCreacion() != null ? pago.getFechaCreacion() : pago.getFechaEnvio())
                 .fechaActualizacion(pago.getFechaActualizacion())
